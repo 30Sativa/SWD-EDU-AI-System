@@ -2,7 +2,7 @@ import { Routes, Route, Outlet, Navigate } from "react-router-dom";
 import ScrollToTop from "../components/layout/ScrollToTop";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
-import SidebarLayout from "../components/layout/SidebarLayout";
+import Sidebar from "../components/layout/Sidebar";
 import Home from "../pages/Home";
 import Dashboard from "../pages/Dashboard";
 
@@ -25,7 +25,7 @@ export default function RouteMap() {
   return (
     <Routes>
       <Route path="dashboard">
-        <Route path="teacher" element={<SidebarLayout />}>
+        <Route path="teacher" element={<Sidebar />}>
           <Route index element={<Dashboard />} />
         </Route>
         <Route index element={<Navigate to="/dashboard/teacher" replace />} />
