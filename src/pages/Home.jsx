@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsVisible(true);
@@ -56,6 +58,15 @@ function HeroSection() {
                 aria-label="Bắt đầu sử dụng EDU-AI ngay"
               >
                 {isLoading ? 'Đang xử lý...' : 'Bắt đầu ngay'}
+              </button>
+              <span className="hidden sm:inline self-center text-gray-400 text-sm">hoặc</span>
+              <button
+                onClick={() => navigate('/dashboard/teacher')}
+                className="px-6 py-3 bg-white font-semibold rounded-lg border-2 transition-all duration-300 text-sm md:text-base hover:shadow-lg hover:scale-105"
+                style={{ borderColor: '#2563eb', color: '#2563eb' }}
+                aria-label="Vào Dashboard giáo viên (tạm, chưa auth)"
+              >
+                Teacher
               </button>
             </div>
 

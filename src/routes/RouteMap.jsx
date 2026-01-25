@@ -1,8 +1,10 @@
-import { Routes, Route, Outlet } from "react-router-dom";
+import { Routes, Route, Outlet, Navigate } from "react-router-dom";
 import ScrollToTop from "../components/layout/ScrollToTop";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import SidebarLayout from "../components/layout/SidebarLayout";
 import Home from "../pages/Home";
+import Dashboard from "../pages/Dashboard";
 
 const Layout = () => (
   <div className="flex flex-col min-h-screen">
@@ -22,8 +24,14 @@ const Fallback = () => (
 export default function RouteMap() {
   return (
     <Routes>
+      <Route path="dashboard">
+        <Route path="teacher" element={<SidebarLayout />}>
+          <Route index element={<Dashboard />} />
+        </Route>
+        <Route index element={<Navigate to="/dashboard/teacher" replace />} />
+      </Route>
       <Route element={<Layout />}>
-        <Route index element={<Home />} />      
+        <Route index element={<Home />} />
         <Route path="*" element={<Fallback />} />
       </Route>
     </Routes>
