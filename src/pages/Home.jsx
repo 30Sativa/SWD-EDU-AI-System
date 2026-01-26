@@ -68,6 +68,14 @@ function HeroSection() {
               >
                 Teacher
               </button>
+              <button
+                onClick={() => navigate('/dashboard/student')}
+                className="px-6 py-3 bg-white font-semibold rounded-lg border-2 transition-all duration-300 text-sm md:text-base hover:shadow-lg hover:scale-105"
+                style={{ borderColor: '#2563eb', color: '#2563eb' }}
+                aria-label="Vào Dashboard học sinh (tạm, chưa auth)"
+              >
+                Student
+              </button>
             </div>
 
             <div className="grid grid-cols-3 gap-3 md:gap-4">

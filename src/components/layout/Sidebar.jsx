@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   BookOpen,
@@ -55,11 +55,21 @@ const MENU_ITEMS = [
   },
 ];
 
-const BASE_PATH = '/dashboard/teacher';
-
 export default function Sidebar({ userRole = 'teacher' }) {
   const [collapsed, setCollapsed] = useState(false);
-  const filteredMenu = MENU_ITEMS.filter((item) => item.allowedRoles.includes(userRole));
+  const location = useLocation();
+  
+  // Auto-detect base path from current location
+  const BASE_PATH = location.pathname.startsWith('/dashboard/student') 
+    ? '/dashboard/student' 
+    : '/dashboard/teacher';
+  
+  // Auto-detect userRole from path if not provided
+  const detectedRole = location.pathname.startsWith('/dashboard/student') ? 'student' : 
+                       location.pathname.startsWith('/dashboard/teacher') ? 'teacher' : 
+                       userRole;
+  
+  const filteredMenu = MENU_ITEMS.filter((item) => item.allowedRoles.includes(detectedRole));
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -132,7 +142,7 @@ export default function Sidebar({ userRole = 'teacher' }) {
             {!collapsed && (
               <div className="min-w-0">
                 <p className="font-semibold text-sm truncate">John Doe</p>
-                <p className="text-xs text-blue-200 capitalize truncate">{userRole}</p>
+                <p className="text-xs text-blue-200 capitalize truncate">{detectedRole}</p>
               </div>
             )}
           </div>

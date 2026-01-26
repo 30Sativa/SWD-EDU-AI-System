@@ -70,7 +70,7 @@ const recentActivity = [
   },
 ];
 
-export default function Dashboard() {
+export default function TeacherDashboard() {
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto">
       <div className="mb-8">
