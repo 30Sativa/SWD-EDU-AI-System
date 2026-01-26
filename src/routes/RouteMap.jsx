@@ -18,7 +18,7 @@ const Layout = () => (
 );
 
 const Fallback = () => (
-  <div style={{ padding: 24, fontSize: 16 }}>App is up </div>
+  <div style={{ padding: 24, fontSize: 16 }}> </div>
 );
 
 export default function RouteMap() {

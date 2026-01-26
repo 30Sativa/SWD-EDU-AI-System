@@ -139,7 +139,6 @@ export default function Sidebar({ userRole = 'teacher' }) {
         </div>
       </div>
 
-      {/* Main: header + content */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="flex-shrink-0 flex items-center justify-end gap-4 px-4 md:px-6 py-3 bg-white border-b border-gray-200">
           <div className="relative w-64 md:w-40">

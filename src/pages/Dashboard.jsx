@@ -136,12 +136,12 @@ export default function Dashboard() {
             <h2 className="text-lg font-bold text-gray-900">Active Courses</h2>
             <p className="text-sm text-gray-500">Your current teaching assignments</p>
           </div>
-          <a
-            href="#"
+          <button
+            type="button"
             className="text-sm font-medium text-blue-600 hover:text-blue-700 inline-flex items-center gap-1"
           >
             View All <ArrowRight size={14} />
-          </a>
+          </button>
         </div>
         <div className="space-y-3">
           {activeCourses.map((course) => (
