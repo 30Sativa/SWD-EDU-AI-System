@@ -14,7 +14,8 @@ import {
     Download,
     Lock,
     Circle,
-    User
+    User,
+    ListChecks
 } from 'lucide-react';
 
 export default function CourseDetail() {
@@ -48,10 +49,11 @@ export default function CourseDetail() {
             duration: '15 tiết',
             completed: true,
             items: [
-                { id: 1, title: '1.1 Dao động điều hòa', duration: '45 p', completed: true },
-                { id: 2, title: '1.2 Con lắc lò xo', duration: '45 p', completed: true },
-                { id: 3, title: '1.3 Con lắc đơn', duration: '45 p', completed: true },
-                { id: 4, title: '1.4 Dao động tắt dần, dao động cưỡng bức', duration: '45 p', completed: true }
+                { id: 1, type: 'video', title: '1.1 Dao động điều hòa', duration: '45 p', completed: true },
+                { id: 2, type: 'video', title: '1.2 Con lắc lò xo', duration: '45 p', completed: true },
+                { id: 3, type: 'video', title: '1.3 Con lắc đơn', duration: '45 p', completed: true },
+                { id: 4, type: 'video', title: '1.4 Dao động tắt dần, dao động cưỡng bức', duration: '45 p', completed: true },
+                { id: 5, type: 'quiz', title: 'Kiểm tra 15 phút: Dao động cơ', duration: '15 p', completed: false, isNew: true }
             ]
         },
         {
@@ -62,9 +64,10 @@ export default function CourseDetail() {
             duration: '12 tiết',
             completed: false,
             items: [
-                { id: 1, title: '2.1 Sóng cơ và sự truyền sóng cơ', duration: '45 p', completed: true },
-                { id: 2, title: '2.2 Giao thoa sóng', duration: '45 p', completed: false, isNew: true },
-                { id: 3, title: '2.3 Sóng dừng', duration: '45 p', completed: false }
+                { id: 1, type: 'video', title: '2.1 Sóng cơ và sự truyền sóng cơ', duration: '45 p', completed: true },
+                { id: 2, type: 'video', title: '2.2 Giao thoa sóng', duration: '45 p', completed: false, isNew: true },
+                { id: 3, type: 'quiz', title: 'Bài tập trắc nghiệm: Giao thoa sóng', duration: '20 p', completed: false },
+                { id: 4, type: 'video', title: '2.3 Sóng dừng', duration: '45 p', completed: false }
             ]
         },
         {
@@ -209,41 +212,57 @@ export default function CourseDetail() {
                                             {/* Section Items */}
                                             {isExpanded && !isLocked && section.items.length > 0 && (
                                                 <div className="border-t border-gray-200 bg-gray-50/50">
-                                                    {section.items.map((item) => (
-                                                        <Link
-                                                            key={item.id}
-                                                            to={`/dashboard/student/courses/${courseId}/lessons/lesson-${section.id}-${item.id}`}
-                                                            className="px-5 py-3.5 flex items-center justify-between hover:bg-white transition-colors border-b border-gray-100 last:border-b-0 group"
-                                                        >
-                                                            <div className="flex items-center gap-3">
-                                                                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${item.completed ? 'bg-green-100' : 'bg-gray-100'
-                                                                    }`}>
-                                                                    {item.completed ? (
-                                                                        <CheckCircle size={16} className="text-green-600" />
-                                                                    ) : (
-                                                                        <PlayCircle size={16} className="text-gray-400" />
-                                                                    )}
-                                                                </div>
-                                                                <div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className={`text-sm font-medium ${item.completed ? 'text-gray-500 line-through' : 'text-gray-900'
-                                                                            }`}>
-                                                                            {item.title}
-                                                                        </span>
-                                                                        {item.isNew && (
-                                                                            <span className="px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded">
-                                                                                MỚI
-                                                                            </span>
+                                                    {section.items.map((item) => {
+                                                        const isQuiz = item.type === 'quiz';
+                                                        return (
+                                                            <Link
+                                                                key={item.id}
+                                                                to={isQuiz
+                                                                    ? `/dashboard/student/quizzes/quiz-ch${section.id}-${item.id}`
+                                                                    : `/dashboard/student/courses/${courseId}/lessons/lesson-${section.id}-${item.id}`
+                                                                }
+                                                                className="px-5 py-3.5 flex items-center justify-between hover:bg-white transition-colors border-b border-gray-100 last:border-b-0 group"
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center ${item.completed ? 'bg-green-100' : isQuiz ? 'bg-orange-100' : 'bg-gray-100'
+                                                                        }`}>
+                                                                        {item.completed ? (
+                                                                            <CheckCircle size={16} className="text-green-600" />
+                                                                        ) : isQuiz ? (
+                                                                            <ListChecks size={16} className="text-orange-600" />
+                                                                        ) : (
+                                                                            <PlayCircle size={16} className="text-gray-400" />
                                                                         )}
                                                                     </div>
-                                                                    <span className="text-xs text-gray-500">Bài giảng Video • {item.duration}</span>
+                                                                    <div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className={`text-sm font-medium ${item.completed ? 'text-gray-500 line-through' : 'text-gray-900'
+                                                                                }`}>
+                                                                                {item.title}
+                                                                            </span>
+                                                                            {item.isNew && (
+                                                                                <span className="px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded">
+                                                                                    MỚI
+                                                                                </span>
+                                                                            )}
+                                                                            {isQuiz && (
+                                                                                <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-bold rounded uppercase">
+                                                                                    Quiz
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <span className="text-xs text-gray-500">
+                                                                            {isQuiz ? 'Bài kiểm tra' : 'Bài giảng Video'} • {item.duration}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div className="text-blue-600 group-hover:text-blue-700 p-1.5 rounded-lg group-hover:bg-blue-50 transition-colors">
-                                                                <PlayCircle size={18} />
-                                                            </div>
-                                                        </Link>
-                                                    ))}
+                                                                <div className={`p-1.5 rounded-lg transition-colors ${isQuiz ? 'text-orange-600 group-hover:bg-orange-50' : 'text-blue-600 group-hover:text-blue-700 group-hover:bg-blue-50'
+                                                                    }`}>
+                                                                    {isQuiz ? <ListChecks size={18} /> : <PlayCircle size={18} />}
+                                                                </div>
+                                                            </Link>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>

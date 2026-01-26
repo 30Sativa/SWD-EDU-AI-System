@@ -26,7 +26,8 @@ import {
     PanelRightClose,
     PanelRight,
     MoreVertical,
-    Bot
+    Bot,
+    ListChecks
 } from 'lucide-react';
 
 export default function LessonDetail() {
@@ -93,19 +94,21 @@ export default function LessonDetail() {
             id: 1,
             title: 'Chương 1: Dao Động Cơ',
             lessons: [
-                { id: 1, title: '1.1 Dao động điều hòa', duration: '45 p', completed: false, isCurrent: true },
-                { id: 2, title: '1.2 Con lắc lò xo', duration: '45 p', completed: false },
-                { id: 3, title: '1.3 Con lắc đơn', duration: '45 p', completed: false },
-                { id: 4, title: '1.4 Dao động tắt dần', duration: '45 p', completed: false }
+                { id: 1, type: 'video', title: '1.1 Dao động điều hòa', duration: '45 p', completed: false, isCurrent: true },
+                { id: 2, type: 'video', title: '1.2 Con lắc lò xo', duration: '45 p', completed: false },
+                { id: 3, type: 'video', title: '1.3 Con lắc đơn', duration: '45 p', completed: false },
+                { id: 4, type: 'video', title: '1.4 Dao động tắt dần', duration: '45 p', completed: false },
+                { id: 5, type: 'quiz', title: 'Kiểm tra 15 phút: Dao động cơ', duration: '15 p', completed: false }
             ]
         },
         {
             id: 2,
             title: 'Chương 2: Sóng Cơ',
             lessons: [
-                { id: 1, title: '2.1 Sự truyền sóng cơ', duration: '45 p', completed: false },
-                { id: 2, title: '2.2 Giao thoa sóng', duration: '45 p', completed: false, isNew: true },
-                { id: 3, title: '2.3 Sóng dừng', duration: '45 p', completed: false }
+                { id: 1, type: 'video', title: '2.1 Sự truyền sóng cơ', duration: '45 p', completed: false },
+                { id: 2, type: 'video', title: '2.2 Giao thoa sóng', duration: '45 p', completed: false, isNew: true },
+                { id: 3, type: 'quiz', title: 'Bài tập: Giao thoa sóng', duration: '20 p', completed: false },
+                { id: 4, type: 'video', title: '2.3 Sóng dừng', duration: '45 p', completed: false }
             ]
         },
         {
@@ -259,30 +262,41 @@ export default function LessonDetail() {
 
                                 {expandedSections.includes(section.id) && !section.isLocked && (
                                     <div className="bg-white">
-                                        {section.lessons.map((lesson) => (
-                                            <Link
-                                                key={lesson.id}
-                                                to="#"
-                                                className={`flex items-start gap-3 p-3 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-0 ${lesson.isCurrent ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'
-                                                    }`}
-                                            >
-                                                <div className="mt-0.5">
-                                                    {lesson.completed ? (
-                                                        <CheckCircle size={16} className="text-green-500" />
-                                                    ) : lesson.isCurrent ? (
-                                                        <PlayCircle size={16} className="text-blue-600 fill-blue-100" />
-                                                    ) : (
-                                                        <Circle size={16} className="text-gray-300" />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className={`text-sm ${lesson.isCurrent ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
-                                                        {lesson.title}
-                                                    </p>
-                                                    <span className="text-xs text-gray-400 block mt-1">{lesson.duration}</span>
-                                                </div>
-                                            </Link>
-                                        ))}
+                                        {section.lessons.map((lesson) => {
+                                            const isQuiz = lesson.type === 'quiz';
+                                            return (
+                                                <Link
+                                                    key={lesson.id}
+                                                    to={isQuiz
+                                                        ? `/dashboard/student/quizzes/quiz-ch${section.id}-${lesson.id}`
+                                                        : '#'
+                                                    }
+                                                    className={`flex items-start gap-3 p-3 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-0 ${lesson.isCurrent ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'
+                                                        }`}
+                                                >
+                                                    <div className="mt-0.5">
+                                                        {lesson.completed ? (
+                                                            <CheckCircle size={16} className="text-green-500" />
+                                                        ) : lesson.isCurrent ? (
+                                                            <PlayCircle size={16} className="text-blue-600 fill-blue-100" />
+                                                        ) : isQuiz ? (
+                                                            <ListChecks size={16} className="text-orange-500" />
+                                                        ) : (
+                                                            <Circle size={16} className="text-gray-300" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <p className={`text-sm ${lesson.isCurrent ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
+                                                                {lesson.title}
+                                                            </p>
+                                                            {isQuiz && <span className="text-[10px] uppercase font-bold text-orange-600 bg-orange-100 px-1 rounded">Quiz</span>}
+                                                        </div>
+                                                        <span className="text-xs text-gray-400 block mt-1">{lesson.duration} • {isQuiz ? 'Bài kiểm tra' : 'Video'}</span>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
