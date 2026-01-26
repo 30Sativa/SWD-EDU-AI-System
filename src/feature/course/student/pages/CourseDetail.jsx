@@ -11,8 +11,8 @@ import {
     Ticket,
     Video,
     Download,
-    Calendar,
-    Lock
+    Lock,
+    Circle
 } from 'lucide-react';
 
 export default function CourseDetail() {
@@ -43,10 +43,11 @@ export default function CourseDetail() {
             status: 'Currently enrolled',
             lessons: 3,
             duration: '3h 20m',
+            completed: true,
             items: [
                 { id: 1, title: '1.1 Introduction to Design Thinking', duration: '15:20', completed: true },
                 { id: 2, title: '1.2 Visual Hierarchy Basics', duration: '18:45', completed: true },
-                { id: 3, title: '1.3 Understanding User Needs', duration: '22:10', completed: false }
+                { id: 3, title: '1.3 Understanding User Needs', duration: '22:10', completed: true }
             ]
         },
         {
@@ -55,6 +56,7 @@ export default function CourseDetail() {
             status: 'Currently enrolled',
             lessons: 10,
             duration: '4h 30m',
+            completed: false,
             items: [
                 { id: 1, title: '2.3 Choosing the Right Typeface', duration: '12:30', completed: false, isNew: true },
                 { id: 2, title: '2.4 Color Psychology in UI', duration: '19:25', completed: false },
@@ -67,6 +69,7 @@ export default function CourseDetail() {
             status: 'Locked',
             lessons: 8,
             duration: '5h 15m',
+            completed: false,
             items: []
         },
         {
@@ -75,6 +78,7 @@ export default function CourseDetail() {
             status: 'Locked',
             lessons: 3,
             duration: '8h',
+            completed: false,
             items: []
         }
     ];
@@ -100,56 +104,56 @@ export default function CourseDetail() {
                     <div className="lg:col-span-2 space-y-6">
 
                         {/* Course Header */}
-                        <div className="bg-white rounded-xl p-6 border border-gray-100">
-                            <div className="flex items-start gap-4 mb-5">
-                                <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center flex-shrink-0">
-                                    <BookOpen size={32} className="text-blue-600" />
+                        <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                            <div className="flex items-start gap-4 mb-6">
+                                <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-orange-100 to-pink-100 flex items-center justify-center flex-shrink-0">
+                                    <BookOpen size={36} className="text-orange-500" />
                                 </div>
                                 <div className="flex-1">
-                                    <span className="inline-block px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded mb-2">
+                                    <span className="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-full mb-2 uppercase tracking-wide">
                                         {courseInfo.tag}
                                     </span>
                                     <h1 className="text-2xl font-bold text-gray-900 mb-2">{courseInfo.title}</h1>
                                     <div className="flex items-center gap-4 text-sm text-gray-600">
-                                        <span className="flex items-center gap-1">
+                                        <span className="flex items-center gap-1.5">
                                             👨‍🏫 {courseInfo.instructor}
                                         </span>
-                                        <span className="flex items-center gap-1">
+                                        <span className="flex items-center gap-1.5">
                                             <Clock size={16} />
                                             {courseInfo.totalHours} hours total
                                         </span>
                                     </div>
                                 </div>
-                                <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2">
+                                <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2 shadow-sm">
                                     <PlayCircle size={18} />
                                     Resume Lesson
                                 </button>
                             </div>
 
                             {/* Progress Bar */}
-                            <div>
+                            <div className="pt-4 border-t border-gray-100">
                                 <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm font-semibold text-gray-700">YOUR PROGRESS</span>
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Your Progress</span>
                                     <span className="text-sm text-gray-600">{courseInfo.completedLessons} of {courseInfo.totalLessons} lessons completed</span>
                                 </div>
-                                <div className="mb-2">
-                                    <div className="text-2xl font-bold text-gray-900 mb-1">{courseInfo.progress}% Complete</div>
+                                <div className="mb-3">
+                                    <div className="text-2xl font-bold text-gray-900 mb-2">{courseInfo.progress}% Complete</div>
                                     <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                                        <div className="bg-blue-600 h-full rounded-full" style={{ width: `${courseInfo.progress}%` }}></div>
+                                        <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${courseInfo.progress}%` }}></div>
                                     </div>
                                 </div>
-                                <p className="text-xs text-blue-600 flex items-center gap-1">
-                                    <span className="inline-block w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                                <p className="text-xs text-blue-600 flex items-center gap-1.5">
+                                    <span className="inline-block w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></span>
                                     Next milestone: User Psychology (Lesson 15)
                                 </p>
                             </div>
                         </div>
 
                         {/* Course Curriculum */}
-                        <div className="bg-white rounded-xl p-6 border border-gray-100">
-                            <div className="flex justify-between items-center mb-5">
-                                <h2 className="text-lg font-bold text-gray-900">Course Curriculum</h2>
-                                <button className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+                        <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold text-gray-900">Course Curriculum</h2>
+                                <button className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
                                     Expand All Sections
                                 </button>
                             </div>
@@ -160,44 +164,52 @@ export default function CourseDetail() {
                                     const isLocked = section.status === 'Locked';
 
                                     return (
-                                        <div key={section.id} className="border border-gray-100 rounded-lg overflow-hidden">
+                                        <div key={section.id} className="border border-gray-200 rounded-xl overflow-hidden transition-all hover:border-gray-300">
                                             {/* Section Header */}
                                             <button
                                                 onClick={() => !isLocked && toggleSection(section.id)}
-                                                className={`w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${isLocked ? 'cursor-not-allowed opacity-60' : ''
+                                                className={`w-full p-4 flex items-center justify-between transition-colors ${isLocked ? 'cursor-not-allowed bg-gray-50' : 'hover:bg-gray-50'
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isLocked ? 'bg-gray-100' : 'bg-blue-50'
+                                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${isLocked ? 'bg-gray-100' : section.completed ? 'bg-green-50' : 'bg-blue-50'
                                                         }`}>
                                                         {isLocked ? (
                                                             <Lock size={20} className="text-gray-400" />
+                                                        ) : section.completed ? (
+                                                            <CheckCircle size={20} className="text-green-600" />
                                                         ) : (
-                                                            <CheckCircle size={20} className="text-blue-600" />
+                                                            <Circle size={20} className="text-blue-600" />
                                                         )}
                                                     </div>
                                                     <div className="text-left">
-                                                        <h3 className="font-bold text-sm text-gray-900">{section.title}</h3>
+                                                        <h3 className="font-bold text-base text-gray-900 mb-0.5">{section.title}</h3>
                                                         <p className="text-xs text-gray-500">
                                                             {section.status} • {section.lessons} lessons • {section.duration}
                                                         </p>
                                                     </div>
                                                 </div>
                                                 {!isLocked && (
-                                                    isExpanded ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />
+                                                    <div className="flex items-center gap-2">
+                                                        {isExpanded ? (
+                                                            <ChevronUp size={20} className="text-gray-400" />
+                                                        ) : (
+                                                            <ChevronDown size={20} className="text-gray-400" />
+                                                        )}
+                                                    </div>
                                                 )}
                                             </button>
 
                                             {/* Section Items */}
-                                            {isExpanded && !isLocked && (
-                                                <div className="border-t border-gray-100 bg-gray-50">
+                                            {isExpanded && !isLocked && section.items.length > 0 && (
+                                                <div className="border-t border-gray-200 bg-gray-50/50">
                                                     {section.items.map((item) => (
                                                         <div
                                                             key={item.id}
-                                                            className="px-4 py-3 flex items-center justify-between hover:bg-white transition-colors border-b border-gray-50 last:border-b-0"
+                                                            className="px-5 py-3.5 flex items-center justify-between hover:bg-white transition-colors border-b border-gray-100 last:border-b-0"
                                                         >
                                                             <div className="flex items-center gap-3">
-                                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${item.completed ? 'bg-green-100' : 'bg-gray-100'
+                                                                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${item.completed ? 'bg-green-100' : 'bg-gray-100'
                                                                     }`}>
                                                                     {item.completed ? (
                                                                         <CheckCircle size={16} className="text-green-600" />
@@ -220,7 +232,7 @@ export default function CourseDetail() {
                                                                     <span className="text-xs text-gray-500">Video • {item.duration}</span>
                                                                 </div>
                                                             </div>
-                                                            <button className="text-blue-600 hover:text-blue-700">
+                                                            <button className="text-blue-600 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-50 transition-colors">
                                                                 <PlayCircle size={18} />
                                                             </button>
                                                         </div>
@@ -238,20 +250,20 @@ export default function CourseDetail() {
                     <div className="space-y-6">
 
                         {/* Course Resources */}
-                        <div className="bg-white rounded-xl p-5 border border-gray-100">
-                            <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wide">Course Resources</h3>
+                        <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+                            <h3 className="text-xs font-bold text-gray-700 mb-4 uppercase tracking-wider">Course Resources</h3>
                             <div className="space-y-2">
                                 {resources.map((resource) => {
                                     const Icon = resource.icon;
                                     return (
                                         <button
                                             key={resource.id}
-                                            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                                            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left group"
                                         >
-                                            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                                <Icon size={16} className="text-gray-600" />
+                                            <div className="w-9 h-9 rounded-lg bg-gray-100 group-hover:bg-blue-50 flex items-center justify-center flex-shrink-0 transition-colors">
+                                                <Icon size={18} className="text-gray-600 group-hover:text-blue-600 transition-colors" />
                                             </div>
-                                            <span className="text-sm font-medium text-gray-700">{resource.title}</span>
+                                            <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">{resource.title}</span>
                                         </button>
                                     );
                                 })}
@@ -259,23 +271,25 @@ export default function CourseDetail() {
                         </div>
 
                         {/* Live Office Hours */}
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
+                        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl p-5 border border-blue-100 shadow-sm">
                             <div className="flex items-start gap-3 mb-4">
-                                <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
-                                    <Video size={20} className="text-white" />
+                                <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    <Video size={22} className="text-white" />
                                 </div>
                                 <div>
                                     <h3 className="text-sm font-bold text-gray-900 mb-1">{liveSession.title}</h3>
                                     <p className="text-xs text-gray-600 mb-1">{liveSession.description}</p>
-                                    <p className="text-xs text-gray-600">{liveSession.time}</p>
+                                    <p className="text-xs text-gray-700 font-medium">{liveSession.time}</p>
                                 </div>
                             </div>
-                            <button className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                            <button className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
                                 Add to Calendar
                             </button>
-                            <p className="text-xs text-gray-500 text-center mt-3">
+                            <p className="text-xs text-gray-600 text-center mt-4 pt-4 border-t border-blue-100">
                                 Need help? Contact our student support team at <br />
-                                <a href="mailto:support@eduai.com" className="text-blue-600 hover:underline">support@eduai.com</a>
+                                <a href="mailto:support@eduai.com" className="text-blue-600 hover:text-blue-700 font-medium hover:underline">
+                                    support@eduai.com
+                                </a>
                             </p>
                         </div>
                     </div>

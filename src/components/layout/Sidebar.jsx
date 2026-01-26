@@ -18,57 +18,64 @@ import {
 import ScrollToTop from './ScrollToTop';
 
 const MENU_ITEMS = [
-  { label: 'Dashboard', 
-    icon: LayoutDashboard, 
-    path: 'dashboard', 
-    allowedRoles: ['admin', 'teacher', 'student'] 
+  {
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    path: 'dashboard',
+    allowedRoles: ['admin', 'teacher', 'student']
   },
-  { label: 'Courses', 
-    icon: BookOpen, 
-    path: 'courses', 
-    allowedRoles: ['admin', 'teacher', 'student'] 
+  {
+    label: 'Courses',
+    icon: BookOpen,
+    path: 'courses',
+    allowedRoles: ['admin', 'teacher', 'student']
   },
-  { label: 'Classes', 
-    icon: Users, 
-    path: 'classes', 
-    allowedRoles: ['admin', 'teacher'] 
-  },
-  { label: 'Students', 
-    icon: GraduationCap, 
-    path: 'students', 
+  {
+    label: 'Classes',
+    icon: Users,
+    path: 'classes',
     allowedRoles: ['admin', 'teacher']
   },
-  { label: 'Question Bank', 
-    icon: ListChecks, 
-    path: 'question-bank', 
-    allowedRoles: ['teacher'] 
+  {
+    label: 'Students',
+    icon: GraduationCap,
+    path: 'students',
+    allowedRoles: ['admin', 'teacher']
   },
-  { label: 'System Admin', 
-    icon: ShieldAlert, 
-    path: 'admin', 
-    allowedRoles: ['admin'] 
+  {
+    label: 'Question Bank',
+    icon: ListChecks,
+    path: 'question-bank',
+    allowedRoles: ['teacher']
   },
-  { label: 'Settings', 
-    icon: Settings, 
+  {
+    label: 'System Admin',
+    icon: ShieldAlert,
+    path: 'admin',
+    allowedRoles: ['admin']
+  },
+  {
+    label: 'Settings',
+    icon: Settings,
     path: 'settings',
-    allowedRoles: ['admin', 'teacher', 'student'] 
+    allowedRoles: ['admin', 'teacher', 'student']
   },
 ];
 
 export default function Sidebar({ userRole = 'teacher' }) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-  
+
   // Auto-detect base path from current location
-  const BASE_PATH = location.pathname.startsWith('/dashboard/student') 
-    ? '/dashboard/student' 
+  const BASE_PATH = location.pathname.startsWith('/dashboard/student')
+    ? '/dashboard/student'
     : '/dashboard/teacher';
-  
+
   // Auto-detect userRole from path if not provided
-  const detectedRole = location.pathname.startsWith('/dashboard/student') ? 'student' : 
-                       location.pathname.startsWith('/dashboard/teacher') ? 'teacher' : 
-                       userRole;
-  
+  const detectedRole = location.pathname.startsWith('/dashboard/student') ? 'student' :
+    location.pathname.startsWith('/dashboard/teacher') ? 'teacher' :
+      userRole;
+
   const filteredMenu = MENU_ITEMS.filter((item) => item.allowedRoles.includes(detectedRole));
 
   return (
@@ -77,14 +84,12 @@ export default function Sidebar({ userRole = 'teacher' }) {
 
       {/* Sidebar panel */}
       <div
-        className={`min-h-screen self-stretch bg-[#1a44b8] text-white flex flex-col font-sans shadow-xl transition-all duration-300 flex-shrink-0 ${
-          collapsed ? 'w-[72px]' : 'w-64'
-        }`}
+        className={`min-h-screen self-stretch bg-[#1a44b8] text-white flex flex-col font-sans shadow-xl transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-[72px]' : 'w-64'
+          }`}
       >
         <div
-          className={`p-4 flex flex-shrink-0 gap-2 ${
-            collapsed ? 'flex-col items-center' : 'items-center justify-between'
-          }`}
+          className={`p-4 flex flex-shrink-0 gap-2 ${collapsed ? 'flex-col items-center' : 'items-center justify-between'
+            }`}
         >
           {!collapsed && (
             <Link to={BASE_PATH} className="flex items-center gap-3 min-w-0 flex-1">
@@ -114,13 +119,16 @@ export default function Sidebar({ userRole = 'teacher' }) {
           {filteredMenu.map((item) => {
             const Icon = item.icon;
             const href = item.path === 'dashboard' ? BASE_PATH : `${BASE_PATH}/${item.path}`;
+            const isActive = item.path === 'dashboard'
+              ? location.pathname === BASE_PATH
+              : location.pathname.startsWith(`${BASE_PATH}/${item.path}`);
+
             return (
               <Link
                 key={item.label}
                 to={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                  item.path === 'dashboard' ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10'
-                } ${collapsed ? 'justify-center' : ''}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10'
+                  } ${collapsed ? 'justify-center' : ''}`}
               >
                 <Icon size={20} className="flex-shrink-0" />
                 {!collapsed && <span className="text-sm truncate">{item.label}</span>}
