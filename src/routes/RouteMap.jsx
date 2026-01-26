@@ -6,6 +6,7 @@ import Sidebar from "../components/layout/Sidebar";
 import Home from "../pages/Home";
 import TeacherDashboard from "../feature/dashboard/teacher/pages/TeacherDashboard";
 import StudentDashboard from "../feature/dashboard/student/pages/StudentDashboard";
+import CourseDetail from "../feature/course/student/pages/CourseDetail";
 
 const Layout = () => (
   <div className="flex flex-col min-h-screen">
@@ -31,6 +32,7 @@ export default function RouteMap() {
         </Route>
         <Route path="student" element={<Sidebar userRole="student" />}>
           <Route index element={<StudentDashboard />} />
+          <Route path="courses/:courseId" element={<CourseDetail />} />
         </Route>
         <Route index element={<Navigate to="/dashboard/teacher" replace />} />
       </Route>
