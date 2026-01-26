@@ -12,59 +12,59 @@ import {
 
 const summaryCards = [
   {
-    label: 'Total Students',
+    label: 'Tổng Học sinh',
     value: 84,
-    change: '+12% vs last week',
+    change: '+12% so với tuần trước',
     positive: true,
     icon: Users,
   },
   {
-    label: 'Active Courses',
+    label: 'Khóa học Đang hoạt động',
     value: 3,
     change: null,
     icon: BookOpen,
   },
   {
-    label: 'Lessons Published',
+    label: 'Bài học Đã xuất bản',
     value: 35,
-    change: '+5% vs last week',
+    change: '+5% so với tuần trước',
     positive: true,
     icon: FileText,
   },
   {
-    label: 'Drafts',
+    label: 'Bản nháp',
     value: 2,
-    change: 'Awaiting review',
+    change: 'Đang chờ xem xét',
     positive: false,
     icon: ClipboardList,
   },
 ];
 
 const activeCourses = [
-  { name: 'Mathematics 10A', students: 32, lessons: 12 },
-  { name: 'Physics 11B', students: 28, lessons: 8 },
-  { name: 'English Advanced', students: 24, lessons: 15 },
+  { name: 'Toán học 10A', students: 32, lessons: 12 },
+  { name: 'Vật lý 11B', students: 28, lessons: 8 },
+  { name: 'Tiếng Anh Nâng cao', students: 24, lessons: 15 },
 ];
 
 const draftLessons = [
-  { name: 'Introduction to Calculus', course: 'Mathematics 10A', time: 'Yesterday' },
-  { name: 'Wave Motion', course: 'Physics 11B', time: '2 days ago' },
+  { name: 'Giới thiệu về Giải tích', course: 'Toán học 10A', time: 'Hôm qua' },
+  { name: 'Chuyển động Sóng', course: 'Vật lý 11B', time: '2 ngày trước' },
 ];
 
 const recentActivity = [
   {
-    user: 'N Nguyen Van A',
-    type: 'Question',
-    text: 'Asked about quadratic equations in Lesson 5: Quadratic Functions',
-    time: '10 minutes ago',
-    action: 'Reply',
+    user: 'Nguyễn Văn A',
+    type: 'Câu hỏi',
+    text: 'Đã hỏi về phương trình bậc hai trong Bài 5: Hàm số Bậc hai',
+    time: '10 phút trước',
+    action: 'Trả lời',
     icon: MessageCircle,
   },
   {
-    user: 'You',
-    type: 'Edit',
-    text: 'Updated lesson content in Lesson 8: Derivatives',
-    time: '2 hours ago',
+    user: 'Bạn',
+    type: 'Chỉnh sửa',
+    text: 'Đã cập nhật nội dung bài học trong Bài 8: Đạo hàm',
+    time: '2 giờ trước',
     action: null,
     icon: FileEdit,
   },
@@ -74,8 +74,8 @@ export default function TeacherDashboard() {
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Dashboard</h1>
-        <p className="text-gray-600">Welcome back, Teacher Nguyen</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">Bảng điều khiển</h1>
+        <p className="text-gray-600">Chào mừng trở lại, Giáo viên Nguyễn</p>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-8">
@@ -84,21 +84,21 @@ export default function TeacherDashboard() {
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium text-sm rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
         >
           <Plus size={18} />
-          Create Course
+          Tạo Khóa học
         </button>
         <button
           type="button"
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-blue-600 font-medium text-sm rounded-lg border border-blue-600 hover:bg-blue-50 transition-colors"
         >
           <Plus size={18} />
-          Create Lesson
+          Tạo Bài học
         </button>
         <button
           type="button"
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-blue-600 font-medium text-sm rounded-lg border border-blue-600 hover:bg-blue-50 transition-colors"
         >
           <Plus size={18} />
-          Create Quiz
+          Tạo Câu hỏi
         </button>
       </div>
 
@@ -133,14 +133,14 @@ export default function TeacherDashboard() {
       <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Active Courses</h2>
-            <p className="text-sm text-gray-500">Your current teaching assignments</p>
+            <h2 className="text-lg font-bold text-gray-900">Khóa học Đang hoạt động</h2>
+            <p className="text-sm text-gray-500">Các lớp học hiện tại của bạn</p>
           </div>
           <button
             type="button"
             className="text-sm font-medium text-blue-600 hover:text-blue-700 inline-flex items-center gap-1"
           >
-            View All <ArrowRight size={14} />
+            Xem tất cả <ArrowRight size={14} />
           </button>
         </div>
         <div className="space-y-3">
@@ -152,11 +152,11 @@ export default function TeacherDashboard() {
               <div>
                 <p className="font-medium text-gray-900">{course.name}</p>
                 <p className="text-sm text-gray-500">
-                  {course.students} students • {course.lessons} lessons
+                  {course.students} học sinh • {course.lessons} bài học
                 </p>
               </div>
               <span className="px-3 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-                active
+                đang hoạt động
               </span>
             </div>
           ))}
@@ -165,8 +165,8 @@ export default function TeacherDashboard() {
 
       <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Draft Lessons</h2>
-          <p className="text-sm text-gray-500">Continue working on these</p>
+          <h2 className="text-lg font-bold text-gray-900">Bài học Bản nháp</h2>
+          <p className="text-sm text-gray-500">Tiếp tục làm việc với những bài này</p>
         </div>
         <div className="space-y-3 mb-4">
           {draftLessons.map((draft) => (
@@ -187,14 +187,14 @@ export default function TeacherDashboard() {
           type="button"
           className="w-full py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
         >
-          View All Drafts
+          Xem tất cả Bản nháp
         </button>
       </section>
 
       <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div className="mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Recent Activity</h2>
-          <p className="text-sm text-gray-500">Student questions and updates</p>
+          <h2 className="text-lg font-bold text-gray-900">Hoạt động Gần đây</h2>
+          <p className="text-sm text-gray-500">Câu hỏi và cập nhật từ học sinh</p>
         </div>
         <div className="space-y-4">
           {recentActivity.map((item, idx) => {
@@ -211,7 +211,7 @@ export default function TeacherDashboard() {
                       <span className="font-medium text-gray-900">{item.user}</span>
                       <span
                         className={`px-2 py-0.5 text-xs font-medium rounded ${
-                          item.type === 'Question'
+                          item.type === 'Câu hỏi'
                             ? 'bg-blue-100 text-blue-700'
                             : 'bg-gray-200 text-gray-700'
                         }`}

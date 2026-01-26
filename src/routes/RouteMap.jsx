@@ -5,6 +5,7 @@ import Footer from "../components/layout/Footer";
 import Sidebar from "../components/layout/Sidebar";
 import Home from "../pages/Home";
 import TeacherDashboard from "../feature/dashboard/teacher/pages/TeacherDashboard";
+import CourseManagement from "../feature/course/teacher/pages/CourseManagement";
 import StudentDashboard from "../feature/dashboard/student/pages/StudentDashboard";
 import CourseDetail from "../feature/course/student/pages/CourseDetail";
 import CoursesList from "../feature/course/student/pages/CoursesList";
@@ -34,6 +35,7 @@ export default function RouteMap() {
       <Route path="dashboard">
         <Route path="teacher" element={<Sidebar userRole="teacher" />}>
           <Route index element={<TeacherDashboard />} />
+          <Route path="courses" element={<CourseManagement />} />
         </Route>
         <Route path="student" element={<Sidebar userRole="student" />}>
           <Route index element={<StudentDashboard />} />
