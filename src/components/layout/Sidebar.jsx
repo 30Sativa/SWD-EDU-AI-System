@@ -31,6 +31,12 @@ const MENU_ITEMS = [
     allowedRoles: ['admin', 'teacher', 'student']
   },
   {
+    label: 'Quizzes',
+    icon: ListChecks,
+    path: 'quizzes',
+    allowedRoles: ['student']
+  },
+  {
     label: 'Classes',
     icon: Users,
     path: 'classes',

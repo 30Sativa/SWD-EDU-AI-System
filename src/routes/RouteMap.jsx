@@ -9,6 +9,8 @@ import StudentDashboard from "../feature/dashboard/student/pages/StudentDashboar
 import CourseDetail from "../feature/course/student/pages/CourseDetail";
 import CoursesList from "../feature/course/student/pages/CoursesList";
 import LessonDetail from "../feature/lesson/student/pages/LessonDetail";
+import QuizList from "../feature/quiz/student/pages/QuizList";
+import QuizDetail from "../feature/quiz/student/pages/QuizDetail";
 
 const Layout = () => (
   <div className="flex flex-col min-h-screen">
@@ -37,6 +39,8 @@ export default function RouteMap() {
           <Route path="courses" element={<CoursesList />} />
           <Route path="courses/:courseId" element={<CourseDetail />} />
           <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
+          <Route path="quizzes" element={<QuizList />} />
+          <Route path="quizzes/:quizId" element={<QuizDetail />} />
         </Route>
         <Route index element={<Navigate to="/dashboard/teacher" replace />} />
       </Route>
