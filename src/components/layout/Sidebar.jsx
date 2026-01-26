@@ -14,6 +14,7 @@ import {
   PanelLeft,
   Bell,
   Search,
+  TrendingUp,
 } from 'lucide-react';
 import ScrollToTop from './ScrollToTop';
 
@@ -34,6 +35,12 @@ const MENU_ITEMS = [
     label: 'Quizzes',
     icon: ListChecks,
     path: 'quizzes',
+    allowedRoles: ['student']
+  },
+  {
+    label: 'Progress',
+    icon: TrendingUp,
+    path: 'progress',
     allowedRoles: ['student']
   },
   {
