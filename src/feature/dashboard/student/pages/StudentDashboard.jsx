@@ -23,49 +23,49 @@ export default function StudentDashboard() {
           {/* Total Points */}
           <div className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-3">
-              <span className="text-sm font-medium text-gray-600">Tổng Điểm</span>
+              <span className="text-sm font-medium text-gray-600">Điểm Tích Lũy</span>
               <div className="p-2 rounded-lg bg-blue-50">
                 <Star size={18} className="text-yellow-500" />
               </div>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">1250</h3>
-            <p className="text-xs font-medium text-green-600">↑ 150% so với tuần trước</p>
+            <h3 className="text-3xl font-bold text-gray-900 mb-1">8,5</h3>
+            <p className="text-xs font-medium text-green-600">Trung bình môn HK1</p>
           </div>
 
           {/* Learning Streak */}
           <div className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-3">
-              <span className="text-sm font-medium text-gray-600">Chuỗi Học Tập</span>
+              <span className="text-sm font-medium text-gray-600">Chuyên Cần</span>
               <div className="p-2 rounded-lg bg-amber-50">
                 <Zap size={18} className="text-amber-500" />
               </div>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">7 ngày</h3>
-            <p className="text-xs font-medium text-gray-500">Tiếp tục phát huy!</p>
+            <h3 className="text-3xl font-bold text-gray-900 mb-1">15 ngày</h3>
+            <p className="text-xs font-medium text-gray-500">Chuỗi học liên tục</p>
           </div>
 
           {/* Completed Lessons */}
           <div className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-3">
-              <span className="text-sm font-medium text-gray-600">Bài Đã Hoàn Thành</span>
+              <span className="text-sm font-medium text-gray-600">Bài Tập Đã Nộp</span>
               <div className="p-2 rounded-lg bg-indigo-50">
                 <CheckCircle size={18} className="text-indigo-500" />
               </div>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">12</h3>
-            <p className="text-xs font-medium text-gray-400">&nbsp;</p>
+            <h3 className="text-3xl font-bold text-gray-900 mb-1">24</h3>
+            <p className="text-xs font-medium text-green-600">Đúng hạn 100%</p>
           </div>
 
           {/* Avg Quiz Score */}
           <div className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-3">
-              <span className="text-sm font-medium text-gray-600">Điểm TB Bài Kiểm Tra</span>
+              <span className="text-sm font-medium text-gray-600">Điểm Kiểm Tra 15'</span>
               <div className="p-2 rounded-lg bg-blue-50">
                 <Target size={18} className="text-blue-500" />
               </div>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">82%</h3>
-            <p className="text-xs font-medium text-green-600">↑ 5% so với tuần trước</p>
+            <h3 className="text-3xl font-bold text-gray-900 mb-1">9.0</h3>
+            <p className="text-xs font-medium text-green-600">Cao hơn lớp 15%</p>
           </div>
         </div>
 
@@ -76,16 +76,16 @@ export default function StudentDashboard() {
           <div className="lg:col-span-2 space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Khóa Học Của Tôi</h2>
-                <p className="text-sm text-gray-500">Tiếp tục học tập từ nơi bạn đã dừng lại</p>
+                <h2 className="text-lg font-bold text-gray-900">Lớp Học Của Tôi</h2>
+                <p className="text-sm text-gray-500">Các môn học theo thời khóa biểu học kỳ 2</p>
               </div>
               <button className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
                 Xem Tất Cả <ChevronRight size={16} />
               </button>
             </div>
 
-            {/* Mathematics 10A */}
-            <Link to="/dashboard/student/courses/math-10a" className="block">
+            {/* Mathematics 11 */}
+            <Link to="/dashboard/student/courses/math-11" className="block">
               <div className="bg-white rounded-xl p-5 border border-gray-100 hover:border-blue-200 transition-all cursor-pointer">
                 <div className="flex items-start justify-between mb-5">
                   <div className="flex gap-3">
@@ -93,34 +93,34 @@ export default function StudentDashboard() {
                       <BookOpen size={24} className="text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-base text-gray-900 mb-0.5">Toán Học 10A</h3>
-                      <p className="text-sm text-gray-500">Giảng viên: Nguyễn Văn A</p>
+                      <h3 className="font-bold text-base text-gray-900 mb-0.5">Toán Học 11 - Lớp 11A1</h3>
+                      <p className="text-sm text-gray-500">GV: Nguyễn Văn Hùng</p>
                     </div>
                   </div>
                   <button
                     onClick={(e) => e.preventDefault()}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
                   >
-                    ▶ Continue
+                    ▶ Vào Lớp
                   </button>
                 </div>
 
                 <div className="mb-2 flex justify-between text-xs font-medium text-gray-500">
-                  <span>8/12 bài học</span>
-                  <span>65%</span>
+                  <span>Chương 3: Quan hệ vuông góc</span>
+                  <span>75%</span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2 mb-4 overflow-hidden">
-                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '65%' }}></div>
+                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '75%' }}></div>
                 </div>
 
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-gray-400">Tiếp theo:</span>
-                  <span className="font-medium text-gray-700">Giới thiệu về Hàm số</span>
+                  <span className="font-medium text-gray-700">Hai mặt phẳng vuông góc (Tiết 2)</span>
                 </div>
               </div>
             </Link>
 
-            {/* Physics 11B */}
+            {/* Physics 12 */}
             <div className="bg-white rounded-xl p-5 border border-gray-100 hover:border-blue-200 transition-all">
               <div className="flex items-start justify-between mb-5">
                 <div className="flex gap-3">
@@ -128,17 +128,17 @@ export default function StudentDashboard() {
                     <BookOpen size={24} className="text-indigo-600" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-base text-gray-900 mb-0.5">Vật Lý 11B</h3>
-                    <p className="text-sm text-gray-500">Giảng viên: Trần Thị B</p>
+                    <h3 className="font-bold text-base text-gray-900 mb-0.5">Vật Lý 12 - Ôn Thi THPT</h3>
+                    <p className="text-sm text-gray-500">GV: Trần Thị Mai</p>
                   </div>
                 </div>
                 <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
-                  ▶ Continue
+                  ▶ Vào Lớp
                 </button>
               </div>
 
               <div className="mb-2 flex justify-between text-xs font-medium text-gray-500">
-                <span>4/10 bài học</span>
+                <span>Chương 4: Dao động và Sóng điện từ</span>
                 <span>40%</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2 mb-4 overflow-hidden">
@@ -147,7 +147,7 @@ export default function StudentDashboard() {
 
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-gray-400">Tiếp theo:</span>
-                <span className="font-medium text-gray-700">Cơ bản về Sóng</span>
+                <span className="font-medium text-gray-700">Mạch dao động LC</span>
               </div>
             </div>
           </div>
@@ -155,52 +155,52 @@ export default function StudentDashboard() {
           {/* Upcoming Quizzes - 1/3 width */}
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Bài Kiểm Tra Sắp Tới</h2>
-              <p className="text-sm text-gray-500">Đừng bỏ lỡ các deadline này</p>
+              <h2 className="text-lg font-bold text-gray-900">Bài Viết & Kiểm Tra</h2>
+              <p className="text-sm text-gray-500">Deadline nộp bài tập về nhà</p>
             </div>
 
-            {/* Functions Quiz */}
+            {/* Math Quiz */}
             <div className="bg-white rounded-xl p-4 border border-gray-100 hover:shadow-md transition-shadow">
               <div className="flex items-start gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-orange-100 flex-shrink-0">
                   <FileText size={20} className="text-orange-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-sm text-gray-900 mb-0.5">Kiểm Tra Hàm Số</h4>
-                  <p className="text-xs text-gray-500">Toán Học 10A</p>
+                  <h4 className="font-bold text-sm text-gray-900 mb-0.5">Kiểm tra 15 phút: Hình học</h4>
+                  <p className="text-xs text-gray-500">Toán 11 - 11A1</p>
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-50">
                 <div className="flex items-center gap-1.5">
                   <Clock size={14} />
-                  <span>Hạn trong 2 ngày</span>
+                  <span className="text-red-500 font-medium">Hạn: Tối mai 23:59</span>
                 </div>
-                <span>10 câu hỏi</span>
+                <span>Trắc nghiệm</span>
               </div>
             </div>
 
-            {/* Wave Motion Assessment */}
+            {/* Physic Homework */}
             <div className="bg-white rounded-xl p-4 border border-gray-100 hover:shadow-md transition-shadow">
               <div className="flex items-start gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-red-100 flex-shrink-0">
-                  <FileText size={20} className="text-red-600" />
+                <div className="p-2 rounded-lg bg-green-100 flex-shrink-0">
+                  <FileText size={20} className="text-green-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-sm text-gray-900 mb-0.5">Đánh Giá Chuyển Động Sóng</h4>
-                  <p className="text-xs text-gray-500">Vật Lý 11B</p>
+                  <h4 className="font-bold text-sm text-gray-900 mb-0.5">Bài tập Sóng dừng</h4>
+                  <p className="text-xs text-gray-500">Vật Lý 12</p>
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-50">
                 <div className="flex items-center gap-1.5">
                   <Clock size={14} />
-                  <span>Hạn trong 5 ngày</span>
+                  <span>Hạn: Thứ 6 tuần này</span>
                 </div>
-                <span>8 câu hỏi</span>
+                <span>Tự luận</span>
               </div>
             </div>
 
             <button className="w-full py-2.5 bg-white border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors">
-              Xem Tất Cả Bài Kiểm Tra
+              Xem Thời Khóa Biểu
             </button>
           </div>
         </div>
@@ -209,7 +209,7 @@ export default function StudentDashboard() {
         <div className="space-y-5">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Hoạt Động Gần Đây</h2>
-            <p className="text-sm text-gray-500">Hành trình học tập của bạn</p>
+            <p className="text-sm text-gray-500">Cập nhật từ lớp học</p>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
@@ -220,12 +220,12 @@ export default function StudentDashboard() {
                   <BookOpen size={18} className="text-blue-600" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm text-gray-900">Đã hoàn thành: Ứng dụng Phương trình Bậc 2</h4>
-                  <p className="text-xs text-gray-500">Toán Học 10A</p>
+                  <h4 className="font-semibold text-sm text-gray-900">Đã nộp bài tập: Phương trình lượng giác</h4>
+                  <p className="text-xs text-gray-500">Toán 11 - 11A1</p>
                 </div>
               </div>
               <div className="text-right">
-                <span className="block text-sm font-bold text-emerald-600">+50 pts</span>
+                <span className="block text-sm font-bold text-emerald-600">Đã chấm</span>
                 <span className="text-xs text-gray-400">2 giờ trước</span>
               </div>
             </div>
@@ -237,30 +237,13 @@ export default function StudentDashboard() {
                   <FileText size={18} className="text-cyan-600" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm text-gray-900">Điểm Kiểm Tra: 85%</h4>
-                  <p className="text-xs text-gray-500">Toán Học 10A</p>
+                  <h4 className="font-semibold text-sm text-gray-900">Điểm kiểm tra 1 tiết: 9.5</h4>
+                  <p className="text-xs text-gray-500">Hóa Học 10</p>
                 </div>
               </div>
               <div className="text-right">
-                <span className="block text-sm font-bold text-emerald-600">+100 pts</span>
+                <span className="block text-sm font-bold text-emerald-600">Gioi</span>
                 <span className="text-xs text-gray-400">Hôm qua</span>
-              </div>
-            </div>
-
-            {/* Activity 3 */}
-            <div className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                  <Trophy size={18} className="text-amber-600" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-sm text-gray-900">Chuỗi Học 7 Ngày Liên Tiếp!</h4>
-                  <p className="text-xs text-gray-500">Thành tích</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="block text-sm font-bold text-emerald-600">+200 pts</span>
-                <span className="text-xs text-gray-400">Hôm nay</span>
               </div>
             </div>
           </div>

@@ -35,21 +35,22 @@ export default function LessonDetail() {
         {
             id: 1,
             type: 'ai',
-            text: 'Xin chào! Tôi ở đây để hỗ trợ bạn với bài học về Phân cấp Thị giác hôm nay. Bạn muốn tìm hiểu gì?',
+            text: 'Chào em! Thầy AI đây. Em có thắc mắc gì về bài Dao động điều hòa không?',
             suggestions: [
-                'Tóm tắt "Tháp Phân cấp"',
-                'Giải thích bằng tiếng Nhật #MachineTranslation'
+                'Công thức tính chu kỳ T?',
+                'Giải thích pha ban đầu phi',
+                'Vẽ đồ thị x = Acos(wt + phi)'
             ]
         },
         {
             id: 2,
             type: 'user',
-            text: 'Sự khác biệt giữa phân cấp và căn chỉnh là gì?'
+            text: 'Thầy giải thích giúp em ý nghĩa của tần số góc ạ?'
         },
         {
             id: 3,
             type: 'ai',
-            text: 'Câu hỏi hay! Phân cấp là sự sắp xếp trực quan các yếu tố để thể hiện thứ tự quan trọng của chúng. Các nhà thiết kế sử dụng nó để hướng sự chú ý của người dùng đến thông tin quan trọng nhất trước tiên, tạo ra một sự ưu tiên cụ thể cho các yếu tố.',
+            text: 'Tần số góc (omega) cho biết tốc độ biến đổi trạng thái dao động. Nó liên hệ với chu kỳ qua công thức omega = 2pi / T. Đơn vị là rad/s nhé.',
             isTyping: false
         }
     ]);
@@ -64,85 +65,89 @@ export default function LessonDetail() {
     };
 
     const lessonInfo = {
-        courseId: courseId || 'ui-design',
-        courseName: 'Nguyên Lý Thiết Kế UI Nâng Cao',
-        lessonTitle: 'Làm Chủ Nền Tảng UI',
-        lessonSubtitle: '1.2 Hiểu về Phân cấp Thị giác',
-        progress: 65,
-        duration: '18:45',
-        currentTime: '12:10'
+        courseId: courseId || 'physics-12',
+        courseName: 'Vật Lý 12 - Luyện Thi THPT',
+        lessonTitle: 'Bài 1: Dao Động Điều Hòa',
+        lessonSubtitle: 'Chương 1: Dao Động Cơ',
+        progress: 40,
+        duration: '45:00',
+        currentTime: '15:20'
     };
 
     const courseSections = [
         {
             id: 1,
-            title: 'Chương 1: Nền Tảng UI',
+            title: 'Chương 1: Dao Động Cơ',
             lessons: [
-                { id: 1, title: '1.1 Giới thiệu về Tư duy Thiết kế', duration: '15:20', completed: true },
-                { id: 2, title: '1.2 Cơ bản về Phân cấp Thị giác', duration: '18:45', completed: false, isCurrent: true },
-                { id: 3, title: '1.3 Thấu hiểu Nhu cầu Người dùng', duration: '22:10', completed: false }
+                { id: 1, title: '1.1 Dao động điều hòa', duration: '45 p', completed: false, isCurrent: true },
+                { id: 2, title: '1.2 Con lắc lò xo', duration: '45 p', completed: false },
+                { id: 3, title: '1.3 Con lắc đơn', duration: '45 p', completed: false },
+                { id: 4, title: '1.4 Dao động tắt dần', duration: '45 p', completed: false }
             ]
         },
         {
             id: 2,
-            title: 'Chương 2: Typography & Lý thuyết Màu sắc',
+            title: 'Chương 2: Sóng Cơ',
             lessons: [
-                { id: 1, title: '2.1 Nền tảng Font chữ', duration: '16:30', completed: false },
-                { id: 2, title: '2.2 Tâm lý học Màu sắc', duration: '19:25', completed: false },
-                { id: 3, title: '2.3 Chọn Font chữ Phù hợp', duration: '12:30', completed: false, isNew: true }
+                { id: 1, title: '2.1 Sự truyền sóng cơ', duration: '45 p', completed: false },
+                { id: 2, title: '2.2 Giao thoa sóng', duration: '45 p', completed: false, isNew: true },
+                { id: 3, title: '2.3 Sóng dừng', duration: '45 p', completed: false }
             ]
         },
         {
             id: 3,
-            title: 'Chương 3: Hệ thống Lưới & Bố cục',
+            title: 'Chương 3: Dòng Điện Xoay Chiều',
             lessons: [],
             isLocked: true
         }
     ];
 
     const tabs = [
-        { id: 'content', label: 'Nội Dung', icon: FileText },
-        { id: 'quizzes', label: 'Bài Kiểm Tra', icon: CheckCircle },
-        { id: 'examples', label: 'Ví Dụ', icon: Lightbulb },
-        { id: 'reflection', label: 'Phản Tư', icon: MessageSquare }
+        { id: 'content', label: 'Tóm Tắt Lý Thuyết', icon: FileText },
+        { id: 'exercises', label: 'Bài Tập Tự Luyện', icon: CheckCircle },
+        { id: 'examples', label: 'Ví Dụ Minh Họa', icon: Lightbulb },
+        { id: 'qa', label: 'Hỏi Đáp', icon: MessageSquare }
     ];
 
     const lessonMaterials = [
-        { id: 1, title: 'Tom_tat_bai_giang.pdf', type: 'pdf', icon: FileText },
-        { id: 2, title: 'Nghiên cứu điển hình: Apple.com', type: 'link', icon: FileText }
+        { id: 1, title: 'Ly_thuyet_dao_dong.pdf', type: 'pdf', icon: FileText },
+        { id: 2, title: 'Bai_tap_tu_luyen_Level_1.pdf', type: 'pdf', icon: FileText },
+        { id: 3, title: 'Link mô phỏng thí nghiệm', type: 'link', icon: FileText }
     ];
 
     const contentSections = [
         {
             id: 1,
-            icon: '📘',
-            title: 'Hiểu về Phân cấp Thị giác',
-            content: 'Phân cấp thị giác là nguyên tắc sắp xếp các yếu tố để thể hiện thứ tự quan trọng của chúng. Các nhà thiết kế sử dụng nó để hướng sự chú ý của người dùng đến thông tin quan trọng nhất trước tiên, đảm bảo trải nghiệm người dùng liền mạch.',
+            icon: '📖',
+            title: 'Định nghĩa Dao động điều hòa',
+            content: 'Dao động điều hòa là dao động trong đó li độ của vật là một hàm côsin (hay sin) của thời gian.',
             subsections: [
                 {
-                    title: 'Ba trụ cột chính chúng ta khám phá hôm nay:',
+                    title: 'Phương trình dao động:',
                     items: [
-                        { label: 'Kích thước và Tỷ lệ:', text: 'Các yếu tố lớn hơn tự nhiên thu hút ánh nhìn trước tiên, thiết lập sự ưu tiên rõ ràng.' },
-                        { label: 'Màu sắc và Độ tương phản:', text: 'Màu sắc tương phản cao tạo ra các điểm nhấn trên nền trung tính.' },
-                        { label: 'Typography:', text: 'Sử dụng độ đậm nhạt (Bold, Medium, Light) để phân biệt cấp bậc.' }
+                        { label: 'x = Acos(ωt + φ)', text: '' },
+                        { label: 'x:', text: 'Li độ (khoảng cách từ VTCB)' },
+                        { label: 'A:', text: 'Biên độ (li độ cực đại, A > 0)' },
+                        { label: 'ω (omega):', text: 'Tần số góc (rad/s)' },
+                        { label: 'φ (phi):', text: 'Pha ban đầu (tại t=0)' }
                     ]
                 }
             ]
         },
         {
             id: 2,
-            icon: '🎯',
-            title: 'Ứng dụng Thực tế',
+            icon: '⚡',
+            title: 'Vận tốc và Gia tốc',
             examples: [
                 {
-                    title: 'THỰC HÀNH HIỆU QUẢ',
-                    description: 'Điểm nhấn rõ ràng với Lời kêu gọi hành động (CTA) mạnh mẽ và khoảng trắng đồ họa.',
-                    type: 'success'
+                    title: 'VẬN TỐC (v)',
+                    description: 'v = x\' = -ωAsin(ωt + φ). Vận tốc sớm pha pi/2 so với li độ.',
+                    type: 'info' // Using general info styling
                 },
                 {
-                    title: 'TRÁNH ĐIỀU NÀY',
-                    description: 'Quá nhiều yếu tố cạnh tranh mà không có đường dẫn thị giác rõ ràng cho người dùng.',
-                    type: 'error'
+                    title: 'GIA TỐC (a)',
+                    description: 'a = v\' = -ω²x. Gia tốc ngược pha với li độ và tỉ lệ với li độ.',
+                    type: 'warning' // Highlight important concept
                 }
             ]
         }
@@ -161,7 +166,7 @@ export default function LessonDetail() {
                 setChatMessages(prev => [...prev, {
                     id: prev.length + 1,
                     type: 'ai',
-                    text: 'Tôi hiểu câu hỏi của bạn. Hãy để tôi giúp bạn...',
+                    text: 'Thầy đang suy nghĩ câu trả lời... (Giả lập AI)',
                     isTyping: false
                 }]);
             }, 1000);
@@ -185,7 +190,7 @@ export default function LessonDetail() {
                             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
                         >
                             <ArrowLeft size={20} />
-                            <span className="text-sm font-medium hidden sm:inline">Quay lại Khóa học</span>
+                            <span className="text-sm font-medium hidden sm:inline">Quay lại Lớp học</span>
                         </Link>
                         <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
                         <div className="hidden sm:block">
@@ -195,7 +200,7 @@ export default function LessonDetail() {
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="text-right hidden md:block">
-                            <div className="text-xs text-gray-500 uppercase tracking-wide">Tiến độ</div>
+                            <div className="text-xs text-gray-500 uppercase tracking-wide">Tiến độ bài học</div>
                             <div className="text-sm font-bold text-gray-900">{lessonInfo.progress}%</div>
                         </div>
                         <div className="w-24 md:w-32 bg-gray-100 rounded-full h-2 overflow-hidden">
@@ -226,7 +231,7 @@ export default function LessonDetail() {
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <input
                                     type="text"
-                                    placeholder="Tìm kiếm bài học..."
+                                    placeholder="Tìm bài học..."
                                     className="w-full pl-9 pr-3 py-2 bg-gray-50 rounded-lg text-sm text-gray-900 placeholder-gray-500 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white"
                                 />
                             </div>
@@ -284,7 +289,7 @@ export default function LessonDetail() {
                                                                 </p>
                                                                 {lesson.isNew && (
                                                                     <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs font-bold rounded flex-shrink-0">
-                                                                        🔥
+                                                                        MỚI
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -396,7 +401,8 @@ export default function LessonDetail() {
                                                                 <ul className="space-y-2">
                                                                     {subsection.items.map((item, itemIdx) => (
                                                                         <li key={itemIdx} className="text-sm text-gray-700">
-                                                                            <span className="font-semibold">{item.label}</span> {item.text}
+                                                                            {item.label && <span className="font-semibold text-blue-800 mr-2">{item.label}</span>}
+                                                                            {item.text}
                                                                         </li>
                                                                     ))}
                                                                 </ul>
@@ -408,23 +414,15 @@ export default function LessonDetail() {
                                                                 {section.examples.map((example, idx) => (
                                                                     <div
                                                                         key={idx}
-                                                                        className={`p-4 rounded-lg border-2 ${example.type === 'success'
-                                                                                ? 'border-green-200 bg-green-50'
-                                                                                : 'border-red-200 bg-red-50'
+                                                                        className={`p-4 rounded-lg border-2 ${example.type === 'info'
+                                                                                ? 'border-blue-200 bg-blue-50'
+                                                                                : 'border-orange-200 bg-orange-50'
                                                                             }`}
                                                                     >
-                                                                        <div className="aspect-video bg-white rounded-lg mb-3 flex items-center justify-center">
-                                                                            {example.type === 'success' ? (
-                                                                                <CheckCircle size={32} className="text-green-500" />
-                                                                            ) : (
-                                                                                <AlertCircle size={32} className="text-red-500" />
-                                                                            )}
-                                                                        </div>
-                                                                        <h4 className={`text-xs font-bold uppercase tracking-wide mb-1 ${example.type === 'success' ? 'text-green-700' : 'text-red-700'
-                                                                            }`}>
+                                                                        <h4 className={`text-xs font-bold uppercase tracking-wide mb-1 text-gray-700`}>
                                                                             {example.title}
                                                                         </h4>
-                                                                        <p className="text-xs text-gray-600">{example.description}</p>
+                                                                        <p className="text-xs text-gray-600 font-medium">{example.description}</p>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -439,7 +437,7 @@ export default function LessonDetail() {
                                 {activeTab !== 'content' && (
                                     <div className="text-center py-12">
                                         <MessageSquare size={48} className="text-gray-300 mx-auto mb-4" />
-                                        <p className="text-gray-500">Nội dung đang được cập nhật...</p>
+                                        <p className="text-gray-500">Nội dung sắp ra mắt...</p>
                                     </div>
                                 )}
                             </div>
@@ -511,7 +509,7 @@ export default function LessonDetail() {
                                         value={inputMessage}
                                         onChange={(e) => setInputMessage(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                        placeholder="Đặt câu hỏi..."
+                                        placeholder="Hỏi về dao động điều hòa..."
                                         className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                     <button
@@ -522,7 +520,7 @@ export default function LessonDetail() {
                                     </button>
                                 </div>
                                 <p className="text-xs text-gray-400 mt-2 text-center">
-                                    AI đã được kiểm duyệt trên Mô hình Học tập
+                                    AI hỗ trợ giải đáp thắc mắc môn Lý 24/7
                                 </p>
                             </div>
                         </div>
