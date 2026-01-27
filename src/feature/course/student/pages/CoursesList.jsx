@@ -1,15 +1,5 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-    BookOpen,
-    Clock,
-    Users,
-    Star,
-    ChevronRight,
-    Search,
-    Filter,
-    ArrowUpDown
-} from 'lucide-react';
 
 export default function CoursesList() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -112,123 +102,152 @@ export default function CoursesList() {
             <div className="max-w-7xl mx-auto">
 
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Lớp Học Của Tôi</h1>
-                    <p className="text-gray-600">Danh sách các môn học trong học kỳ này</p>
+                <div className="mb-10">
+                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">Lớp Học Của Tôi</h1>
+                    <p className="text-gray-600 text-lg font-medium">Danh sách các môn học trong học kỳ này • {filteredCourses.length} môn học</p>
                 </div>
 
                 {/* Filter Bar */}
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm môn học, giáo viên..."
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex gap-4">
-                        <div className="relative">
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <select
-                                className="pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer min-w-[180px]"
-                                value={selectedTag}
-                                onChange={(e) => setSelectedTag(e.target.value)}
-                            >
-                                {uniqueTags.map(tag => (
-                                    <option key={tag} value={tag}>
-                                        {tag === 'All' ? 'Tất cả Khoa/Ban' : tag}
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 rotate-90" size={16} />
+                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-8">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm môn học, giáo viên..."
+                                className="w-full pl-4 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all text-gray-900 font-medium"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
-                        <div className="relative">
-                            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <select
-                                className="pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer min-w-[180px]"
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                            >
-                                <option value="default">Mặc định</option>
-                                <option value="name">Tên (A-Z)</option>
-                                <option value="progress">Tiến độ cao nhất</option>
-                            </select>
-                            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 rotate-90" size={16} />
+                        <div className="flex gap-3">
+                            <div className="relative">
+                                <select
+                                    className="pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white cursor-pointer min-w-[180px] text-gray-900 font-medium"
+                                    value={selectedTag}
+                                    onChange={(e) => setSelectedTag(e.target.value)}
+                                >
+                                    {uniqueTags.map(tag => (
+                                        <option key={tag} value={tag}>
+                                            {tag === 'All' ? 'Tất cả Khoa/Ban' : tag}
+                                        </option>
+                                    ))}
+                                </select>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">▼</span>
+                            </div>
+                            <div className="relative">
+                                <select
+                                    className="pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white cursor-pointer min-w-[180px] text-gray-900 font-medium"
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value)}
+                                >
+                                    <option value="default">Mặc định</option>
+                                    <option value="name">Tên (A-Z)</option>
+                                    <option value="progress">Tiến độ cao nhất</option>
+                                </select>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">▼</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
+                {/* Summary Stats */}
+                {filteredCourses.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                            <div className="text-2xl font-bold text-gray-900 mb-1">{filteredCourses.length}</div>
+                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tổng môn học</div>
+                        </div>
+                        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                            <div className="text-2xl font-bold text-emerald-600 mb-1">
+                                {Math.round(filteredCourses.reduce((sum, c) => sum + c.progress, 0) / filteredCourses.length)}%
+                            </div>
+                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tiến độ TB</div>
+                        </div>
+                        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                            <div className="text-2xl font-bold text-blue-600 mb-1">
+                                {filteredCourses.reduce((sum, c) => sum + c.completedLessons, 0)}
+                            </div>
+                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Bài đã hoàn thành</div>
+                        </div>
+                        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                            <div className="text-2xl font-bold text-indigo-600 mb-1">
+                                {filteredCourses.reduce((sum, c) => sum + c.totalLessons, 0)}
+                            </div>
+                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tổng bài học</div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Courses Grid */}
                 {filteredCourses.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredCourses.map((course) => (
                             <Link
                                 key={course.id}
                                 to={`/dashboard/student/courses/${course.id}`}
                                 className="block group"
                             >
-                                <div className="bg-white rounded-xl p-6 border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all">
+                                <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:border-blue-300 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 h-full flex flex-col">
 
                                     {/* Course Header */}
-                                    <div className="flex items-start gap-4 mb-5">
-                                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${course.color}`}>
-                                            <BookOpen size={28} />
+                                    <div className="flex items-start gap-4 mb-6">
+                                        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 ${course.color} font-bold text-2xl shadow-sm`}>
+                                            {course.title.charAt(0)}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <span className={`inline-block px-2.5 py-1 ${course.tagColor} text-xs font-bold rounded-full mb-2 uppercase tracking-wide`}>
+                                            <span className={`inline-block px-3 py-1.5 ${course.tagColor} text-xs font-bold rounded-lg mb-3 uppercase tracking-wider`}>
                                                 {course.tag}
                                             </span>
-                                            <h3 className="font-bold text-lg text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                                            <h3 className="font-bold text-xl text-gray-900 mb-2 group-hover:text-blue-600 transition-colors leading-tight">
                                                 {course.title}
                                             </h3>
-                                            <p className="text-sm text-gray-500">GV: {course.instructor}</p>
+                                            <p className="text-sm text-gray-600 font-medium">Giáo viên: <span className="font-semibold">{course.instructor}</span></p>
                                         </div>
-                                        <ChevronRight size={20} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
                                     </div>
 
+                                    {/* Next Lesson Info */}
+                                    {course.nextLesson && (
+                                        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Bài tiếp theo</p>
+                                            <p className="text-sm font-bold text-gray-900">{course.nextLesson}</p>
+                                        </div>
+                                    )}
+
                                     {/* Course Stats */}
-                                    <div className="grid grid-cols-3 gap-4 mb-5 pb-5 border-b border-gray-100">
-                                        <div className="text-center">
-                                            <div className="flex items-center justify-center gap-1 text-gray-600 mb-1">
-                                                <Clock size={16} />
-                                            </div>
-                                            <div className="text-sm font-semibold text-gray-900">{course.totalHours} tiết</div>
-                                            <div className="text-xs text-gray-500">Thời lượng</div>
+                                    <div className="grid grid-cols-3 gap-4 mb-6 pb-6 border-b border-gray-100">
+                                        <div className="text-center p-3 bg-gray-50 rounded-xl">
+                                            <div className="text-2xl font-bold text-gray-900 mb-1">{course.totalHours}</div>
+                                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tiết học</div>
                                         </div>
-                                        <div className="text-center">
-                                            <div className="flex items-center justify-center gap-1 text-gray-600 mb-1">
-                                                <Users size={16} />
-                                            </div>
-                                            <div className="text-sm font-semibold text-gray-900">{course.students}</div>
-                                            <div className="text-xs text-gray-500">Sĩ số</div>
+                                        <div className="text-center p-3 bg-gray-50 rounded-xl">
+                                            <div className="text-2xl font-bold text-gray-900 mb-1">{course.students}</div>
+                                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Học sinh</div>
                                         </div>
-                                        <div className="text-center">
-                                            <div className="flex items-center justify-center gap-1 text-gray-600 mb-1">
-                                                <Star size={16} className="fill-yellow-400 text-yellow-400" />
-                                            </div>
-                                            <div className="text-sm font-semibold text-gray-900">{course.rating}</div>
-                                            <div className="text-xs text-gray-500">Đánh giá</div>
+                                        <div className="text-center p-3 bg-gray-50 rounded-xl">
+                                            <div className="text-2xl font-bold text-gray-900 mb-1">{course.rating}</div>
+                                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Đánh giá</div>
                                         </div>
                                     </div>
 
                                     {/* Progress */}
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-semibold text-gray-600 uppercase">Tiến độ học kỳ</span>
-                                            <span className="text-sm font-bold text-gray-900">{course.progress}%</span>
+                                    <div className="mt-auto">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">Tiến độ học kỳ</span>
+                                            <span className="text-xl font-bold text-gray-900">{course.progress}%</span>
                                         </div>
-                                        <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden">
+                                        <div className="w-full bg-gray-100 rounded-full h-3.5 mb-4 overflow-hidden shadow-inner">
                                             <div
-                                                className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                                                className={`h-full rounded-full transition-all duration-700 shadow-sm ${
+                                                    course.progress >= 80 ? 'bg-gradient-to-r from-green-500 to-emerald-600' :
+                                                    course.progress >= 50 ? 'bg-gradient-to-r from-blue-500 to-indigo-600' :
+                                                    'bg-gradient-to-r from-amber-500 to-orange-600'
+                                                }`}
                                                 style={{ width: `${course.progress}%` }}
                                             ></div>
                                         </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-gray-500">{course.completedLessons}/{course.totalLessons} bài</span>
-                                            <span className="text-blue-600 font-medium group-hover:underline">Vào học →</span>
+                                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                                            <span className="text-sm text-gray-600 font-medium">{course.completedLessons}/{course.totalLessons} bài đã hoàn thành</span>
+                                            <span className="text-blue-600 font-bold text-sm group-hover:text-blue-700 transition-colors">Vào học →</span>
                                         </div>
                                     </div>
                                 </div>
@@ -236,15 +255,15 @@ export default function CoursesList() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-12 bg-white rounded-xl border border-gray-100 border-dashed">
-                        <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <Search className="text-gray-400" size={24} />
+                    <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 border-dashed">
+                        <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-6 text-2xl font-bold text-gray-400">
+                            ?
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-1">Không tìm thấy kết quả</h3>
-                        <p className="text-gray-500">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc của bạn</p>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Không tìm thấy kết quả</h3>
+                        <p className="text-gray-600 mb-6">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc của bạn</p>
                         <button
                             onClick={() => { setSearchTerm(''); setSelectedTag('All'); }}
-                            className="mt-4 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                            className="px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
                         >
                             Xóa bộ lọc
                         </button>

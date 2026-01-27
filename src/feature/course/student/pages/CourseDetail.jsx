@@ -114,7 +114,7 @@ export default function CourseDetail() {
                         {/* Course Header */}
                         <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
                             <div className="flex items-start gap-4 mb-6">
-                                <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center flex-shrink-0">
+                                <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-indigo-100 to-blue-100 flex items-center justify-center flex-shrink-0">
                                     <BookOpen size={36} className="text-indigo-600" />
                                 </div>
                                 <div className="flex-1">
@@ -276,7 +276,7 @@ export default function CourseDetail() {
                     <div className="space-y-6">
 
                         {/* Live Session Info */}
-                        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl p-5 border border-blue-100 shadow-sm">
+                        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-50 rounded-xl p-5 border border-blue-100 shadow-sm">
                             <div className="flex items-start gap-3 mb-4">
                                 <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                                     <Clock size={22} className="text-white" />
