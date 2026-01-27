@@ -4,15 +4,15 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import Sidebar from "../components/layout/Sidebar";
 import Home from "../pages/Home";
-import TeacherDashboard from "../feature/dashboard/teacher/pages/TeacherDashboard";
-import CourseManagement from "../feature/course/teacher/pages/CourseManagement";
-import StudentDashboard from "../feature/dashboard/student/pages/StudentDashboard";
-import CourseDetail from "../feature/course/student/pages/CourseDetail";
-import CoursesList from "../feature/course/student/pages/CoursesList";
-import LessonDetail from "../feature/lesson/student/pages/LessonDetail";
-import QuizList from "../feature/quiz/student/pages/QuizList";
-import QuizDetail from "../feature/quiz/student/pages/QuizDetail";
-import StudentProgress from "../feature/progress/student/pages/StudentProgress";
+import TeacherDashboard from "../features/dashboard/teacher/pages/TeacherDashboard";
+import CourseManagement from "../features/course/teacher/pages/CourseManagement";
+import StudentDashboard from "../features/dashboard/student/pages/StudentDashboard";
+import CourseDetail from "../features/course/student/pages/CourseDetail";
+import CoursesList from "../features/course/student/pages/CoursesList";
+import LessonDetail from "../features/lesson/student/pages/LessonDetail";
+import QuizList from "../features/quiz/student/pages/QuizList";
+import QuizDetail from "../features/quiz/student/pages/QuizDetail";
+import StudentProgress from "../features/progress/student/pages/StudentProgress";
 
 const Layout = () => (
   <div className="flex flex-col min-h-screen">
@@ -32,6 +32,7 @@ const Fallback = () => (
 export default function RouteMap() {
   return (
     <Routes>
+       {/* Các route có layout Dashboard */}
       <Route path="dashboard">
         <Route path="teacher" element={<Sidebar userRole="teacher" />}>
           <Route index element={<TeacherDashboard />} />
@@ -48,6 +49,8 @@ export default function RouteMap() {
         </Route>
         <Route index element={<Navigate to="/dashboard/teacher" replace />} />
       </Route>
+
+      {/* Các route có layout Header/Footer */}
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="*" element={<Fallback />} />
