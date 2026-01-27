@@ -15,6 +15,7 @@ import {
   Bell,
   Search,
   TrendingUp,
+  Lock,
 } from 'lucide-react';
 import ScrollToTop from './ScrollToTop';
 
@@ -62,6 +63,12 @@ const MENU_ITEMS = [
     allowedRoles: ['teacher']
   },
   {
+    label: 'Vai trò & Quyền',
+    icon: Lock,
+    path: 'roles-permissions',
+    allowedRoles: ['admin']
+  },
+  {
     label: 'Quản trị Hệ thống',
     icon: ShieldAlert,
     path: 'admin',
@@ -82,10 +89,13 @@ export default function Sidebar({ userRole = 'teacher' }) {
   // Auto-detect base path from current location
   const BASE_PATH = location.pathname.startsWith('/dashboard/student')
     ? '/dashboard/student'
+    : location.pathname.startsWith('/dashboard/admin')
+    ? '/dashboard/admin'
     : '/dashboard/teacher';
 
   // Auto-detect userRole from path if not provided
   const detectedRole = location.pathname.startsWith('/dashboard/student') ? 'student' :
+    location.pathname.startsWith('/dashboard/admin') ? 'admin' :
     location.pathname.startsWith('/dashboard/teacher') ? 'teacher' :
       userRole;
 
@@ -188,7 +198,7 @@ export default function Sidebar({ userRole = 'teacher' }) {
             {detectedRole !== 'student' && <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />}
             <input
               type="text"
-              placeholder="Tìm kiếm..."
+              placeholder={detectedRole === 'admin' ? 'Search notifications, logs, or users.' : 'Tìm kiếm...'}
               className={`w-full ${detectedRole !== 'student' ? 'pl-9' : 'pl-3'} pr-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-900 placeholder-gray-500 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white`}
             />
           </div>
