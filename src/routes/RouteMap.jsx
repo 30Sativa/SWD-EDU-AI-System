@@ -9,6 +9,7 @@ import TeacherDashboard from "../features/dashboard/teacher/pages/TeacherDashboa
 import CourseManagement from "../features/course/teacher/pages/CourseManagement";
 import StudentDashboard from "../features/dashboard/student/pages/StudentDashboard";
 import ClassManagement from "../features/classes/teacher/pages/ClassManagement";
+import ManagerDashboard from "../features/dashboard/manager/pages/ManagerDashboard";
 
 import CourseDetail from "../features/course/student/pages/CourseDetail";
 import CoursesList from "../features/course/student/pages/CoursesList";
@@ -35,7 +36,7 @@ const Fallback = () => (
 export default function RouteMap() {
   return (
     <Routes>
-       {/* Các route có layout Dashboard */}
+      {/* Các route có layout Dashboard */}
       <Route path="dashboard">
         <Route path="teacher" element={<Sidebar userRole="teacher" />}>
           <Route index element={<TeacherDashboard />} />
@@ -50,6 +51,9 @@ export default function RouteMap() {
           <Route path="quizzes" element={<QuizList />} />
           <Route path="quizzes/:quizId" element={<QuizDetail />} />
           <Route path="progress" element={<StudentProgress />} />
+        </Route>
+        <Route path="manager" element={<Sidebar userRole="manager" />}>
+          <Route index element={<ManagerDashboard />} />
         </Route>
         <Route index element={<Navigate to="/dashboard/teacher" replace />} />
       </Route>
