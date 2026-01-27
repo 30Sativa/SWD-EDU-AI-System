@@ -9,7 +9,6 @@ import {
   MessageCircle,
   ArrowRight,
 } from 'lucide-react';
-
 const summaryCards = [
   {
     label: 'Tổng Học sinh',
