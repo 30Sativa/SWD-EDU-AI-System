@@ -8,13 +8,16 @@ import {
     ChevronRight,
     Search,
     Filter,
-    ArrowUpDown
+    ArrowUpDown,
+    LayoutGrid,
+    List
 } from 'lucide-react';
 
 export default function CoursesList() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTag, setSelectedTag] = useState('All');
     const [sortBy, setSortBy] = useState('default');
+    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
     const courses = [
         {
@@ -30,7 +33,7 @@ export default function CoursesList() {
             nextLesson: 'Hai mặt phẳng vuông góc (Tiết 2)',
             color: 'bg-blue-100 text-blue-600',
             tag: 'BAN TỰ NHIÊN',
-            tagColor: 'bg-blue-50 text-blue-600'
+            tagColor: 'bg-blue-50 text-blue-600 border-blue-200'
         },
         {
             id: 'physics-12',
@@ -45,7 +48,7 @@ export default function CoursesList() {
             nextLesson: 'Mạch dao động LC',
             color: 'bg-indigo-100 text-indigo-600',
             tag: 'ÔN THI ĐẠI HỌC',
-            tagColor: 'bg-indigo-50 text-indigo-600'
+            tagColor: 'bg-indigo-50 text-indigo-600 border-indigo-200'
         },
         {
             id: 'chem-10',
@@ -58,9 +61,9 @@ export default function CoursesList() {
             students: 42,
             rating: 4.5,
             nextLesson: 'Tốc độ phản ứng hóa học',
-            color: 'bg-green-100 text-green-600',
+            color: 'bg-emerald-100 text-emerald-600',
             tag: 'LỚP 10',
-            tagColor: 'bg-green-50 text-green-600'
+            tagColor: 'bg-emerald-50 text-emerald-600 border-emerald-200'
         },
         {
             id: 'literature-11',
@@ -75,7 +78,7 @@ export default function CoursesList() {
             nextLesson: 'Văn học hiện thực phê phán',
             color: 'bg-orange-100 text-orange-600',
             tag: 'BAN XÃ HỘI',
-            tagColor: 'bg-orange-50 text-orange-600'
+            tagColor: 'bg-orange-50 text-orange-600 border-orange-200'
         },
         {
             id: 'english-12',
@@ -90,7 +93,7 @@ export default function CoursesList() {
             nextLesson: 'Unit 5: Cultural Identity',
             color: 'bg-purple-100 text-purple-600',
             tag: 'NGOẠI NGỮ',
-            tagColor: 'bg-purple-50 text-purple-600'
+            tagColor: 'bg-purple-50 text-purple-600 border-purple-200'
         }
     ];
 
@@ -108,149 +111,155 @@ export default function CoursesList() {
     });
 
     return (
-        <div className="p-6 md:p-8 bg-gray-50 min-h-screen">
-            <div className="max-w-7xl mx-auto">
+        <div className="p-8 max-w-7xl mx-auto min-h-screen animate-fade-in font-sans">
 
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Lớp Học Của Tôi</h1>
-                    <p className="text-gray-600">Danh sách các môn học trong học kỳ này</p>
+            {/* Header */}
+            <div className="mb-10">
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Lớp Học Của Tôi</h1>
+                <p className="text-gray-500 font-medium text-lg">Quản lý và theo dõi tiến độ học tập các môn học.</p>
+            </div>
+
+            {/* Filter Bar */}
+            <div className="flex flex-col xl:flex-row gap-5 mb-8 justify-between">
+                <div className="relative flex-1 max-w-2xl group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Tìm kiếm môn học, giáo viên..."
+                        className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium shadow-sm hover:shadow-md"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </div>
 
-                {/* Filter Bar */}
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm môn học, giáo viên..."
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                <div className="flex flex-wrap gap-4 items-center">
+                    <div className="relative min-w-[180px]">
+                        <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                        <select
+                            className="w-full pl-12 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer text-sm font-semibold shadow-sm hover:shadow-md transition-all"
+                            value={selectedTag}
+                            onChange={(e) => setSelectedTag(e.target.value)}
+                        >
+                            {uniqueTags.map(tag => (
+                                <option key={tag} value={tag}>
+                                    {tag === 'All' ? 'Tất cả Khoa/Ban' : tag}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 rotate-90 pointer-events-none" size={16} />
                     </div>
-                    <div className="flex gap-4">
-                        <div className="relative">
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <select
-                                className="pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer min-w-[180px]"
-                                value={selectedTag}
-                                onChange={(e) => setSelectedTag(e.target.value)}
-                            >
-                                {uniqueTags.map(tag => (
-                                    <option key={tag} value={tag}>
-                                        {tag === 'All' ? 'Tất cả Khoa/Ban' : tag}
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 rotate-90" size={16} />
-                        </div>
-                        <div className="relative">
-                            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <select
-                                className="pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer min-w-[180px]"
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                            >
-                                <option value="default">Mặc định</option>
-                                <option value="name">Tên (A-Z)</option>
-                                <option value="progress">Tiến độ cao nhất</option>
-                            </select>
-                            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 rotate-90" size={16} />
-                        </div>
+
+                    <div className="relative min-w-[180px]">
+                        <ArrowUpDown className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                        <select
+                            className="w-full pl-12 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer text-sm font-semibold shadow-sm hover:shadow-md transition-all"
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                        >
+                            <option value="default">Sắp xếp: Mặc định</option>
+                            <option value="name">Tên (A-Z)</option>
+                            <option value="progress">Tiến độ cao nhất</option>
+                        </select>
+                        <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 rotate-90 pointer-events-none" size={16} />
                     </div>
                 </div>
+            </div>
 
-                {/* Courses Grid */}
-                {filteredCourses.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {filteredCourses.map((course) => (
-                            <Link
-                                key={course.id}
-                                to={`/dashboard/student/courses/${course.id}`}
-                                className="block group"
-                            >
-                                <div className="bg-white rounded-xl p-6 border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all">
+            {/* Courses Grid */}
+            {filteredCourses.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredCourses.map((course) => (
+                        <Link
+                            key={course.id}
+                            to={`/dashboard/student/courses/${course.id}`}
+                            className="block group"
+                        >
+                            <div className="bg-white rounded-[1.5rem] p-6 border border-gray-100 hover:border-blue-200 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
 
-                                    {/* Course Header */}
-                                    <div className="flex items-start gap-4 mb-5">
-                                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${course.color}`}>
-                                            <BookOpen size={28} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <span className={`inline-block px-2.5 py-1 ${course.tagColor} text-xs font-bold rounded-full mb-2 uppercase tracking-wide`}>
-                                                {course.tag}
-                                            </span>
-                                            <h3 className="font-bold text-lg text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
-                                                {course.title}
-                                            </h3>
-                                            <p className="text-sm text-gray-500">GV: {course.instructor}</p>
-                                        </div>
-                                        <ChevronRight size={20} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
+                                {/* Header */}
+                                <div className="flex items-start justify-between mb-6">
+                                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${course.color} shadow-inner`}>
+                                        <BookOpen size={30} />
                                     </div>
+                                    <span className={`inline-block px-3 py-1 ${course.tagColor} border text-[10px] font-bold rounded-full uppercase tracking-wider`}>
+                                        {course.tag}
+                                    </span>
+                                </div>
 
-                                    {/* Course Stats */}
-                                    <div className="grid grid-cols-3 gap-4 mb-5 pb-5 border-b border-gray-100">
-                                        <div className="text-center">
-                                            <div className="flex items-center justify-center gap-1 text-gray-600 mb-1">
-                                                <Clock size={16} />
-                                            </div>
-                                            <div className="text-sm font-semibold text-gray-900">{course.totalHours} tiết</div>
-                                            <div className="text-xs text-gray-500">Thời lượng</div>
+                                <div className="mb-6 flex-1">
+                                    <h3 className="font-bold text-xl text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                        {course.title}
+                                    </h3>
+                                    <p className="text-sm text-gray-500 font-medium flex items-center gap-1.5">
+                                        <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                                            <span className="text-[10px]">GV</span>
                                         </div>
-                                        <div className="text-center">
-                                            <div className="flex items-center justify-center gap-1 text-gray-600 mb-1">
-                                                <Users size={16} />
-                                            </div>
-                                            <div className="text-sm font-semibold text-gray-900">{course.students}</div>
-                                            <div className="text-xs text-gray-500">Sĩ số</div>
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="flex items-center justify-center gap-1 text-gray-600 mb-1">
-                                                <Star size={16} className="fill-yellow-400 text-yellow-400" />
-                                            </div>
-                                            <div className="text-sm font-semibold text-gray-900">{course.rating}</div>
-                                            <div className="text-xs text-gray-500">Đánh giá</div>
+                                        {course.instructor}
+                                    </p>
+                                </div>
+
+                                {/* Stats */}
+                                <div className="grid grid-cols-3 gap-2 mb-6 p-4 rounded-xl bg-gray-50/80 border border-gray-100">
+                                    <div className="text-center">
+                                        <div className="text-xs text-gray-400 font-semibold uppercase mb-1">Thời lượng</div>
+                                        <div className="font-bold text-gray-900 text-sm flex items-center justify-center gap-1">
+                                            <Clock size={14} className="text-gray-400" /> {course.totalHours}h
                                         </div>
                                     </div>
-
-                                    {/* Progress */}
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-semibold text-gray-600 uppercase">Tiến độ học kỳ</span>
-                                            <span className="text-sm font-bold text-gray-900">{course.progress}%</span>
+                                    <div className="text-center border-l border-gray-200">
+                                        <div className="text-xs text-gray-400 font-semibold uppercase mb-1">Sĩ số</div>
+                                        <div className="font-bold text-gray-900 text-sm flex items-center justify-center gap-1">
+                                            <Users size={14} className="text-gray-400" /> {course.students}
                                         </div>
-                                        <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden">
-                                            <div
-                                                className="bg-blue-600 h-full rounded-full transition-all duration-500"
-                                                style={{ width: `${course.progress}%` }}
-                                            ></div>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-gray-500">{course.completedLessons}/{course.totalLessons} bài</span>
-                                            <span className="text-blue-600 font-medium group-hover:underline">Vào học →</span>
+                                    </div>
+                                    <div className="text-center border-l border-gray-200">
+                                        <div className="text-xs text-gray-400 font-semibold uppercase mb-1">Đánh giá</div>
+                                        <div className="font-bold text-gray-900 text-sm flex items-center justify-center gap-1">
+                                            <Star size={14} className="text-yellow-500 fill-yellow-500" /> {course.rating}
                                         </div>
                                     </div>
                                 </div>
-                            </Link>
-                        ))}
+
+                                {/* Footer / Progress */}
+                                <div className="mt-auto">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Tiến độ</span>
+                                        <span className="text-sm font-bold text-blue-600">{course.progress}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-2 mb-4 overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-1000 ease-out bg-current ${course.progress >= 75 ? 'text-green-500' : course.progress >= 40 ? 'text-blue-500' : 'text-amber-500'}`}
+                                            style={{ width: `${course.progress}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="pt-4 border-t border-gray-50 flex items-center justify-between group/link">
+                                        <p className="text-xs text-gray-400 font-medium">Tiếp: <span className="text-gray-600">{course.nextLesson.split(':')[0]}...</span></p>
+                                        <span className="text-sm font-bold text-blue-600 flex items-center gap-1 group-hover/link:underline">
+                                            Vào học <ChevronRight size={16} />
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            ) : (
+                <div className="min-h-[400px] flex flex-col items-center justify-center bg-white rounded-[2rem] border-2 border-dashed border-gray-200">
+                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+                        <Search className="text-gray-300" size={40} />
                     </div>
-                ) : (
-                    <div className="text-center py-12 bg-white rounded-xl border border-gray-100 border-dashed">
-                        <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <Search className="text-gray-400" size={24} />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-1">Không tìm thấy kết quả</h3>
-                        <p className="text-gray-500">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc của bạn</p>
-                        <button
-                            onClick={() => { setSearchTerm(''); setSelectedTag('All'); }}
-                            className="mt-4 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
-                        >
-                            Xóa bộ lọc
-                        </button>
-                    </div>
-                )}
-            </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Không tìm thấy kết quả</h3>
+                    <p className="text-gray-500 max-w-sm text-center mb-8">Chúng tôi không tìm thấy khóa học nào phù hợp với từ khóa tìm kiếm của bạn.</p>
+                    <button
+                        onClick={() => { setSearchTerm(''); setSelectedTag('All'); }}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg hover:shadow-blue-500/30 hover:bg-blue-700 transition-all active:scale-95"
+                    >
+                        Xóa bộ lọc tìm kiếm
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

@@ -8,27 +8,35 @@ import {
   FileEdit,
   MessageCircle,
   ArrowRight,
+  MoreVertical,
+  Clock,
+  Search
 } from 'lucide-react';
+
 const summaryCards = [
   {
     label: 'Tổng Học sinh',
     value: 84,
-    change: '+12% so với tuần trước',
+    change: '+12% tuần này',
     positive: true,
     icon: Users,
+    color: 'blue'
   },
   {
     label: 'Khóa học Đang hoạt động',
     value: 3,
-    change: null,
+    change: 'Ổn định',
+    positive: true,
     icon: BookOpen,
+    color: 'emerald'
   },
   {
     label: 'Bài học Đã xuất bản',
     value: 35,
-    change: '+5% so với tuần trước',
+    change: '+5% tuần này',
     positive: true,
     icon: FileText,
+    color: 'indigo'
   },
   {
     label: 'Bản nháp',
@@ -36,13 +44,14 @@ const summaryCards = [
     change: 'Đang chờ xem xét',
     positive: false,
     icon: ClipboardList,
+    color: 'amber'
   },
 ];
 
 const activeCourses = [
-  { name: 'Toán học 10A', students: 32, lessons: 12 },
-  { name: 'Vật lý 11B', students: 28, lessons: 8 },
-  { name: 'Tiếng Anh Nâng cao', students: 24, lessons: 15 },
+  { name: 'Toán học 10A', students: 32, lessons: 12, category: 'Lớp 10' },
+  { name: 'Vật lý 11B', students: 28, lessons: 8, category: 'Lớp 11' },
+  { name: 'Tiếng Anh Nâng cao', students: 24, lessons: 15, category: 'Ngôn ngữ' },
 ];
 
 const draftLessons = [
@@ -58,6 +67,8 @@ const recentActivity = [
     time: '10 phút trước',
     action: 'Trả lời',
     icon: MessageCircle,
+    iconColor: 'text-blue-600',
+    bgColor: 'bg-blue-50'
   },
   {
     user: 'Bạn',
@@ -66,175 +77,191 @@ const recentActivity = [
     time: '2 giờ trước',
     action: null,
     icon: FileEdit,
+    iconColor: 'text-amber-600',
+    bgColor: 'bg-amber-50'
   },
 ];
 
 export default function TeacherDashboard() {
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Bảng điều khiển</h1>
-        <p className="text-gray-600">Chào mừng trở lại, Giáo viên Nguyễn</p>
+    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-fade-in text-gray-900 font-sans">
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 mb-2">Bảng điều khiển</h1>
+          <p className="text-gray-500 font-medium">Quản lý lớp học và nội dung giảng dạy của bạn.</p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <ActionButton icon={Plus} label="Khóa học" primary />
+          <ActionButton icon={Plus} label="Bài học" />
+          <ActionButton icon={Plus} label="Câu hỏi" />
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-8">
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium text-sm rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-        >
-          <Plus size={18} />
-          Tạo Khóa học
-        </button>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-blue-600 font-medium text-sm rounded-lg border border-blue-600 hover:bg-blue-50 transition-colors"
-        >
-          <Plus size={18} />
-          Tạo Bài học
-        </button>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-blue-600 font-medium text-sm rounded-lg border border-blue-600 hover:bg-blue-50 transition-colors"
-        >
-          <Plus size={18} />
-          Tạo Câu hỏi
-        </button>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {summaryCards.map((card) => (
+          <StatCard key={card.label} {...card} />
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {summaryCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div
-              key={card.label}
-              className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <span className="text-sm font-medium text-gray-600">{card.label}</span>
-                <Icon size={20} className="text-gray-400" />
-              </div>
-              <p className="text-2xl font-bold text-gray-900 mb-1">{card.value}</p>
-              {card.change && (
-                <p
-                  className={`text-xs font-medium ${
-                    card.positive ? 'text-green-600' : 'text-amber-600'
-                  }`}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        {/* Main Column */}
+        <div className="lg:col-span-2 space-y-8">
+
+          {/* Active Courses */}
+          <SectionContainer title="Khóa học Đang hoạt động" subtitle="Các lớp học hiện tại của bạn" action="Xem tất cả">
+            <div className="space-y-4">
+              {activeCourses.map((course) => (
+                <div
+                  key={course.name}
+                  className="group flex flex-wrap items-center justify-between gap-4 p-5 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer"
                 >
-                  {card.positive && '↑ '}
-                  {card.change}
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Khóa học Đang hoạt động</h2>
-            <p className="text-sm text-gray-500">Các lớp học hiện tại của bạn</p>
-          </div>
-          <button
-            type="button"
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 inline-flex items-center gap-1"
-          >
-            Xem tất cả <ArrowRight size={14} />
-          </button>
-        </div>
-        <div className="space-y-3">
-          {activeCourses.map((course) => (
-            <div
-              key={course.name}
-              className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-            >
-              <div>
-                <p className="font-medium text-gray-900">{course.name}</p>
-                <p className="text-sm text-gray-500">
-                  {course.students} học sinh • {course.lessons} bài học
-                </p>
-              </div>
-              <span className="px-3 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-                đang hoạt động
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Bài học Bản nháp</h2>
-          <p className="text-sm text-gray-500">Tiếp tục làm việc với những bài này</p>
-        </div>
-        <div className="space-y-3 mb-4">
-          {draftLessons.map((draft) => (
-            <div
-              key={draft.name}
-              className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-            >
-              <div>
-                <p className="font-medium text-gray-900">{draft.name}</p>
-                <p className="text-sm text-gray-500">
-                  {draft.course} • {draft.time}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="w-full py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-        >
-          Xem tất cả Bản nháp
-        </button>
-      </section>
-
-      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Hoạt động Gần đây</h2>
-          <p className="text-sm text-gray-500">Câu hỏi và cập nhật từ học sinh</p>
-        </div>
-        <div className="space-y-4">
-          {recentActivity.map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={idx}
-                className="flex flex-wrap items-start justify-between gap-3 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex gap-3 min-w-0">
-                  <Icon size={20} className="text-gray-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="font-medium text-gray-900">{item.user}</span>
-                      <span
-                        className={`px-2 py-0.5 text-xs font-medium rounded ${
-                          item.type === 'Câu hỏi'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-200 text-gray-700'
-                        }`}
-                      >
-                        {item.type}
-                      </span>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-lg">
+                      {course.name.charAt(0)}
                     </div>
-                    <p className="text-sm text-gray-600">{item.text}</p>
-                    <p className="text-xs text-gray-500 mt-1">{item.time}</p>
+                    <div>
+                      <p className="font-bold text-gray-900 text-lg group-hover:text-blue-600 transition-colors">{course.name}</p>
+                      <p className="text-sm text-gray-500 font-medium mt-1">
+                        <span className="inline-flex items-center gap-1"><Users size={14} /> {course.students} học sinh</span>
+                        <span className="mx-2">•</span>
+                        <span className="inline-flex items-center gap-1"><BookOpen size={14} /> {course.lessons} bài học</span>
+                      </p>
+                    </div>
                   </div>
+                  <span className="px-3 py-1 text-xs font-bold bg-green-100 text-green-700 rounded-full uppercase tracking-wide">
+                    Hoạt động
+                  </span>
                 </div>
-                {item.action && (
-                  <button
-                    type="button"
-                    className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0"
-                  >
-                    {item.action}
-                  </button>
-                )}
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          </SectionContainer>
+
+          {/* Recent Activity */}
+          <SectionContainer title="Hoạt động Gần đây" subtitle="Tương tác mới nhất">
+            <div className="divide-y divide-gray-50">
+              {recentActivity.map((item, idx) => (
+                <ActivityItem key={idx} {...item} />
+              ))}
+            </div>
+          </SectionContainer>
         </div>
-      </section>
+
+        {/* Sidebar Column */}
+        <div className="space-y-8">
+          {/* Drafts */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-gray-900">Bản nháp đang chờ</h2>
+              <p className="text-sm text-gray-500 mt-1">Tiếp tục công việc của bạn</p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              {draftLessons.map((draft) => (
+                <div key={draft.name} className="p-4 rounded-xl bg-gray-50 border border-gray-100 hover:bg-white hover:shadow-md transition-all cursor-pointer group">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{draft.course}</span>
+                    <Clock size={14} className="text-gray-300" />
+                  </div>
+                  <h4 className="font-bold text-sm text-gray-900 group-hover:text-blue-600 transition-colors mb-2">{draft.name}</h4>
+                  <p className="text-xs text-gray-500 font-medium">Chỉnh sửa lần cuối: {draft.time}</p>
+                </div>
+              ))}
+            </div>
+
+            <button className="w-full py-3 text-sm font-bold text-blue-600 bg-blue-50/50 hover:bg-blue-50 rounded-xl transition-colors border border-blue-100 border-dashed hover:border-solid">
+              Xem tất cả Bản nháp
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
+// Sub-components
+const ActionButton = ({ icon: Icon, label, primary }) => (
+  <button
+    type="button"
+    className={`inline-flex items-center gap-2 px-5 py-2.5 font-bold text-sm rounded-xl transition-all shadow-sm hover:shadow-md active:scale-95
+      ${primary
+        ? 'bg-blue-600 text-white hover:bg-blue-700'
+        : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+      }`}
+  >
+    <Icon size={18} />
+    {label}
+  </button>
+);
+
+const StatCard = ({ label, value, change, positive, icon: Icon, color }) => {
+  const colorMap = {
+    blue: 'bg-blue-50 text-blue-600',
+    emerald: 'bg-emerald-50 text-emerald-600',
+    indigo: 'bg-indigo-50 text-indigo-600',
+    amber: 'bg-amber-50 text-amber-600',
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+      <div className="flex justify-between items-start mb-4">
+        <div className={`p-3 rounded-xl ${colorMap[color]}`}>
+          <Icon size={22} />
+        </div>
+      </div>
+      <p className="text-3xl font-extrabold text-gray-900 mb-1 tracking-tight">{value}</p>
+      <p className="text-sm font-medium text-gray-500">{label}</p>
+      {change && (
+        <div className={`mt-3 inline-flex items-center text-xs font-bold px-2 py-1 rounded-full ${positive ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+          {positive ? '↑ ' : ''} {change}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SectionContainer = ({ title, subtitle, action, children }) => (
+  <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+    <div className="flex justify-between items-center mb-6">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+        <p className="text-sm text-gray-500 font-medium mt-1">{subtitle}</p>
+      </div>
+      {action && (
+        <button className="text-sm font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 hover:underline">
+          {action} <ArrowRight size={16} />
+        </button>
+      )}
+    </div>
+    {children}
+  </section>
+);
+
+const ActivityItem = ({ user, type, text, time, action, icon: Icon, iconColor, bgColor }) => (
+  <div className="py-4 flex flex-col sm:flex-row items-start gap-4 hover:bg-gray-50 rounded-xl transition-colors px-2 -mx-2">
+    <div className={`w-10 h-10 rounded-full ${bgColor} flex items-center justify-center flex-shrink-0 mt-1`}>
+      <Icon size={18} className={iconColor} />
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="flex flex-wrap items-center gap-2 mb-1">
+        <span className="font-bold text-gray-900 text-sm">{user}</span>
+        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border ${type === 'Câu hỏi' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+          {type}
+        </span>
+      </div>
+      <p className="text-sm text-gray-600 leading-relaxed">{text}</p>
+      <p className="text-xs text-gray-400 font-medium mt-2 flex items-center gap-1">
+        <Clock size={12} /> {time}
+      </p>
+    </div>
+    {action && (
+      <button className="self-start sm:self-center px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all">
+        {action}
+      </button>
+    )}
+  </div>
+);

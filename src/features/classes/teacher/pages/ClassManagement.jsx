@@ -1,4 +1,5 @@
 import React from 'react';
+import { Search, Plus, Filter, LayoutGrid, List, Users, Calendar, MoreVertical, BookOpen, Clock } from 'lucide-react';
 
 const ClassManagement = () => {
     const classes = [
@@ -10,6 +11,7 @@ const ClassManagement = () => {
             teacher: 'TS. Jane Smith',
             startDate: '01/09/2024',
             status: 'Hoạt động',
+            color: 'blue'
         },
         {
             id: 2,
@@ -19,6 +21,7 @@ const ClassManagement = () => {
             teacher: 'GS. Robert Chen',
             startDate: '05/09/2024',
             status: 'Hoạt động',
+            color: 'indigo'
         },
         {
             id: 3,
@@ -28,6 +31,7 @@ const ClassManagement = () => {
             teacher: 'TS. Emily Davis',
             startDate: '28/08/2024',
             status: 'Hoạt động',
+            color: 'emerald'
         },
         {
             id: 4,
@@ -37,72 +41,121 @@ const ClassManagement = () => {
             teacher: 'TS. Michael Brown',
             startDate: '15/01/2024',
             status: 'Đã lưu trữ',
+            color: 'gray'
         },
     ];
 
     return (
-        <div className="flex-1 bg-gray-50 min-h-screen font-sans text-slate-800">
+        <div className="flex-1 bg-gray-50 min-h-screen font-sans text-gray-900 animate-fade-in">
             <div className="max-w-7xl mx-auto p-8">
 
-                <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                {/* Header */}
+                <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Quản lý lớp học</h1>
-                        <p className="text-slate-500 mt-1">Chào mừng trở lại! Dưới đây là tình hình hôm nay.</p>
+                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Quản Lý Lớp Học</h1>
+                        <p className="text-gray-500 font-medium text-lg">Quản lý các lớp học và theo dõi tình hình giảng dạy.</p>
+                    </div>
+                    <button className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 shadow-lg hover:shadow-blue-500/30 transition-all active:scale-95">
+                        <Plus size={20} />
+                        Thêm lớp học
+                    </button>
+                </div>
+
+                {/* Controls */}
+                <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-8">
+                    <div className="relative w-full md:w-96 group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm lớp học, giảng viên..."
+                            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium shadow-sm hover:shadow-md"
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                        <button className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm active:scale-95">
+                            <Filter size={18} />
+                            Bộ lọc
+                        </button>
                     </div>
                 </div>
 
+                {/* Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     {classes.map((cls) => (
                         <div
                             key={cls.id}
-                            className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 p-6 flex flex-col"
+                            className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col group"
                         >
-                            <div className="flex justify-between items-start mb-2">
-                                <h3 className="text-lg font-bold text-slate-900">{cls.title}</h3>
+                            {/* Card Header */}
+                            <div className="flex justify-between items-start mb-4">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${cls.color === 'blue' ? 'bg-blue-100 text-blue-600' :
+                                        cls.color === 'indigo' ? 'bg-indigo-100 text-indigo-600' :
+                                            cls.color === 'emerald' ? 'bg-emerald-100 text-emerald-600' :
+                                                'bg-gray-100 text-gray-600'
+                                    }`}>
+                                    <BookOpen size={24} />
+                                </div>
                                 <StatusBadge status={cls.status} />
                             </div>
-                            <p className="text-slate-500 text-sm mb-6">{cls.subtitle}</p>
 
-                            <div className="space-y-3 mb-6 flex-1">
-                                <div className="flex justify-between text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-                                    <span className="text-slate-500">Học viên:</span>
-                                    <span className="font-semibold text-slate-700">{cls.students}</span>
+                            <div className="mb-6">
+                                <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-1">{cls.title}</h3>
+                                <p className="text-gray-500 text-sm font-medium">{cls.subtitle}</p>
+                            </div>
+
+                            {/* Card Stats */}
+                            <div className="space-y-3 mb-6 flex-1 bg-gray-50/50 rounded-xl p-4 border border-gray-100/50">
+                                <div className="flex justify-between items-center text-sm">
+                                    <div className="flex items-center gap-2 text-gray-500">
+                                        <Users size={16} />
+                                        <span className="font-medium">Học viên</span>
+                                    </div>
+                                    <span className="font-bold text-gray-900">{cls.students}</span>
                                 </div>
-                                <div className="flex justify-between text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-                                    <span className="text-slate-500">Giảng viên:</span>
-                                    <span className="font-semibold text-slate-700">{cls.teacher}</span>
+                                <div className="flex justify-between items-center text-sm">
+                                    <div className="flex items-center gap-2 text-gray-500">
+                                        <Users size={16} />
+                                        <span className="font-medium">Giảng viên</span>
+                                    </div>
+                                    <span className="font-bold text-gray-900 truncate max-w-[120px]">{cls.teacher}</span>
                                 </div>
-                                <div className="flex justify-between text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-                                    <span className="text-slate-500">Ngày bắt đầu:</span>
-                                    <span className="font-semibold text-slate-700">{cls.startDate}</span>
+                                <div className="flex justify-between items-center text-sm">
+                                    <div className="flex items-center gap-2 text-gray-500">
+                                        <Calendar size={16} />
+                                        <span className="font-medium">Bắt đầu</span>
+                                    </div>
+                                    <span className="font-bold text-gray-900">{cls.startDate}</span>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 mt-auto pt-4 border-t border-gray-50">
+                            {/* Card Footer */}
+                            <div className="flex items-center gap-3 mt-auto pt-2">
                                 <button
-                                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm ${cls.status === 'Hoạt động'
-                                            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
-                                            : 'bg-white border border-gray-200 text-slate-600 hover:bg-gray-50'
+                                    className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95 ${cls.status === 'Hoạt động'
+                                            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-500/30'
+                                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                                         }`}
                                 >
                                     Quản lý
                                 </button>
 
-                                <button className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-gray-50 transition-colors">
+                                <button className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95">
                                     Chi tiết
                                 </button>
 
-                                <button className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-gray-100 rounded-lg text-xl leading-none pb-2 transition-colors">
-                                    &#8942;
+                                <button className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
+                                    <MoreVertical size={20} />
                                 </button>
                             </div>
                         </div>
                     ))}
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-center shadow-sm">
-                    <p className="text-sm text-slate-500 mb-4 sm:mb-0">
-                        Hiển thị <span className="font-semibold text-slate-700">1-6</span> trên <span className="font-semibold text-slate-700">12</span> kết quả
+                {/* Pagination */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center shadow-sm">
+                    <p className="text-sm text-gray-500 font-medium mb-4 sm:mb-0">
+                        Hiển thị <span className="font-bold text-gray-900">1-6</span> trên <span className="font-bold text-gray-900">12</span> kết quả
                     </p>
 
                     <div className="flex items-center gap-2">
@@ -123,9 +176,9 @@ const StatusBadge = ({ status }) => {
     const isActive = status === 'Hoạt động';
     return (
         <span
-            className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${isActive
-                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                    : 'bg-slate-100 text-slate-500 border border-slate-200'
+            className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isActive
+                ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20'
+                : 'bg-gray-100 text-gray-500 ring-1 ring-gray-500/10'
                 }`}
         >
             {status}
@@ -137,10 +190,10 @@ const PaginationButton = ({ children, active, disabled }) => {
     return (
         <button
             disabled={disabled}
-            className={`min-w-[36px] h-9 flex items-center justify-center rounded-md text-sm transition-all ${active
-                    ? 'bg-blue-600 text-white font-medium shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-100'
-                } ${disabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
+            className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-all ${active
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                } ${disabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : 'active:scale-95'}`}
         >
             {children}
         </button>

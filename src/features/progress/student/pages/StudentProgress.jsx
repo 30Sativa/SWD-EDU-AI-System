@@ -206,8 +206,8 @@ export default function StudentProgress() {
                                 return (
                                     <div key={idx} className="flex flex-col items-center gap-5 relative z-10 w-32">
                                         <div className={`w-11 h-11 rounded-full flex items-center justify-center border-4 transition-all duration-300 ${isDone ? 'bg-emerald-500 border-emerald-50 text-white shadow-lg shadow-emerald-100' :
-                                                isActive ? 'bg-blue-600 border-blue-50 text-white shadow-xl shadow-blue-100 scale-110 ring-4 ring-blue-50/50' :
-                                                    'bg-white border-gray-100 text-gray-300'
+                                            isActive ? 'bg-blue-600 border-blue-50 text-white shadow-xl shadow-blue-100 scale-110 ring-4 ring-blue-50/50' :
+                                                'bg-white border-gray-100 text-gray-300'
                                             }`}>
                                             {isDone ? <CheckCircle size={20} /> : isActive ? <PlayCircle size={20} className="fill-white" /> : <Lock size={16} />}
                                         </div>

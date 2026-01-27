@@ -169,297 +169,265 @@ export default function QuizDetail() {
     const progress = ((Object.keys(answers).length) / quiz.totalQuestions) * 100;
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col relative overflow-hidden">
+        <div className="h-screen bg-gray-50 flex flex-col relative overflow-hidden font-sans">
+            <style>
+                {`
+               .hide-scrollbar::-webkit-scrollbar {
+                  display: none;
+               }
+               .hide-scrollbar {
+                  -ms-overflow-style: none;
+                  scrollbar-width: none;
+               }
+            `}
+            </style>
 
             {/* 1. Header */}
-            <div className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-20">
-                <div className="max-w-5xl mx-auto px-4 md:px-6 py-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-4">
-                            <Link to="/dashboard/student/quizzes" className="text-gray-400 hover:text-gray-900 transition-colors">
-                                <ArrowLeft size={24} />
-                            </Link>
-                            <div>
-                                <h1 className="text-base md:text-lg font-bold text-gray-900 line-clamp-1">{quiz.title}</h1>
-                                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-700">{quiz.subject}</span>
+            <header className="bg-white border-b border-gray-200 shadow-sm z-30 flex-shrink-0 h-16 flex items-center">
+                <div className="w-full max-w-7xl mx-auto px-6 flex items-center justify-between">
+                    <div className="flex items-center gap-5">
+                        <Link to="/dashboard/student/quizzes" className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full text-gray-500 hover:text-gray-900 transition-colors">
+                            <ArrowLeft size={22} />
+                        </Link>
+                        <div className="h-8 w-px bg-gray-200"></div>
+                        <div>
+                            <h1 className="text-base font-bold text-gray-900 leading-tight">{quiz.title}</h1>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-xs font-bold text-gray-500">{quiz.subject}</span>
+                                <span className="text-xs text-gray-300">•</span>
+                                <span className="text-xs text-gray-500">{quiz.description}</span>
                             </div>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            {mode === 'taking' ? (
-                                <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-full border border-red-100 animate-pulse">
-                                    <Clock size={16} className="text-red-500" />
-                                    <span className="text-sm font-bold text-red-600 font-mono">{formatTime(timeLeft)}</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2 bg-green-50 px-4 py-1.5 rounded-full border border-green-100">
-                                    <span className="text-sm font-bold text-green-700">Điểm: {calculateScore().toFixed(1)}/10</span>
-                                </div>
-                            )}
                         </div>
                     </div>
 
-                    {/* Progress Bar (Taking Mode) */}
-                    {mode === 'taking' && (
-                        <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mt-2">
-                            <div
-                                className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                                style={{ width: `${progress}%` }}
-                            ></div>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-6">
+                        {mode === 'taking' ? (
+                            <div className="flex flex-col items-end min-w-[140px]">
+                                <div className="flex items-center gap-2 text-red-600 font-mono font-bold text-lg leading-none mb-1">
+                                    <Clock size={18} />
+                                    <span>{formatTime(timeLeft)}</span>
+                                </div>
+                                <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                    <div className="bg-blue-600 h-full rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-xl">
+                                <span className="text-sm font-bold text-emerald-800">Kết quả:</span>
+                                <span className="text-xl font-extrabold text-emerald-600">{calculateScore().toFixed(1)}/10</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </header>
 
             {/* 2. Main Content */}
-            <div className={`flex-1 overflow-y-auto transition-all duration-300 ${isChatOpen ? 'mr-0 md:mr-96' : ''}`}>
-                <div className="max-w-4xl mx-auto w-full p-4 md:p-6 pb-24">
+            <div className="flex-1 flex overflow-hidden relative">
 
-                    {/* Review Header (Only in Review Mode) */}
-                    {mode === 'review' && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-6 text-center animate-fadeIn">
-                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Flag size={32} className="text-blue-600" />
+                {/* Scrollable Question Area */}
+                <div className={`flex-1 overflow-y-auto custom-scrollbar transition-all duration-300 ${isChatOpen ? 'pr-[400px]' : ''}`}>
+                    <div className="max-w-4xl mx-auto p-8 pb-32">
+
+                        {/* Review Header */}
+                        {mode === 'review' && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8 text-center animate-fade-in relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-5 ring-8 ring-blue-50/50">
+                                    <Flag size={36} className="text-blue-600" />
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">Hoàn thành bài thi!</h2>
+                                <p className="text-gray-500 mb-8 font-medium">Bạn đã làm đúng <span className="text-gray-900 font-bold">{calculateScore() / 2}</span> trên <span className="text-gray-900 font-bold">{quiz.totalQuestions}</span> câu hỏi.</p>
+
+                                <div className="flex justify-center gap-4">
+                                    <button
+                                        onClick={() => setIsChatOpen(true)}
+                                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all active:scale-95"
+                                    >
+                                        <Bot size={20} /> Hỏi trợ lý AI
+                                    </button>
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="flex items-center gap-2 px-6 py-3 border-2 border-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-200 transition-all active:scale-95"
+                                    >
+                                        <RefreshCw size={20} /> Làm lại
+                                    </button>
+                                </div>
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Hoàn thành bài thi!</h2>
-                            <p className="text-gray-600 mb-6">Bạn đã làm đúng {calculateScore() / 2} trên {quiz.totalQuestions} câu hỏi.</p>
+                        )}
 
-                            <div className="flex justify-center gap-4">
-                                <button
-                                    onClick={() => setIsChatOpen(!isChatOpen)}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                                >
-                                    <Bot size={18} /> Hỏi trợ lý AI
-                                </button>
-                                <button
-                                    onClick={() => window.location.reload()}
-                                    className="flex items-center gap-2 px-5 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    <RefreshCw size={18} /> Làm lại
-                                </button>
+                        {/* Question Card */}
+                        <div className="bg-white rounded-[1.5rem] shadow-sm border border-gray-100 p-8 md:p-10 mb-8 relative animate-fade-in">
+
+                            <div className="flex justify-between items-start mb-8 border-b border-gray-100 pb-6">
+                                <div>
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Câu hỏi {currentQuestion + 1} / {quiz.totalQuestions}</span>
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-snug">
+                                        {quiz.questions[currentQuestion].text}
+                                    </h2>
+                                </div>
+                                <div className="flex-shrink-0 ml-4">
+                                    {mode === 'taking' && (
+                                        <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:text-yellow-500 hover:bg-yellow-50 transition-colors" title="Đánh dấu xem lại">
+                                            <Flag size={20} />
+                                        </button>
+                                    )}
+                                    {mode === 'review' && (
+                                        answers[quiz.questions[currentQuestion].id] === quiz.questions[currentQuestion].correctAnswer ? (
+                                            <span className="flex items-center gap-1.5 text-emerald-600 font-bold bg-emerald-50 px-4 py-2 rounded-xl text-sm border border-emerald-100">
+                                                <CheckCircle size={16} /> Đúng
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center gap-1.5 text-red-600 font-bold bg-red-50 px-4 py-2 rounded-xl text-sm border border-red-100">
+                                                <XCircle size={16} /> Sai
+                                            </span>
+                                        )
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    )}
 
-                    {/* Question Card */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mb-6 relative">
+                            <div className="space-y-4">
+                                {quiz.questions[currentQuestion].options.map((option) => {
+                                    const question = quiz.questions[currentQuestion];
+                                    const isSelected = answers[question.id] === option.id;
+                                    const isCorrect = option.id === question.correctAnswer;
 
-                        <div className="flex justify-between items-start mb-6">
-                            <h2 className="text-xl font-bold text-gray-900">Câu hỏi {currentQuestion + 1}</h2>
-                            {mode === 'taking' && (
-                                <button className="text-gray-400 hover:text-yellow-500 transition-colors" title="Đánh dấu xem lại">
-                                    <Flag size={20} />
-                                </button>
-                            )}
+                                    let cardClass = "border-gray-200 hover:border-blue-300 hover:bg-gray-50"; // Default
+                                    let iconClass = "bg-white border-gray-300 text-gray-500 font-bold shadow-sm";
+                                    let textClass = "text-gray-600";
+
+                                    if (mode === 'taking') {
+                                        if (isSelected) {
+                                            cardClass = "border-blue-500 bg-blue-50/50 ring-1 ring-blue-500";
+                                            iconClass = "bg-blue-600 border-blue-600 text-white font-bold shadow-md";
+                                            textClass = "text-blue-900 font-semibold";
+                                        }
+                                    } else {
+                                        // Review Mode
+                                        if (isCorrect) {
+                                            cardClass = "border-emerald-500 bg-emerald-50/50 ring-1 ring-emerald-500";
+                                            iconClass = "bg-emerald-500 border-emerald-500 text-white shadow-md";
+                                            textClass = "text-emerald-900 font-bold";
+                                        } else if (isSelected && !isCorrect) {
+                                            cardClass = "border-red-500 bg-red-50/50 ring-1 ring-red-500";
+                                            iconClass = "bg-red-500 border-red-500 text-white shadow-md";
+                                            textClass = "text-red-900 font-semibold";
+                                        } else if (!isSelected && !isCorrect) {
+                                            cardClass = "opacity-50 border-gray-100 bg-gray-50";
+                                            textClass = "text-gray-400";
+                                        }
+                                    }
+
+                                    return (
+                                        <button
+                                            key={option.id}
+                                            onClick={() => handleAnswer(option.id)}
+                                            disabled={mode === 'review'}
+                                            className={`w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 flex items-center gap-5 group ${cardClass}`}
+                                        >
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm border-2 flex-shrink-0 transition-all ${iconClass}`}>
+                                                {option.id}
+                                            </div>
+                                            <span className={`text-base flex-1 ${textClass}`}>
+                                                {option.text}
+                                            </span>
+
+                                            {mode === 'review' && isCorrect && <CheckCircle className="text-emerald-500" size={24} />}
+                                            {mode === 'review' && isSelected && !isCorrect && <XCircle className="text-red-500" size={24} />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Explanation Section */}
                             {mode === 'review' && (
-                                answers[quiz.questions[currentQuestion].id] === quiz.questions[currentQuestion].correctAnswer ? (
-                                    <span className="flex items-center gap-1 text-green-600 font-bold bg-green-50 px-3 py-1 rounded-full text-xs">
-                                        <CheckCircle size={14} /> ĐÚNG
-                                    </span>
-                                ) : (
-                                    <span className="flex items-center gap-1 text-red-600 font-bold bg-red-50 px-3 py-1 rounded-full text-xs">
-                                        <XCircle size={14} /> SAI
-                                    </span>
-                                )
+                                <div className="mt-8 p-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100/50 animate-fade-in relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                                    <h3 className="font-bold text-emerald-800 flex items-center gap-2.5 mb-3 text-sm uppercase tracking-wide">
+                                        <LightbulbIcon className="text-emerald-600" /> Giải thích chi tiết
+                                    </h3>
+                                    <p className="text-emerald-900 text-[15px] leading-relaxed font-medium">
+                                        {quiz.questions[currentQuestion].explanation}
+                                    </p>
+                                </div>
                             )}
                         </div>
 
-                        <p className="text-lg text-gray-800 leading-relaxed mb-8 font-medium">
-                            {quiz.questions[currentQuestion].text}
-                        </p>
-
-                        <div className="space-y-3">
-                            {quiz.questions[currentQuestion].options.map((option) => {
-                                const question = quiz.questions[currentQuestion];
-                                const isSelected = answers[question.id] === option.id;
-                                const isCorrect = option.id === question.correctAnswer;
-
-                                let cardClass = "border-gray-100 hover:bg-gray-50"; // Default
-                                let iconClass = "bg-white border-gray-300 text-gray-500";
+                        {/* Navigation Dots */}
+                        <div className="flex justify-center flex-wrap gap-3">
+                            {quiz.questions.map((_, idx) => {
+                                let dotClass = "bg-gray-200 hover:bg-gray-300 text-gray-500";
+                                let content = idx + 1;
 
                                 if (mode === 'taking') {
-                                    if (isSelected) {
-                                        cardClass = "border-blue-600 bg-blue-50";
-                                        iconClass = "bg-blue-600 border-blue-600 text-white";
-                                    } else {
-                                        cardClass = "border-gray-100 hover:border-blue-200 hover:bg-gray-50";
+                                    if (idx === currentQuestion) {
+                                        dotClass = "bg-blue-600 text-white shadow-lg shadow-blue-200 scale-110 font-bold";
+                                    } else if (answers[idx + 1]) {
+                                        dotClass = "bg-blue-100 text-blue-600 font-semibold";
                                     }
                                 } else {
-                                    // Review Mode
-                                    if (isCorrect) {
-                                        cardClass = "border-green-500 bg-green-50";
-                                        iconClass = "bg-green-500 border-green-500 text-white";
-                                    } else if (isSelected && !isCorrect) {
-                                        cardClass = "border-red-500 bg-red-50";
-                                        iconClass = "bg-red-500 border-red-500 text-white";
-                                    } else if (!isSelected && !isCorrect) {
-                                        cardClass = "opacity-60"; // Dim non-selected wrong answers
-                                    }
+                                    // Review mode dots
+                                    if (idx === currentQuestion) dotClass = "ring-2 ring-offset-2 ring-gray-400 scale-110 font-bold";
+
+                                    const q = quiz.questions[idx];
+                                    if (answers[q.id] === q.correctAnswer) dotClass += " bg-emerald-100 text-emerald-600 border border-emerald-200";
+                                    else dotClass += " bg-red-100 text-red-600 border border-red-200";
                                 }
 
                                 return (
                                     <button
-                                        key={option.id}
-                                        onClick={() => handleAnswer(option.id)}
-                                        disabled={mode === 'review'}
-                                        className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-4 group ${cardClass}`}
+                                        key={idx}
+                                        onClick={() => setCurrentQuestion(idx)}
+                                        className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm transition-all duration-200 border border-transparent ${dotClass}`}
                                     >
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border flex-shrink-0 transition-colors ${iconClass}`}>
-                                            {option.id}
-                                        </div>
-                                        <span className={`text-base font-medium ${mode === 'taking' && isSelected ? 'text-blue-900' : 'text-gray-700'
-                                            }`}>
-                                            {option.text}
-                                        </span>
-
-                                        {mode === 'review' && isCorrect && <CheckCircle className="ml-auto text-green-600" size={20} />}
-                                        {mode === 'review' && isSelected && !isCorrect && <XCircle className="ml-auto text-red-600" size={20} />}
+                                        {content}
                                     </button>
                                 );
                             })}
                         </div>
 
-                        {/* Explanation Section (Review Mode Only) */}
-                        {mode === 'review' && (
-                            <div className="mt-8 p-5 bg-green-50 rounded-xl border border-green-100 animate-fadeIn">
-                                <h3 className="font-bold text-green-800 flex items-center gap-2 mb-2">
-                                    <CheckCircle size={18} /> Giải thích đáp án
-                                </h3>
-                                <p className="text-green-900 text-sm leading-relaxed">
-                                    {quiz.questions[currentQuestion].explanation}
-                                </p>
+                    </div>
+                </div>
+
+                {/* 3. Right Sidebar - AI Assistant (Fixed) */}
+                <div
+                    className={`absolute top-0 right-0 bottom-0 w-[400px] bg-white border-l border-gray-200 z-30 transition-transform duration-300 ease-in-out shadow-[-4px_0_24px_rgba(0,0,0,0.05)] flex flex-col ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                >
+                    <div className="h-16 flex-shrink-0 border-b border-gray-100 flex items-center justify-between px-6 bg-white">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
+                                <Bot size={20} />
                             </div>
-                        )}
-                    </div>
-
-                    {/* Navigation Dots */}
-                    <div className="flex justify-center flex-wrap gap-2 mb-8">
-                        {quiz.questions.map((_, idx) => {
-                            let dotClass = "bg-gray-200 hover:bg-gray-300";
-                            if (mode === 'taking') {
-                                if (idx === currentQuestion) dotClass = "bg-blue-600 scale-125 ring-2 ring-blue-200";
-                                else if (answers[idx + 1]) dotClass = "bg-blue-400"; // Assuming question IDs match index+1
-                            } else {
-                                // Review mode dots
-                                if (idx === currentQuestion) dotClass = "ring-2 ring-offset-1 ring-gray-400 scale-110";
-                                // Check correctness
-                                const q = quiz.questions[idx];
-                                if (answers[q.id] === q.correctAnswer) dotClass += " bg-green-500";
-                                else dotClass += " bg-red-400";
-                            }
-
-                            return (
-                                <button
-                                    key={idx}
-                                    onClick={() => setCurrentQuestion(idx)}
-                                    className={`w-3.5 h-3.5 rounded-full transition-all ${dotClass}`}
-                                    title={`Câu ${idx + 1}`}
-                                />
-                            );
-                        })}
-                    </div>
-
-                </div>
-            </div>
-
-            {/* 3. Footer Navigation - Fixed Bottom */}
-            <div className={`bg-white border-t border-gray-200 p-4 fixed bottom-0 left-0 right-0 z-20 transition-all duration-300 ${isChatOpen ? 'md:mr-96' : ''}`}>
-                <div className="max-w-5xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        {mode === 'taking' && (
-                            <>
-                                <span className="text-xs text-gray-400 flex items-center gap-1 hidden sm:flex">
-                                    <CheckCircle size={12} className="text-green-500" /> Đã lưu tự động
-                                </span>
-                                <button className="hidden sm:flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
-                                    <Save size={18} /> Lưu Nháp
-                                </button>
-                            </>
-                        )}
-                        {mode === 'review' && (
-                            <button
-                                onClick={() => navigate('/dashboard/student/quizzes')}
-                                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50"
-                            >
-                                Thoát
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
-                            disabled={currentQuestion === 0}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${currentQuestion === 0
-                                    ? 'text-gray-300 cursor-not-allowed'
-                                    : 'text-gray-600 hover:bg-gray-100'
-                                }`}
-                        >
-                            <ChevronLeft size={20} /> <span className="hidden sm:inline">Câu Trước</span>
-                        </button>
-
-                        {currentQuestion < quiz.totalQuestions - 1 ? (
-                            <button
-                                onClick={() => setCurrentQuestion(currentQuestion + 1)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-lg shadow-blue-200 hover:translate-y-[-1px]"
-                            >
-                                Câu Tiếp <span className="hidden sm:inline">Theo</span> <ChevronRight size={20} />
-                            </button>
-                        ) : (
-                            mode === 'taking' && (
-                                <button
-                                    className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors shadow-lg shadow-green-200 animate-pulse"
-                                    onClick={() => {
-                                        if (Object.keys(answers).length < quiz.totalQuestions) {
-                                            if (!window.confirm('Bạn chưa trả lời hết các câu hỏi. Có chắc chắn muốn nộp bài?')) return;
-                                        } else {
-                                            if (!window.confirm('Bạn có chắc chắn muốn nộp bài?')) return;
-                                        }
-                                        handleSubmit();
-                                    }}
-                                >
-                                    Nộp Bài <Send size={18} />
-                                </button>
-                            )
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* 4. AI Assistant Sidebar (Overlay on Mobile, Fixed on Desktop) */}
-            <div
-                className={`fixed top-0 right-0 bottom-0 bg-white border-l border-gray-200 z-30 transition-transform duration-300 ease-in-out w-96 ${isChatOpen ? 'translate-x-0' : 'translate-x-full'
-                    }`}
-            >
-                <div className="flex flex-col h-full">
-                    <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-                        <div className="flex items-center gap-2">
-                            <Bot size={20} />
-                            <h2 className="font-bold">Trợ Lý Review AI</h2>
-                        </div>
-                        <button onClick={() => setIsChatOpen(false)} className="p-1 hover:bg-white/10 rounded">
-                            <PanelRightClose size={18} />
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-                        {chatMessages.map((msg) => (
-                            <div key={msg.id} className={`flex gap-3 ${msg.type === 'user' ? 'flex-row-reverse' : ''}`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.type === 'user' ? 'bg-indigo-100' : 'bg-blue-100'
-                                    }`}>
-                                    {msg.type === 'user' ? 'U' : <Bot size={16} className="text-blue-600" />}
+                            <div>
+                                <h2 className="font-bold text-gray-900 text-sm">Trợ Lý AI</h2>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Online</span>
                                 </div>
-                                <div className={`max-w-[85%] space-y-2 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
-                                    <div className={`p-3 rounded-2xl text-sm ${msg.type === 'user'
-                                            ? 'bg-blue-600 text-white rounded-tr-none'
-                                            : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-tl-none'
+                            </div>
+                        </div>
+                        <button onClick={() => setIsChatOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors">
+                            <PanelRightClose size={20} />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50 custom-scrollbar">
+                        {chatMessages.map((msg) => (
+                            <div key={msg.id} className={`flex gap-4 ${msg.type === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-white ${msg.type === 'user' ? 'bg-indigo-100' : 'bg-white'
+                                    }`}>
+                                    {msg.type === 'user' ? <span className="text-xs font-bold text-indigo-600">You</span> : <Bot size={16} className="text-blue-600" />}
+                                </div>
+                                <div className={`max-w-[85%] space-y-3 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
+                                    <div className={`p-4 rounded-2xl text-[14px] leading-relaxed shadow-sm ${msg.type === 'user'
+                                        ? 'bg-blue-600 text-white rounded-tr-sm'
+                                        : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
                                         }`}>
                                         {msg.text}
                                     </div>
                                     {msg.suggestions && (
-                                        <div className="flex flex-col gap-2">
+                                        <div className="flex flex-wrap gap-2">
                                             {msg.suggestions.map((sug, i) => (
-                                                <button key={i} className="text-xs bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-50 text-left transition-colors">
+                                                <button key={i} className="text-[11px] font-medium bg-white border border-blue-100 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm">
                                                     {sug}
                                                 </button>
                                             ))}
@@ -471,35 +439,103 @@ export default function QuizDetail() {
                         <div ref={chatEndRef} />
                     </div>
 
-                    <div className="p-4 border-t border-gray-200">
-                        <div className="relative">
+                    <div className="p-6 border-t border-gray-200 bg-white">
+                        <div className="relative shadow-sm rounded-xl">
                             <input
                                 type="text"
                                 value={inputMessage}
                                 onChange={(e) => setInputMessage(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                placeholder="Hỏi về câu hỏi này..."
-                                className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                placeholder="Hỏi AI về câu hỏi này..."
+                                className="w-full pl-5 pr-12 py-3.5 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium"
                             />
                             <button
                                 onClick={handleSendMessage}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                disabled={!inputMessage.trim()}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl hover:bg-blue-700 transition-all active:scale-95"
                             >
                                 <Send size={16} />
                             </button>
                         </div>
                     </div>
                 </div>
+
+                {/* 4. Footer Navigation */}
+                <div className={`absolute bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-200 z-20 transition-all duration-300 ${isChatOpen ? 'pr-[400px]' : ''}`}>
+                    <div className="max-w-4xl mx-auto flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            {mode === 'taking' && (
+                                <>
+                                    <span className="text-xs font-bold text-gray-400 flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                                        <CheckCircle size={14} className="text-emerald-500" /> Đã lưu tự động
+                                    </span>
+                                </>
+                            )}
+                            {mode === 'review' && (
+                                <button
+                                    onClick={() => navigate('/dashboard/student/quizzes')}
+                                    className="flex items-center gap-2 px-6 py-2.5 border-2 border-gray-100 rounded-xl text-gray-600 font-bold hover:bg-gray-50 hover:border-gray-200 transition-all active:scale-95 text-sm"
+                                >
+                                    Thoát
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
+                                disabled={currentQuestion === 0}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all text-sm ${currentQuestion === 0
+                                    ? 'text-gray-300 cursor-not-allowed bg-gray-50'
+                                    : 'text-gray-600 hover:bg-gray-100 bg-white border border-gray-200 hover:border-gray-300'
+                                    }`}
+                            >
+                                <ChevronLeft size={18} /> Câu Trước
+                            </button>
+
+                            {currentQuestion < quiz.totalQuestions - 1 ? (
+                                <button
+                                    onClick={() => setCurrentQuestion(currentQuestion + 1)}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 active:scale-95 text-sm"
+                                >
+                                    Câu Tiếp <ChevronRight size={18} />
+                                </button>
+                            ) : (
+                                mode === 'taking' && (
+                                    <button
+                                        className="flex items-center gap-2 px-8 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-green-500/30 hover:-translate-y-0.5 active:scale-95 text-sm"
+                                        onClick={() => {
+                                            if (Object.keys(answers).length < quiz.totalQuestions) {
+                                                if (!window.confirm('Bạn chưa trả lời hết các câu hỏi. Có chắc chắn muốn nộp bài?')) return;
+                                            } else {
+                                                if (!window.confirm('Bạn có chắc chắn muốn nộp bài?')) return;
+                                            }
+                                            handleSubmit();
+                                        }}
+                                    >
+                                        Nộp Bài <Send size={18} />
+                                    </button>
+                                )
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Overlay for mobile when sidebar is open */}
-            {isChatOpen && (
-                <div
-                    onClick={() => setIsChatOpen(false)}
-                    className="fixed inset-0 bg-black/20 z-20 md:hidden"
-                />
+            {/* Helper Icon Component */}
+            {mode === 'review' && (
+                <div style={{ display: 'none' }}>
+                    {/* Just ensuring icons are imported */}
+                </div>
             )}
-
         </div>
     );
 }
+
+const LightbulbIcon = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2 1.5-3.5a6 6 0 0 0-11 0c0 1.5.5 2.5 1.5 3.5 2.5 2.4 2.9 2.5 3 4" />
+        <path d="M9 18h6" />
+        <path d="M10 22h4" />
+    </svg>
+);

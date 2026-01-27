@@ -10,245 +10,263 @@ import {
   Clock,
   ChevronRight,
   Star,
-  TrendingUp
+  TrendingUp,
+  MoreVertical
 } from 'lucide-react';
 
 export default function StudentDashboard() {
   return (
-    <div className="p-6 md:p-8 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Total Points */}
-          <div className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-3">
-              <span className="text-sm font-medium text-gray-600">Điểm Tích Lũy</span>
-              <div className="p-2 rounded-lg bg-blue-50">
-                <Star size={18} className="text-yellow-500" />
-              </div>
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">8,5</h3>
-            <p className="text-xs font-medium text-green-600">Trung bình môn HK1</p>
-          </div>
-
-          {/* Learning Streak */}
-          <div className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-3">
-              <span className="text-sm font-medium text-gray-600">Chuyên Cần</span>
-              <div className="p-2 rounded-lg bg-amber-50">
-                <Zap size={18} className="text-amber-500" />
-              </div>
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">15 ngày</h3>
-            <p className="text-xs font-medium text-gray-500">Chuỗi học liên tục</p>
-          </div>
-
-          {/* Completed Lessons */}
-          <div className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-3">
-              <span className="text-sm font-medium text-gray-600">Bài Tập Đã Nộp</span>
-              <div className="p-2 rounded-lg bg-indigo-50">
-                <CheckCircle size={18} className="text-indigo-500" />
-              </div>
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">24</h3>
-            <p className="text-xs font-medium text-green-600">Đúng hạn 100%</p>
-          </div>
-
-          {/* Avg Quiz Score */}
-          <div className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-3">
-              <span className="text-sm font-medium text-gray-600">Điểm Kiểm Tra 15'</span>
-              <div className="p-2 rounded-lg bg-blue-50">
-                <Target size={18} className="text-blue-500" />
-              </div>
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">9.0</h3>
-            <p className="text-xs font-medium text-green-600">Cao hơn lớp 15%</p>
-          </div>
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Bảng điều khiển</h1>
+          <p className="text-gray-500 font-medium">Chào mừng trở lại, chúc bạn một ngày học tập hiệu quả!</p>
         </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-semibold text-gray-500 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
+            Học kỳ II - 2025-2026
+          </span>
+        </div>
+      </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Điểm Tích Lũy"
+          value="8.5"
+          sub="Trung bình môn HK1"
+          icon={Star}
+          iconColor="text-yellow-500"
+          bgIcon="bg-yellow-50"
+          trend="+0.2"
+        />
+        <StatCard
+          title="Chuyên Cần"
+          value="15 ngày"
+          sub="Chuỗi học liên tục"
+          icon={Zap}
+          iconColor="text-amber-500"
+          bgIcon="bg-amber-50"
+          trend="Giữ vững"
+        />
+        <StatCard
+          title="Bài Tập Đã Nộp"
+          value="24"
+          sub="Đúng hạn 100%"
+          icon={CheckCircle}
+          iconColor="text-indigo-500"
+          bgIcon="bg-indigo-50"
+        />
+        <StatCard
+          title="Điểm Kiểm Tra"
+          value="9.0"
+          sub="Cao hơn lớp 15%"
+          icon={Target}
+          iconColor="text-blue-500"
+          bgIcon="bg-blue-50"
+        />
+      </div>
 
-          {/* My Courses - 2/3 width */}
-          <div className="lg:col-span-2 space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">Lớp Học Của Tôi</h2>
-                <p className="text-sm text-gray-500">Các môn học theo thời khóa biểu học kỳ 2</p>
-              </div>
-              <button className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                Xem Tất Cả <ChevronRight size={16} />
-              </button>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        {/* My Courses - 2/3 width */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Lớp Học Của Tôi</h2>
+              <p className="text-sm text-gray-500 font-medium mt-1">Các môn học theo thời khóa biểu</p>
             </div>
-
-            {/* Mathematics 11 */}
-            <Link to="/dashboard/student/courses/math-11" className="block">
-              <div className="bg-white rounded-xl p-5 border border-gray-100 hover:border-blue-200 transition-all cursor-pointer">
-                <div className="flex items-start justify-between mb-5">
-                  <div className="flex gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <BookOpen size={24} className="text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-base text-gray-900 mb-0.5">Toán Học 11 - Lớp 11A1</h3>
-                      <p className="text-sm text-gray-500">GV: Nguyễn Văn Hùng</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => e.preventDefault()}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
-                  >
-                    ▶ Vào Lớp
-                  </button>
-                </div>
-
-                <div className="mb-2 flex justify-between text-xs font-medium text-gray-500">
-                  <span>Chương 3: Quan hệ vuông góc</span>
-                  <span>75%</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2 mb-4 overflow-hidden">
-                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '75%' }}></div>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-gray-400">Tiếp theo:</span>
-                  <span className="font-medium text-gray-700">Hai mặt phẳng vuông góc (Tiết 2)</span>
-                </div>
-              </div>
+            <Link to="/dashboard/student/courses" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline">
+              Xem Tất Cả <ChevronRight size={16} />
             </Link>
+          </div>
+
+          <div className="space-y-5">
+            {/* Mathematics 11 */}
+            <CourseCard
+              id="math-11"
+              title="Toán Học 11 - Lớp 11A1"
+              teacher="Nguyễn Văn Hùng"
+              chapter="Chương 3: Quan hệ vuông góc"
+              progress={75}
+              nextLesson="Hai mặt phẳng vuông góc (Tiết 2)"
+              icon={BookOpen}
+              theme="blue"
+            />
 
             {/* Physics 12 */}
-            <div className="bg-white rounded-xl p-5 border border-gray-100 hover:border-blue-200 transition-all">
-              <div className="flex items-start justify-between mb-5">
-                <div className="flex gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                    <BookOpen size={24} className="text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-base text-gray-900 mb-0.5">Vật Lý 12 - Ôn Thi THPT</h3>
-                    <p className="text-sm text-gray-500">GV: Trần Thị Mai</p>
-                  </div>
-                </div>
-                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
-                  ▶ Vào Lớp
-                </button>
-              </div>
+            <CourseCard
+              id="physics-12"
+              title="Vật Lý 12 - Ôn Thi THPT"
+              teacher="Trần Thị Mai"
+              chapter="Chương 4: Dao động và Sóng điện từ"
+              progress={40}
+              nextLesson="Mạch dao động LC"
+              icon={BookOpen}
+              theme="indigo"
+            />
+          </div>
+        </div>
 
-              <div className="mb-2 flex justify-between text-xs font-medium text-gray-500">
-                <span>Chương 4: Dao động và Sóng điện từ</span>
-                <span>40%</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2 mb-4 overflow-hidden">
-                <div className="bg-blue-600 h-full rounded-full" style={{ width: '40%' }}></div>
-              </div>
+        {/* Upcoming Quizzes & Activity - 1/3 width */}
+        <div className="space-y-8">
 
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-400">Tiếp theo:</span>
-                <span className="font-medium text-gray-700">Mạch dao động LC</span>
-              </div>
+          {/* Due Deadlines */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Sắp Đến Hạn</h2>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all">
+              <DeadlineItem
+                subject="Toán 11"
+                title="Kiểm tra 15 phút: Hình học"
+                due="Tối mai 23:59"
+                type="Trắc nghiệm"
+                urgent
+              />
+              <div className="h-px bg-gray-50 my-4"></div>
+              <DeadlineItem
+                subject="Vật Lý 12"
+                title="Bài tập Sóng dừng"
+                due="Thứ 6 tuần này"
+                type="Tự luận"
+              />
             </div>
           </div>
 
-          {/* Upcoming Quizzes - 1/3 width */}
-          <div className="space-y-5">
+          {/* Recent Activity */}
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-gray-900">Hoạt Động Mới</h2>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <ActivityItem
+                icon={CheckCircle}
+                iconColor="text-emerald-500"
+                bgIcon="bg-emerald-50"
+                title="Đã nộp bài tập"
+                subtitle="Toán 11 - Phương trình lượng giác"
+                time="2 giờ trước"
+                status="Đã chấm"
+              />
+              <ActivityItem
+                icon={Trophy}
+                iconColor="text-amber-500"
+                bgIcon="bg-amber-50"
+                title="Điểm kiểm tra: 9.5"
+                subtitle="Hóa Học 10"
+                time="Hôm qua"
+                status="Giỏi"
+              />
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ title, value, sub, icon: Icon, iconColor, bgIcon, trend }) {
+  return (
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+      <div className="flex justify-between items-start mb-4">
+        <div className={`p-3 rounded-xl ${bgIcon}`}>
+          <Icon size={22} className={iconColor} />
+        </div>
+        {trend && <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">{trend}</span>}
+      </div>
+      <h3 className="text-3xl font-extrabold text-gray-900 mb-1 tracking-tight">{value}</h3>
+      <p className="text-sm font-medium text-gray-500">{title}</p>
+      <p className="text-xs text-gray-400 mt-1">{sub}</p>
+    </div>
+  );
+}
+
+function CourseCard({ id, title, teacher, chapter, progress, nextLesson, icon: Icon, theme }) {
+  const themeColors = {
+    blue: { bg: 'bg-blue-600', light: 'bg-blue-100', text: 'text-blue-600', border: 'hover:border-blue-200' },
+    indigo: { bg: 'bg-indigo-600', light: 'bg-indigo-100', text: 'text-indigo-600', border: 'hover:border-indigo-200' },
+  };
+  const t = themeColors[theme] || themeColors.blue;
+
+  return (
+    <Link to={`/dashboard/student/courses/${id}`} className="block group">
+      <div className={`bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 ${t.border}`}>
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex gap-4">
+            <div className={`w-14 h-14 rounded-2xl ${t.light} flex items-center justify-center flex-shrink-0 shadow-inner`}>
+              <Icon size={28} className={t.text} />
+            </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Bài Viết & Kiểm Tra</h2>
-              <p className="text-sm text-gray-500">Deadline nộp bài tập về nhà</p>
+              <h3 className="font-bold text-lg text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">{title}</h3>
+              <p className="text-sm text-gray-500 font-medium">GV: {teacher}</p>
             </div>
-
-            {/* Math Quiz */}
-            <div className="bg-white rounded-xl p-4 border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-orange-100 flex-shrink-0">
-                  <FileText size={20} className="text-orange-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-sm text-gray-900 mb-0.5">Kiểm tra 15 phút: Hình học</h4>
-                  <p className="text-xs text-gray-500">Toán 11 - 11A1</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-50">
-                <div className="flex items-center gap-1.5">
-                  <Clock size={14} />
-                  <span className="text-red-500 font-medium">Hạn: Tối mai 23:59</span>
-                </div>
-                <span>Trắc nghiệm</span>
-              </div>
-            </div>
-
-            {/* Physic Homework */}
-            <div className="bg-white rounded-xl p-4 border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-green-100 flex-shrink-0">
-                  <FileText size={20} className="text-green-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-sm text-gray-900 mb-0.5">Bài tập Sóng dừng</h4>
-                  <p className="text-xs text-gray-500">Vật Lý 12</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-50">
-                <div className="flex items-center gap-1.5">
-                  <Clock size={14} />
-                  <span>Hạn: Thứ 6 tuần này</span>
-                </div>
-                <span>Tự luận</span>
-              </div>
-            </div>
-
-            <button className="w-full py-2.5 bg-white border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors">
-              Xem Thời Khóa Biểu
-            </button>
           </div>
+          <button className={`px-5 py-2.5 ${t.bg} hover:opacity-90 text-white text-sm font-bold rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95`}>
+            Vào Lớp
+          </button>
         </div>
 
-        {/* Recent Activity */}
-        <div className="space-y-5">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Hoạt Động Gần Đây</h2>
-            <p className="text-sm text-gray-500">Cập nhật từ lớp học</p>
+        <div className="space-y-3">
+          <div className="flex justify-between text-xs font-bold text-gray-500 uppercase tracking-wide">
+            <span>{chapter}</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+            <div className={`${t.bg} h-full rounded-full transition-all duration-1000 ease-out`} style={{ width: `${progress}%` }}></div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
-            {/* Activity 1 */}
-            <div className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <BookOpen size={18} className="text-blue-600" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-sm text-gray-900">Đã nộp bài tập: Phương trình lượng giác</h4>
-                  <p className="text-xs text-gray-500">Toán 11 - 11A1</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="block text-sm font-bold text-emerald-600">Đã chấm</span>
-                <span className="text-xs text-gray-400">2 giờ trước</span>
-              </div>
-            </div>
-
-            {/* Activity 2 */}
-            <div className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center flex-shrink-0">
-                  <FileText size={18} className="text-cyan-600" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-sm text-gray-900">Điểm kiểm tra 1 tiết: 9.5</h4>
-                  <p className="text-xs text-gray-500">Hóa Học 10</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="block text-sm font-bold text-emerald-600">Gioi</span>
-                <span className="text-xs text-gray-400">Hôm qua</span>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 pt-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+            <p className="text-sm text-gray-600">
+              Tiếp theo: <span className="font-semibold text-gray-900">{nextLesson}</span>
+            </p>
           </div>
         </div>
+      </div>
+    </Link>
+  );
+}
 
+function DeadlineItem({ subject, title, due, type, urgent }) {
+  return (
+    <div className="flex items-center gap-4 group cursor-pointer">
+      <div className={`p-3 rounded-xl flex-shrink-0 ${urgent ? 'bg-orange-50' : 'bg-gray-50 group-hover:bg-blue-50'} transition-colors`}>
+        <FileText size={20} className={urgent ? 'text-orange-500' : 'text-gray-400 group-hover:text-blue-500'} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-bold text-sm text-gray-900 group-hover:text-blue-600 transition-colors">{title}</h4>
+        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+          <span className="font-medium">{subject}</span>
+          <span>•</span>
+          <span className={urgent ? 'text-red-500 font-bold' : ''}>{due}</span>
+        </div>
+      </div>
+      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-100 px-2 py-1 rounded-md">
+        {type}
+      </div>
+    </div>
+  );
+}
+
+function ActivityItem({ icon: Icon, iconColor, bgIcon, title, subtitle, time, status }) {
+  return (
+    <div className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 cursor-pointer">
+      <div className="flex items-center gap-4">
+        <div className={`w-10 h-10 rounded-full ${bgIcon} flex items-center justify-center flex-shrink-0`}>
+          <Icon size={18} className={iconColor} />
+        </div>
+        <div>
+          <h4 className="font-bold text-sm text-gray-900">{title}</h4>
+          <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
+        </div>
+      </div>
+      <div className="text-right">
+        <span className="block text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mb-1">{status}</span>
+        <span className="text-[10px] text-gray-400 font-medium">{time}</span>
       </div>
     </div>
   );

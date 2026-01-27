@@ -190,73 +190,84 @@ export default function LessonDetail() {
     };
 
     return (
-        <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
+        <div className="h-screen flex flex-col bg-gray-50 overflow-hidden font-sans">
+            <style>
+                {`
+               .hide-scrollbar::-webkit-scrollbar {
+                  display: none;
+               }
+               .hide-scrollbar {
+                  -ms-overflow-style: none;
+                  scrollbar-width: none;
+               }
+            `}
+            </style>
 
             {/* 1. Header Navigation Bar */}
-            <div className="h-14 bg-white border-b border-gray-200 px-4 flex items-center justify-between flex-shrink-0 z-20 shadow-sm">
-                <div className="flex items-center gap-4">
+            <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between flex-shrink-0 z-30 shadow-sm">
+                <div className="flex items-center gap-5">
                     <Link
                         to={`/dashboard/student/courses/${lessonInfo.courseId}`}
-                        className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-900 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center hover:bg-gray-100/80 rounded-full text-gray-500 hover:text-gray-900 transition-colors"
                         title="Quay lại khóa học"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={22} />
                     </Link>
-                    <div className="h-6 w-px bg-gray-200"></div>
+                    <div className="h-8 w-px bg-gray-200/60"></div>
                     <div>
-                        <h1 className="text-sm font-bold text-gray-900 leading-tight">{lessonInfo.lessonTitle}</h1>
-                        <p className="text-xs text-gray-500">{lessonInfo.lessonSubtitle}</p>
+                        <h1 className="text-base font-bold text-gray-900 leading-tight">{lessonInfo.lessonTitle}</h1>
+                        <p className="text-xs text-gray-500 font-medium mt-0.5">{lessonInfo.lessonSubtitle}</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="hidden md:flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tiến độ</span>
+                <div className="flex items-center gap-4">
+                    <div className="hidden md:flex items-center gap-3 bg-gray-50/50 px-4 py-2 rounded-full border border-gray-200/60">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tiến độ</span>
                         <div className="w-24 bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                            <div className="bg-green-500 h-full rounded-full" style={{ width: `${lessonInfo.progress}%` }}></div>
+                            <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${lessonInfo.progress}%` }}></div>
                         </div>
-                        <span className="text-xs font-bold text-gray-700">{lessonInfo.progress}%</span>
+                        <span className="text-xs font-bold text-gray-900">{lessonInfo.progress}%</span>
                     </div>
                 </div>
             </div>
 
             {/* 2. Main Workspace */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex overflow-hidden relative">
 
                 {/* 2.1 Left Sidebar - Curriculum */}
                 <div
-                    className={`${isLeftSidebarOpen ? 'w-80 translate-x-0' : 'w-0 -translate-x-full'} transition-all duration-300 ease-in-out bg-white border-r border-gray-200 flex flex-col flex-shrink-0 relative`}
+                    className={`${isLeftSidebarOpen ? 'w-80 translate-x-0 border-r' : 'w-0 -translate-x-full border-none'} transition-all duration-300 ease-in-out bg-white border-gray-200 flex flex-col flex-shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}
                 >
-                    <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                        <h2 className="font-bold text-gray-800">Nội Dung Bài Học</h2>
-                        <button onClick={() => setIsLeftSidebarOpen(false)} className="p-1 hover:bg-gray-100 rounded text-gray-400">
+                    <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                        <h2 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Nội Dung Bài Học</h2>
+                        <button onClick={() => setIsLeftSidebarOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
                             <PanelLeftClose size={18} />
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                         {/* Search Input */}
-                        <div className="relative mb-2">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <div className="relative mb-4">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
                                 type="text"
                                 placeholder="Tìm bài học..."
-                                className="w-full pl-9 pr-3 py-2 bg-gray-50 rounded-lg text-sm text-gray-900 border-0 focus:ring-1 focus:ring-blue-500"
+                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm font-medium text-gray-900 border-0 focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all placeholder:text-gray-400"
                             />
                         </div>
 
                         {courseSections.map((section) => (
-                            <div key={section.id} className="border border-gray-100 rounded-lg overflow-hidden">
+                            <div key={section.id} className="border border-gray-100 rounded-xl overflow-hidden bg-white">
                                 <button
                                     onClick={() => !section.isLocked && toggleSection(section.id)}
-                                    className={`w-full p-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors ${section.isLocked ? 'opacity-60 cursor-not-allowed' : ''
+                                    className={`w-full p-4 flex items-center justify-between bg-gray-50/50 hover:bg-gray-50 transition-colors ${section.isLocked ? 'opacity-60 cursor-not-allowed' : ''
                                         }`}
                                 >
-                                    <span className="font-semibold text-xs text-gray-700 uppercase tracking-wide truncate flex-1 text-left">
+                                    <span className="font-bold text-xs text-gray-600 uppercase tracking-wide truncate flex-1 text-left">
                                         {section.title}
                                     </span>
                                     {!section.isLocked && (
-                                        expandedSections.includes(section.id) ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                                        expandedSections.includes(section.id) ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />
                                     )}
                                 </button>
 
@@ -271,28 +282,28 @@ export default function LessonDetail() {
                                                         ? `/dashboard/student/quizzes/quiz-ch${section.id}-${lesson.id}`
                                                         : '#'
                                                     }
-                                                    className={`flex items-start gap-3 p-3 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-0 ${lesson.isCurrent ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'
+                                                    className={`flex items-start gap-3.5 p-3.5 hover:bg-blue-50/60 transition-colors border-b border-gray-50 last:border-0 ${lesson.isCurrent ? 'bg-blue-50/80 border-l-[3px] border-l-blue-600 pl-[11px]' : 'border-l-[3px] border-l-transparent pl-[11px]'
                                                         }`}
                                                 >
                                                     <div className="mt-0.5">
                                                         {lesson.completed ? (
-                                                            <CheckCircle size={16} className="text-green-500" />
+                                                            <CheckCircle size={18} className="text-emerald-500" />
                                                         ) : lesson.isCurrent ? (
-                                                            <PlayCircle size={16} className="text-blue-600 fill-blue-100" />
+                                                            <PlayCircle size={18} className="text-blue-600 fill-blue-100" />
                                                         ) : isQuiz ? (
-                                                            <ListChecks size={16} className="text-orange-500" />
+                                                            <ListChecks size={18} className="text-amber-500" />
                                                         ) : (
-                                                            <Circle size={16} className="text-gray-300" />
+                                                            <Circle size={18} className="text-gray-300" />
                                                         )}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                                            <p className={`text-sm ${lesson.isCurrent ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
+                                                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                            <p className={`text-sm ${lesson.isCurrent ? 'font-bold text-blue-700' : 'font-medium text-gray-700'}`}>
                                                                 {lesson.title}
                                                             </p>
-                                                            {isQuiz && <span className="text-[10px] uppercase font-bold text-orange-600 bg-orange-100 px-1 rounded">Quiz</span>}
+                                                            {isQuiz && <span className="text-[9px] uppercase font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-sm">Quiz</span>}
                                                         </div>
-                                                        <span className="text-xs text-gray-400 block mt-1">{lesson.duration} • {isQuiz ? 'Bài kiểm tra' : 'Video'}</span>
+                                                        <span className="text-[11px] font-medium text-gray-400 block">{lesson.duration} • {isQuiz ? 'Bài kiểm tra' : 'Video'}</span>
                                                     </div>
                                                 </Link>
                                             );
@@ -307,70 +318,78 @@ export default function LessonDetail() {
                 {/* 2.2 Main Content Area (Center) */}
                 <div className="flex-1 flex flex-col min-w-0 bg-white relative">
 
-                    {/* Toggle Buttons Overlay (Visible when sidebars closed) */}
-                    <div className="absolute top-4 left-4 z-10">
-                        {!isLeftSidebarOpen && (
-                            <button
-                                onClick={() => setIsLeftSidebarOpen(true)}
-                                className="bg-white/80 backdrop-blur p-2 rounded-lg shadow border border-gray-200 text-gray-600 hover:text-blue-600 hover:scale-105 transition-all"
-                                title="Hiện danh sách bài học"
-                            >
-                                <PanelLeft size={20} />
-                            </button>
-                        )}
+                    {/* Toggle Buttons Overlay */}
+                    <div className="absolute top-5 left-5 z-20 pointer-events-none">
+                        <div className="pointer-events-auto">
+                            {!isLeftSidebarOpen && (
+                                <button
+                                    onClick={() => setIsLeftSidebarOpen(true)}
+                                    className="bg-white/90 backdrop-blur p-2.5 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-100 text-gray-500 hover:text-blue-600 hover:scale-105 transition-all group"
+                                    title="Hiện danh sách bài học"
+                                >
+                                    <PanelLeft size={20} />
+                                    <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Hiện danh sách</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
-                    <div className="absolute top-4 right-4 z-10">
-                        {!isRightSidebarOpen && (
-                            <button
-                                onClick={() => setIsRightSidebarOpen(true)}
-                                className="bg-white/80 backdrop-blur p-2 rounded-lg shadow border border-gray-200 text-gray-600 hover:text-blue-600 hover:scale-105 transition-all"
-                                title="Hiện trợ lý AI"
-                            >
-                                <PanelRight size={20} />
-                            </button>
-                        )}
+
+                    <div className="absolute top-5 right-5 z-20 pointer-events-none">
+                        <div className="pointer-events-auto">
+                            {!isRightSidebarOpen && (
+                                <button
+                                    onClick={() => setIsRightSidebarOpen(true)}
+                                    className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2.5 rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.3)] text-white hover:scale-105 transition-all group"
+                                    title="Hiện trợ lý AI"
+                                >
+                                    <PanelRight size={20} />
+                                    <span className="absolute right-full mr-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Hỏi AI</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* Scrollable Content Container */}
-                    <div className="flex-1 overflow-y-auto">
-                        <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/30">
+                        <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
 
                             {/* Video Player Section */}
-                            <div className="group relative rounded-2xl overflow-hidden bg-black aspect-video shadow-xl border border-gray-200">
+                            <div className="group relative rounded-2xl overflow-hidden bg-black aspect-video shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-gray-900/10 ring-1 ring-gray-900/5">
                                 <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
                                     <button
                                         onClick={() => setIsPlaying(!isPlaying)}
-                                        className="w-20 h-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                                        className="w-20 h-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 active:scale-95"
                                     >
-                                        <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                                            {isPlaying ? <Pause className="text-white fill-white" size={24} /> : <Play className="text-white fill-white ml-1" size={24} />}
+                                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl pl-1">
+                                            {isPlaying ? <Pause className="text-gray-900 fill-gray-900" size={28} /> : <Play className="text-gray-900 fill-gray-900" size={28} />}
                                         </div>
                                     </button>
                                 </div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-                                {/* Controls Bar (Visible on Hover/Pause) */}
-                                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent transition-opacity opacity-0 group-hover:opacity-100">
-                                    <div className="flex items-center gap-4 text-white">
-                                        <button onClick={() => setIsPlaying(!isPlaying)}>
-                                            {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                                {/* Controls Bar */}
+                                <div className="absolute bottom-0 left-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                                    <div className="flex items-center gap-5 text-white">
+                                        <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-blue-400 transition-colors">
+                                            {isPlaying ? <Pause size={24} className="fill-current" /> : <Play size={24} className="fill-current" />}
                                         </button>
-                                        <div className="flex-1 h-1.5 bg-white/30 rounded-full cursor-pointer overflow-hidden">
+                                        <div className="flex-1 h-1.5 bg-white/20 rounded-full cursor-pointer overflow-hidden group/slider">
                                             <div className="h-full bg-blue-500 w-[35%] relative">
-                                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-sm scale-0 group-hover:scale-100 transition-transform"></div>
+                                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-md scale-0 group-hover/slider:scale-100 transition-transform"></div>
                                             </div>
                                         </div>
-                                        <span className="text-xs font-mono">15:20 / 45:00</span>
-                                        <div className="flex gap-3">
-                                            <Settings size={18} className="cursor-pointer hover:text-blue-400" />
-                                            <Maximize size={18} className="cursor-pointer hover:text-blue-400" />
+                                        <span className="text-xs font-mono font-medium tracking-wide">15:20 / 45:00</span>
+                                        <div className="flex gap-4">
+                                            <Settings size={20} className="cursor-pointer hover:text-blue-400 transition-colors" />
+                                            <Maximize size={20} className="cursor-pointer hover:text-blue-400 transition-colors" />
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Tabs & Content */}
-                            <div>
-                                <div className="flex border-b border-gray-200 mb-6 sticky top-0 bg-white z-10 pt-2">
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="flex border-b border-gray-100 px-6 pt-2">
                                     {tabs.map((tab) => {
                                         const Icon = tab.icon;
                                         const isActive = activeTab === tab.id;
@@ -378,12 +397,12 @@ export default function LessonDetail() {
                                             <button
                                                 key={tab.id}
                                                 onClick={() => setActiveTab(tab.id)}
-                                                className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${isActive
-                                                        ? 'border-blue-600 text-blue-600'
-                                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                                className={`flex items-center gap-2.5 px-6 py-4 text-sm font-bold border-b-[3px] transition-all ${isActive
+                                                    ? 'border-blue-600 text-blue-600'
+                                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
                                                     }`}
                                             >
-                                                <Icon size={18} />
+                                                <Icon size={18} className={isActive ? 'stroke-[2.5px]' : 'stroke-2'} />
                                                 {tab.label}
                                             </button>
                                         );
@@ -391,25 +410,26 @@ export default function LessonDetail() {
                                 </div>
 
                                 {/* Tab Panels */}
-                                <div className="animate-fadeIn">
+                                <div className="p-8 min-h-[400px]">
                                     {activeTab === 'content' && (
-                                        <div className="space-y-8">
+                                        <div className="space-y-10 max-w-3xl mx-auto animate-fade-in">
                                             {contentSections.map(section => (
-                                                <div key={section.id}>
-                                                    <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
-                                                        <span className="opacity-70">{section.icon}</span> {section.title}
+                                                <div key={section.id} className="relative pl-8">
+                                                    <div className="absolute left-0 top-1 w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm shadow-sm">{section.icon}</div>
+                                                    <h3 className="text-xl font-bold text-gray-900 mb-4">
+                                                        {section.title}
                                                     </h3>
-                                                    <p className="text-gray-600 leading-relaxed mb-4">{section.content}</p>
+                                                    <p className="text-gray-600 leading-7 mb-6 text-[15px]">{section.content}</p>
 
                                                     {section.subsections?.map((sub, idx) => (
-                                                        <div key={idx} className="bg-blue-50/50 rounded-xl p-5 border border-blue-100">
-                                                            <h4 className="font-semibold text-blue-900 mb-3">{sub.title}</h4>
-                                                            <ul className="space-y-2">
+                                                        <div key={idx} className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-2xl p-6 border border-blue-100/50 mb-4">
+                                                            <h4 className="font-bold text-blue-900 mb-4 text-sm uppercase tracking-wide">{sub.title}</h4>
+                                                            <ul className="space-y-3">
                                                                 {sub.items.map((item, i) => (
-                                                                    <li key={i} className="text-gray-700 text-sm flex items-start gap-2">
-                                                                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                                                                    <li key={i} className="text-gray-700 text-[15px] flex items-start gap-3">
+                                                                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
                                                                         <span>
-                                                                            <strong className="text-gray-900 font-medium">{item.label}</strong> {item.text}
+                                                                            <strong className="text-gray-900 font-bold">{item.label}</strong> {item.text}
                                                                         </span>
                                                                     </li>
                                                                 ))}
@@ -418,23 +438,23 @@ export default function LessonDetail() {
                                                     ))}
 
                                                     {section.examples?.map((ex, idx) => (
-                                                        <div key={idx} className={`mt-4 p-4 rounded-xl border-l-4 ${ex.type === 'info' ? 'bg-blue-50 border-blue-400' : 'bg-orange-50 border-orange-400'
+                                                        <div key={idx} className={`mt-6 p-5 rounded-2xl border-l-[6px] shadow-sm ${ex.type === 'info' ? 'bg-blue-50 border-blue-500' : 'bg-amber-50 border-amber-500'
                                                             }`}>
-                                                            <h4 className={`text-sm font-bold uppercase mb-1 ${ex.type === 'info' ? 'text-blue-700' : 'text-orange-700'
+                                                            <h4 className={`text-xs font-bold uppercase mb-2 ${ex.type === 'info' ? 'text-blue-800' : 'text-amber-800'
                                                                 }`}>{ex.title}</h4>
-                                                            <p className="text-sm text-gray-700">{ex.description}</p>
+                                                            <p className="text-sm font-medium text-gray-800 leading-relaxed">{ex.description}</p>
                                                         </div>
                                                     ))}
                                                 </div>
                                             ))}
 
                                             {/* Navigation Footer */}
-                                            <div className="flex items-center justify-between pt-8 border-t border-gray-100">
-                                                <button className="flex items-center gap-2 px-5 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors font-medium">
+                                            <div className="flex items-center justify-between pt-10 mt-10 border-t border-gray-100">
+                                                <button className="flex items-center gap-2 px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all font-bold text-sm">
                                                     <ArrowLeft size={18} />
                                                     Bài Trước
                                                 </button>
-                                                <button className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg shadow-blue-200 transition-all hover:translate-y-[-1px]">
+                                                <button className="flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all hover:-translate-y-0.5 active:scale-95">
                                                     Hoàn Thành & Tiếp Tục
                                                     <ChevronRight size={18} />
                                                 </button>
@@ -442,11 +462,12 @@ export default function LessonDetail() {
                                         </div>
                                     )}
                                     {activeTab !== 'content' && (
-                                        <div className="text-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                                                <Settings className="text-gray-400" size={24} />
+                                        <div className="flex flex-col items-center justify-center py-24 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100">
+                                            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-6">
+                                                <Settings className="text-gray-400" size={28} />
                                             </div>
-                                            <h3 className="text-gray-500 font-medium">Nội dung tab {activeTab} đang được cập nhật</h3>
+                                            <h3 className="text-gray-900 font-bold text-lg mb-2">Đang cập nhật</h3>
+                                            <p className="text-gray-500 text-sm">Nội dung {activeTab} sẽ sớm được bổ sung.</p>
                                         </div>
                                     )}
                                 </div>
@@ -457,36 +478,44 @@ export default function LessonDetail() {
 
                 {/* 2.3 Right Sidebar - AI Assistant */}
                 <div
-                    className={`${isRightSidebarOpen ? 'w-96 translate-x-0' : 'w-0 translate-x-full'} transition-all duration-300 ease-in-out bg-white border-l border-gray-200 flex flex-col flex-shrink-0 z-10`}
+                    className={`${isRightSidebarOpen ? 'w-[400px] translate-x-0 border-l' : 'w-0 translate-x-full border-none'} transition-all duration-300 ease-in-out bg-white border-gray-200 flex flex-col flex-shrink-0 z-30 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]`}
                 >
-                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-                        <div className="flex items-center gap-2">
-                            <Bot size={20} className="text-blue-100" />
-                            <h2 className="font-bold">Trợ Lý Ảo Vật Lý</h2>
+                    <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
+                                <Bot size={18} />
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-gray-900 text-sm">Trợ Lý AI</h2>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Online</span>
+                                </div>
+                            </div>
                         </div>
-                        <button onClick={() => setIsRightSidebarOpen(false)} className="p-1 hover:bg-white/10 rounded text-blue-100">
+                        <button onClick={() => setIsRightSidebarOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
                             <PanelRightClose size={18} />
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                    <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-gray-50/30 custom-scrollbar">
                         {chatMessages.map((msg) => (
-                            <div key={msg.id} className={`flex gap-3 ${msg.type === 'user' ? 'flex-row-reverse' : ''}`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.type === 'user' ? 'bg-indigo-100' : 'bg-blue-100'
+                            <div key={msg.id} className={`flex gap-4 ${msg.type === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-white ${msg.type === 'user' ? 'bg-indigo-100' : 'bg-white'
                                     }`}>
-                                    {msg.type === 'user' ? 'U' : <Bot size={16} className="text-blue-600" />}
+                                    {msg.type === 'user' ? <span className="text-xs font-bold text-indigo-600">You</span> : <Bot size={16} className="text-blue-600" />}
                                 </div>
-                                <div className={`max-w-[80%] space-y-2 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
-                                    <div className={`p-3 rounded-2xl text-sm ${msg.type === 'user'
-                                            ? 'bg-blue-600 text-white rounded-tr-none'
-                                            : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-tl-none'
+                                <div className={`max-w-[85%] space-y-3 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
+                                    <div className={`p-4 rounded-2xl text-[14px] leading-relaxed shadow-sm ${msg.type === 'user'
+                                        ? 'bg-blue-600 text-white rounded-tr-sm'
+                                        : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
                                         }`}>
                                         {msg.text}
                                     </div>
                                     {msg.suggestions && (
-                                        <div className="flex flex-col gap-2">
+                                        <div className="flex flex-wrap gap-2">
                                             {msg.suggestions.map((sug, i) => (
-                                                <button key={i} className="text-xs bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-50 text-left transition-colors">
+                                                <button key={i} className="text-[11px] font-medium bg-white border border-blue-100 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm">
                                                     {sug}
                                                 </button>
                                             ))}
@@ -499,35 +528,45 @@ export default function LessonDetail() {
                     </div>
 
                     {/* Chat Input */}
-                    <div className="p-4 border-t border-gray-200 bg-white">
-                        <div className="relative">
-                            <input
-                                type="text"
+                    <div className="p-5 border-t border-gray-200 bg-white">
+                        <div className="relative shadow-sm rounded-xl">
+                            <textarea
                                 value={inputMessage}
                                 onChange={(e) => setInputMessage(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                placeholder="Hỏi câu hỏi về bài học..."
-                                className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm"
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSendMessage();
+                                    }
+                                }}
+                                placeholder="Hỏi gì đó đi..."
+                                className="w-full pl-4 pr-12 py-3.5 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all text-sm resize-none custom-scrollbar"
+                                rows="1"
+                                style={{ minHeight: '52px', maxHeight: '120px' }}
                             />
                             <button
                                 onClick={handleSendMessage}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                disabled={!inputMessage.trim()}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl hover:bg-blue-700 transition-all active:scale-95"
                             >
                                 <Send size={16} />
                             </button>
                         </div>
 
                         {/* Materials Quick Access */}
-                        <div className="mt-4 pt-4 border-t border-gray-100">
-                            <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Tài liệu bài học</h4>
+                        <div className="mt-5 pt-4 border-t border-gray-100">
+                            <div className="flex items-center justify-between mb-3">
+                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tài liệu đính kèm</h4>
+                                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">2 file</span>
+                            </div>
                             <div className="space-y-2">
                                 {lessonMaterials.map((mat) => (
-                                    <a key={mat.id} href="#" className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg group transition-colors">
-                                        <div className="w-8 h-8 bg-red-50 text-red-500 rounded flex items-center justify-center flex-shrink-0">
+                                    <a key={mat.id} href="#" className="flex items-center gap-3 p-2.5 hover:bg-blue-50/50 border border-transparent hover:border-blue-100 rounded-xl group transition-all">
+                                        <div className="w-8 h-8 bg-white border border-gray-100 text-red-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                                             <FileText size={16} />
                                         </div>
-                                        <span className="text-sm text-gray-600 group-hover:text-blue-600 truncate flex-1">{mat.title}</span>
-                                        <Download size={14} className="text-gray-400 group-hover:text-gray-600" />
+                                        <span className="text-xs font-bold text-gray-600 group-hover:text-blue-700 truncate flex-1">{mat.title}</span>
+                                        <Download size={14} className="text-gray-300 group-hover:text-blue-500" />
                                     </a>
                                 ))}
                             </div>

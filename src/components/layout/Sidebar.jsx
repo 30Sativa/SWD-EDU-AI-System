@@ -31,7 +31,7 @@ export default function Sidebar({ userRole = 'teacher' }) {
   const location = useLocation();
 
   const BASE_PATH = location.pathname.startsWith('/dashboard/student') ? '/dashboard/student' : '/dashboard/teacher';
-  
+
   const detectedRole = location.pathname.startsWith('/dashboard/student') ? 'student' :
     location.pathname.startsWith('/dashboard/teacher') ? 'teacher' :
       userRole;
@@ -51,11 +51,11 @@ export default function Sidebar({ userRole = 'teacher' }) {
       >
         <div className="h-16 flex items-center px-4 border-b border-white/10 overflow-hidden whitespace-nowrap">
           <Link to={BASE_PATH} className={`flex items-center gap-3 transition-all ${collapsed ? 'justify-center w-full' : ''}`}>
-             <LogoIcon size={30} className="flex-shrink-0 text-white" />
-             <div className={`min-w-0 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 flex-1'}`}>
-                <h1 className="text-base font-bold leading-none">EDU-AI Classroom</h1>
-                <p className="text-[10px] text-blue-200 mt-1">Học tập đơn giản hơn</p>
-             </div>
+            <LogoIcon size={30} className="flex-shrink-0 text-white" />
+            <div className={`min-w-0 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 flex-1'}`}>
+              <h1 className="text-base font-bold leading-none">EDU-AI Classroom</h1>
+              <p className="text-[10px] text-blue-200 mt-1">Học tập đơn giản hơn</p>
+            </div>
           </Link>
         </div>
 
@@ -72,15 +72,15 @@ export default function Sidebar({ userRole = 'teacher' }) {
                 key={item.label}
                 to={href}
                 className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 whitespace-nowrap
-                  ${isActive 
-                    ? 'bg-white/20 text-white font-medium shadow-sm' 
+                  ${isActive
+                    ? 'bg-white/20 text-white font-medium shadow-sm'
                     : 'text-blue-100 hover:bg-white/10 hover:text-white'
                   } 
                   ${collapsed ? 'justify-center' : ''}`}
               >
                 <Icon size={22} className="flex-shrink-0" />
                 <span className={`text-sm transition-opacity duration-200 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
-                    {item.label}
+                  {item.label}
                 </span>
               </Link>
             );
