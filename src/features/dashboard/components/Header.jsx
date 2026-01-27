@@ -12,7 +12,6 @@ import {
 export default function Header({ userRole }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  // Helper hiển thị tên role đẹp hơn
   const getRoleLabel = (role) => {
     switch (role) {
       case 'teacher': return 'Giáo viên';
@@ -24,9 +23,10 @@ export default function Header({ userRole }) {
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shadow-sm">
-      {/* Search Bar */}
-      <div className="flex-1 max-w-xl">
-        <div className="relative w-full md:w-80">
+      <div className="flex-1"></div>
+
+      <div className="flex items-center gap-4">
+        <div className="relative hidden md:block md:w-64"> 
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -34,19 +34,14 @@ export default function Header({ userRole }) {
             className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-full text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white transition-all"
           />
         </div>
-      </div>
 
-      {/* Right Section: Notification & User */}
-      <div className="flex items-center gap-4">
         <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 relative transition-colors">
           <Bell size={20} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
         </button>
 
-        {/* Divider */}
         <div className="h-6 w-[1px] bg-gray-200 hidden sm:block"></div>
 
-        {/* USER DROPDOWN */}
         <div className="relative">
           <button
             onClick={() => setUserDropdownOpen(!userDropdownOpen)}
@@ -62,7 +57,6 @@ export default function Header({ userRole }) {
             <ChevronDown size={14} className={`text-gray-400 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Dropdown Content */}
           {userDropdownOpen && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setUserDropdownOpen(false)} />
