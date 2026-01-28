@@ -18,13 +18,13 @@ import QuizList from "../features/quiz/student/pages/QuizList";
 import QuizDetail from "../features/quiz/student/pages/QuizDetail";
 import StudentProgress from "../features/progress/student/pages/StudentProgress";
 
-// Admin routes (using feature/)
-import AdminDashboard from "../feature/dashboard/admin/pages/AdminDashboard";
-import RolePermission from "../feature/role-permission/admin/pages/RolePermission";
-import UserManagement from "../feature/user/admin/pages/UserManagement";
-import NotificationManagement from "../feature/notification/admin/pages/NotificationManagement";
-import AuditLogManagement from "../feature/audit-log/admin/pages/AuditLogManagement";
-import SystemSettings from "../feature/settings/admin/pages/SystemSettings";
+// Admin routes (using features/)
+import AdminDashboard from "../features/dashboard/admin/pages/AdminDashboard";
+import RolePermission from "../features/role-permission/admin/pages/RolePermission";
+import UserManagement from "../features/user/admin/pages/UserManagement";
+import NotificationManagement from "../features/notification/admin/pages/NotificationManagement";
+import AuditLogManagement from "../features/audit-log/admin/pages/AuditLogManagement";
+import SystemSettings from "../features/settings/admin/pages/SystemSettings";
 
 const Layout = () => (
   <div className="flex flex-col min-h-screen">

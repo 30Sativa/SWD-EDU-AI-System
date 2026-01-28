@@ -7,22 +7,31 @@ import {
   GraduationCap,
   ListChecks,
   Settings,
-  ShieldAlert,
+
   GraduationCap as LogoIcon,
   TrendingUp,
+  Lock,
+  Bell,
+  FileText,
 } from 'lucide-react';
 import ScrollToTop from './ScrollToTop';
 import Header from '../../features/dashboard/components/Header';
 
 const MENU_ITEMS = [
   { label: 'Bảng điều khiển', icon: LayoutDashboard, path: 'dashboard', allowedRoles: ['admin', 'teacher', 'student'] },
-  { label: 'Khóa học', icon: BookOpen, path: 'courses', allowedRoles: ['admin', 'teacher', 'student'] },
+
+  // Admin specific items
+  { label: 'Vai trò & Quyền', icon: Lock, path: 'roles-permissions', allowedRoles: ['admin'] },
+  { label: 'Người dùng', icon: Users, path: 'users', allowedRoles: ['admin'] },
+  { label: 'Thông báo', icon: Bell, path: 'notifications', allowedRoles: ['admin'] },
+  { label: 'Nhật ký hệ thống', icon: FileText, path: 'audit-logs', allowedRoles: ['admin'] },
+
+  { label: 'Khóa học', icon: BookOpen, path: 'courses', allowedRoles: ['teacher', 'student'] },
   { label: 'Bài kiểm tra', icon: ListChecks, path: 'quizzes', allowedRoles: ['student'] },
   { label: 'Tiến độ', icon: TrendingUp, path: 'progress', allowedRoles: ['student'] },
-  { label: 'Lớp học', icon: Users, path: 'classes', allowedRoles: ['admin', 'teacher'] },
-  { label: 'Học sinh', icon: GraduationCap, path: 'students', allowedRoles: ['admin', 'teacher'] },
+  { label: 'Lớp học', icon: Users, path: 'classes', allowedRoles: ['teacher'] },
+  { label: 'Học sinh', icon: GraduationCap, path: 'students', allowedRoles: ['teacher'] },
   { label: 'Câu hỏi', icon: ListChecks, path: 'question-bank', allowedRoles: ['teacher'] },
-  { label: 'Quản trị Hệ thống', icon: ShieldAlert, path: 'admin', allowedRoles: ['admin'] },
   { label: 'Cài đặt', icon: Settings, path: 'settings', allowedRoles: ['admin', 'teacher', 'student'] },
 ];
 
@@ -30,11 +39,16 @@ export default function Sidebar({ userRole = 'teacher' }) {
   const [collapsed, setCollapsed] = useState(true);
   const location = useLocation();
 
-  const BASE_PATH = location.pathname.startsWith('/dashboard/student') ? '/dashboard/student' : '/dashboard/teacher';
-  
+  const BASE_PATH = location.pathname.startsWith('/dashboard/student') ? '/dashboard/student' :
+    location.pathname.startsWith('/dashboard/admin') ? '/dashboard/admin' :
+      location.pathname.startsWith('/dashboard/manager') ? '/dashboard/manager' :
+        '/dashboard/teacher';
+
   const detectedRole = location.pathname.startsWith('/dashboard/student') ? 'student' :
-    location.pathname.startsWith('/dashboard/teacher') ? 'teacher' :
-      userRole;
+    location.pathname.startsWith('/dashboard/admin') ? 'admin' :
+      location.pathname.startsWith('/dashboard/manager') ? 'manager' :
+        location.pathname.startsWith('/dashboard/teacher') ? 'teacher' :
+          userRole;
 
   const filteredMenu = MENU_ITEMS.filter((item) => item.allowedRoles.includes(detectedRole));
 
@@ -51,11 +65,11 @@ export default function Sidebar({ userRole = 'teacher' }) {
       >
         <div className="h-16 flex items-center px-4 border-b border-white/10 overflow-hidden whitespace-nowrap">
           <Link to="/" className={`flex items-center gap-3 transition-all ${collapsed ? 'justify-center w-full' : ''}`}>
-             <LogoIcon size={30} className="flex-shrink-0 text-white" />
-             <div className={`min-w-0 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 flex-1'}`}>
-                <h1 className="text-base font-bold leading-none">EDU-AI Classroom</h1>
-                <p className="text-[10px] text-blue-200 mt-1">Học tập đơn giản hơn</p>
-             </div>
+            <LogoIcon size={30} className="flex-shrink-0 text-white" />
+            <div className={`min-w-0 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 flex-1'}`}>
+              <h1 className="text-base font-bold leading-none">EDU-AI Classroom</h1>
+              <p className="text-[10px] text-blue-200 mt-1">Học tập đơn giản hơn</p>
+            </div>
           </Link>
         </div>
 
@@ -72,15 +86,15 @@ export default function Sidebar({ userRole = 'teacher' }) {
                 key={item.label}
                 to={href}
                 className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 whitespace-nowrap
-                  ${isActive 
-                    ? 'bg-white/20 text-white font-medium shadow-sm' 
+                  ${isActive
+                    ? 'bg-white/20 text-white font-medium shadow-sm'
                     : 'text-blue-100 hover:bg-white/10 hover:text-white'
                   } 
                   ${collapsed ? 'justify-center' : ''}`}
               >
                 <Icon size={22} className="flex-shrink-0" />
                 <span className={`text-sm transition-opacity duration-200 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
-                    {item.label}
+                  {item.label}
                 </span>
               </Link>
             );
