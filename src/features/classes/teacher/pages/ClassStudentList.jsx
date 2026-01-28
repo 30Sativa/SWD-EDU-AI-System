@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-export default function StudentManagement() {
+export default function ClassStudentList() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedClass, setSelectedClass] = useState('All Classes');
     const navigate = useNavigate();
@@ -181,7 +181,7 @@ export default function StudentManagement() {
                                 </select>
                                 <Filter className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                             </div>
-                            
+
                             <button className="px-3.5 py-3 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm">
                                 <MoreHorizontal size={20} />
                             </button>
@@ -204,8 +204,8 @@ export default function StudentManagement() {
                                 {students.map((student) => {
                                     const progressStyle = getProgressStyles(student.progress);
                                     return (
-                                        <tr 
-                                            key={student.id} 
+                                        <tr
+                                            key={student.id}
                                             className="group bg-white rounded-2xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] hover:translate-y-[-2px] transition-all duration-300"
                                         >
                                             <td className="py-4 px-6 rounded-l-2xl border-l border-y border-transparent group-hover:border-indigo-50">

@@ -30,7 +30,6 @@ const MENU_ITEMS = [
   { label: 'Bài kiểm tra', icon: ListChecks, path: 'quizzes', allowedRoles: ['student'] },
   { label: 'Tiến độ', icon: TrendingUp, path: 'progress', allowedRoles: ['student'] },
   { label: 'Lớp học', icon: Users, path: 'classes', allowedRoles: ['teacher'] },
-  { label: 'Học sinh', icon: GraduationCap, path: 'students', allowedRoles: ['teacher'] },
   { label: 'Câu hỏi', icon: ListChecks, path: 'question-bank', allowedRoles: ['teacher'] },
   { label: 'Cài đặt', icon: Settings, path: 'settings', allowedRoles: ['admin', 'teacher', 'student', 'manager'] },
 ];

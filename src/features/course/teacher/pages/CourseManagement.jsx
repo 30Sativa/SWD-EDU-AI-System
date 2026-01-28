@@ -1,5 +1,6 @@
+import { Search, Plus, Filter, LayoutGrid, List, Users, BookOpen, Clock, ArrowRight, MoreVertical, GraduationCap } from 'lucide-react';
 import React, { useState } from 'react';
-import { Search, Plus, Filter, LayoutGrid, List, Users, BookOpen, Clock, ArrowRight, MoreVertical } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const CourseList = () => {
   const [viewMode, setViewMode] = useState('grid');
@@ -154,6 +155,7 @@ const StatCard = ({ label, value, subtext, icon: Icon, color }) => {
 
 const CourseCard = ({ course, viewMode }) => {
   const isGrid = viewMode === 'grid';
+  const navigate = useNavigate();
 
   return (
     <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden
@@ -202,7 +204,10 @@ const CourseCard = ({ course, viewMode }) => {
               <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wide">Cập nhật {course.lastUpdated}</p>
             </div>
 
-            <button className="flex items-center gap-2 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 pl-4 pr-3 py-2 rounded-xl transition-all group/btn">
+            <button
+              onClick={() => navigate(`/dashboard/teacher/courses/${course.id}`)}
+              className="flex items-center gap-2 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 pl-4 pr-3 py-2 rounded-xl transition-all group/btn"
+            >
               Chi tiết
               <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
             </button>
@@ -246,7 +251,10 @@ const CourseCard = ({ course, viewMode }) => {
           </div>
 
           <div className="pl-4 border-l border-gray-100">
-            <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+            <button
+              onClick={() => navigate(`/dashboard/teacher/courses/${course.id}`)}
+              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+            >
               <ArrowRight size={20} />
             </button>
           </div>

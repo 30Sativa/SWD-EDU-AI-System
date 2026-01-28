@@ -8,9 +8,10 @@ import Home from "../pages/Home";
 // Teacher & Student routes (using features/)
 import TeacherDashboard from "../features/dashboard/teacher/pages/TeacherDashboard";
 import CourseManagement from "../features/course/teacher/pages/CourseManagement";
+import TeacherCourseDetail from "../features/course/teacher/pages/CourseDetail";
 import StudentDashboard from "../features/dashboard/student/pages/StudentDashboard";
 import ClassManagement from "../features/classes/teacher/pages/ClassManagement";
-import StudentManagement from "../features/students/teacher/pages/StudentManagement";
+import ClassStudentList from "../features/classes/teacher/pages/ClassStudentList";
 import QuestionBank from "../features/question-bank/teacher/pages/QuestionBank";
 import QuestionList from "../features/question-bank/teacher/pages/QuestionList";
 import ManagerDashboard from "../features/dashboard/manager/pages/ManagerDashboard";
@@ -52,9 +53,9 @@ export default function RouteMap() {
         <Route path="teacher" element={<Sidebar userRole="teacher" />}>
           <Route index element={<TeacherDashboard />} />
           <Route path="courses" element={<CourseManagement />} />
+          <Route path="courses/:courseId" element={<TeacherCourseDetail />} />
+          <Route path="classes/:classId/students" element={<ClassStudentList />} />
           <Route path="classes" element={<ClassManagement />} />
-          <Route path="classes" element={<ClassManagement />} />
-          <Route path="students" element={<StudentManagement />} />
           <Route path="question-bank" element={<QuestionBank />} />
           <Route path="question-bank/:folderId" element={<QuestionList />} />
         </Route>

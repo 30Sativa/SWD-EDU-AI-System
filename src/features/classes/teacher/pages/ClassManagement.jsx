@@ -1,7 +1,8 @@
-import React from 'react';
-import { Search, Plus, Filter, LayoutGrid, List, Users, Calendar, MoreVertical, BookOpen, Clock } from 'lucide-react';
+import { Search, Plus, Filter, LayoutGrid, List, Users, Calendar, MoreVertical, BookOpen, Clock, GraduationCap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const ClassManagement = () => {
+    const navigate = useNavigate();
     const classes = [
         {
             id: 1,
@@ -90,9 +91,9 @@ const ClassManagement = () => {
                             {/* Card Header */}
                             <div className="flex justify-between items-start mb-4">
                                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${cls.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                                        cls.color === 'indigo' ? 'bg-indigo-100 text-indigo-600' :
-                                            cls.color === 'emerald' ? 'bg-emerald-100 text-emerald-600' :
-                                                'bg-gray-100 text-gray-600'
+                                    cls.color === 'indigo' ? 'bg-indigo-100 text-indigo-600' :
+                                        cls.color === 'emerald' ? 'bg-emerald-100 text-emerald-600' :
+                                            'bg-gray-100 text-gray-600'
                                     }`}>
                                     <BookOpen size={24} />
                                 </div>
@@ -132,13 +133,16 @@ const ClassManagement = () => {
                             {/* Card Footer */}
                             <div className="flex items-center gap-3 mt-auto pt-2">
                                 <button
+                                    onClick={() => navigate(`/dashboard/teacher/classes/${cls.id}/students`)}
                                     className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95 ${cls.status === 'Hoạt động'
-                                            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-500/30'
-                                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                        ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-500/30'
+                                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                                         }`}
                                 >
                                     Quản lý
                                 </button>
+
+
 
                                 <button className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95">
                                     Chi tiết
