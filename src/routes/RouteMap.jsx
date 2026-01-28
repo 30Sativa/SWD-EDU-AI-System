@@ -14,7 +14,8 @@ import QuizList from "../feature/quiz/student/pages/QuizList";
 import QuizDetail from "../feature/quiz/student/pages/QuizDetail";
 import StudentProgress from "../feature/progress/student/pages/StudentProgress";
 import AdminDashboard from "../feature/dashboard/admin/pages/AdminDashboard";
-import RolePermission from "../feature/role&permission/Role&Permission";
+import RolePermission from "../feature/role-permission/admin/pages/RolePermission";
+import UserManagement from "../feature/user/admin/pages/UserManagement";
 
 const Layout = () => (
   <div className="flex flex-col min-h-screen">
@@ -51,6 +52,7 @@ export default function RouteMap() {
         <Route path="admin" element={<Sidebar userRole="admin" />}>
           <Route index element={<AdminDashboard />} />
           <Route path="roles-permissions" element={<RolePermission />} />
+          <Route path="users" element={<UserManagement />} />
         </Route>
         <Route index element={<Navigate to="/dashboard/teacher" replace />} />
       </Route>

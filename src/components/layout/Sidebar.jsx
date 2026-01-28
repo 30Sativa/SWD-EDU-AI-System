@@ -30,7 +30,7 @@ const MENU_ITEMS = [
     label: 'Khóa học',
     icon: BookOpen,
     path: 'courses',
-    allowedRoles: ['admin', 'teacher', 'student']
+    allowedRoles: ['teacher', 'student']
   },
   {
     label: 'Bài kiểm tra',
@@ -48,13 +48,13 @@ const MENU_ITEMS = [
     label: 'Lớp học',
     icon: Users,
     path: 'classes',
-    allowedRoles: ['admin', 'teacher']
+    allowedRoles: ['teacher']
   },
   {
     label: 'Học sinh',
     icon: GraduationCap,
     path: 'students',
-    allowedRoles: ['admin', 'teacher']
+    allowedRoles: ['teacher']
   },
   {
     label: 'Câu hỏi',
@@ -69,16 +69,16 @@ const MENU_ITEMS = [
     allowedRoles: ['admin']
   },
   {
-    label: 'Quản trị Hệ thống',
-    icon: ShieldAlert,
-    path: 'admin',
+    label: 'Quản lý Người dùng',
+    icon: Users,
+    path: 'users',
     allowedRoles: ['admin']
   },
   {
     label: 'Cài đặt',
     icon: Settings,
     path: 'settings',
-    allowedRoles: ['admin', 'teacher', 'student']
+    allowedRoles: ['teacher', 'student']
   },
 ];
 

@@ -53,7 +53,7 @@ export default function StudentProgress() {
                 {/* Header with Greeting */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                     <div>
-                        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2 tracking-tight">Hi, Học Sinh!</h1>
+                        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2 tracking-tight">Chào bạn!</h1>
                         <p className="text-gray-600 text-lg font-medium">Hãy hoàn thành nhiệm vụ hôm nay của bạn!</p>
                     </div>
                     <div className="flex items-center gap-3">
