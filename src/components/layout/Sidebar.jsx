@@ -75,6 +75,12 @@ const MENU_ITEMS = [
     allowedRoles: ['admin']
   },
   {
+    label: 'Thông báo',
+    icon: Bell,
+    path: 'notifications',
+    allowedRoles: ['admin']
+  },
+  {
     label: 'Cài đặt',
     icon: Settings,
     path: 'settings',
