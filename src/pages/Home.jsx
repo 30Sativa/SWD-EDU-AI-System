@@ -84,6 +84,14 @@ function HeroSection() {
               >
                 Admin
               </button>
+              <button
+                onClick={() => navigate('/dashboard/manager')}
+                className="px-6 py-3 bg-white font-semibold rounded-lg border-2 transition-all duration-300 text-sm md:text-base hover:shadow-lg hover:scale-105"
+                style={{ borderColor: '#2563eb', color: '#2563eb' }}
+                aria-label="Vào Dashboard quản lý (tạm, chưa auth)"
+              >
+                Manager
+              </button>
             </div>
 
             <div className="grid grid-cols-3 gap-3 md:gap-4">
@@ -150,8 +158,8 @@ function FeatureCardsCarousel() {
                 key={idx}
                 onClick={() => setCurrentFeature(idx)}
                 className={`p-5 rounded-xl transition-all duration-500 cursor-pointer ${currentFeature === idx
-                    ? 'bg-blue-50 shadow-md scale-105 border'
-                    : 'bg-gray-50 hover:bg-blue-50/30'
+                  ? 'bg-blue-50 shadow-md scale-105 border'
+                  : 'bg-gray-50 hover:bg-blue-50/30'
                   }`}
                 style={{
                   borderColor: currentFeature === idx ? '#bfdbfe' : 'transparent',

@@ -4,15 +4,21 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import Sidebar from "../components/layout/Sidebar";
 import Home from "../pages/Home";
-import TeacherDashboard from "../feature/dashboard/teacher/pages/TeacherDashboard";
-import CourseManagement from "../feature/course/teacher/pages/CourseManagement";
-import StudentDashboard from "../feature/dashboard/student/pages/StudentDashboard";
-import CourseDetail from "../feature/course/student/pages/CourseDetail";
-import CoursesList from "../feature/course/student/pages/CoursesList";
-import LessonDetail from "../feature/lesson/student/pages/LessonDetail";
-import QuizList from "../feature/quiz/student/pages/QuizList";
-import QuizDetail from "../feature/quiz/student/pages/QuizDetail";
-import StudentProgress from "../feature/progress/student/pages/StudentProgress";
+
+// Teacher & Student routes (using features/)
+import TeacherDashboard from "../features/dashboard/teacher/pages/TeacherDashboard";
+import CourseManagement from "../features/course/teacher/pages/CourseManagement";
+import StudentDashboard from "../features/dashboard/student/pages/StudentDashboard";
+import ClassManagement from "../features/classes/teacher/pages/ClassManagement";
+import ManagerDashboard from "../features/dashboard/manager/pages/ManagerDashboard";
+import CourseDetail from "../features/course/student/pages/CourseDetail";
+import CoursesList from "../features/course/student/pages/CoursesList";
+import LessonDetail from "../features/lesson/student/pages/LessonDetail";
+import QuizList from "../features/quiz/student/pages/QuizList";
+import QuizDetail from "../features/quiz/student/pages/QuizDetail";
+import StudentProgress from "../features/progress/student/pages/StudentProgress";
+
+// Admin routes (using feature/)
 import AdminDashboard from "../feature/dashboard/admin/pages/AdminDashboard";
 import RolePermission from "../feature/role-permission/admin/pages/RolePermission";
 import UserManagement from "../feature/user/admin/pages/UserManagement";
@@ -38,10 +44,12 @@ const Fallback = () => (
 export default function RouteMap() {
   return (
     <Routes>
+      {/* Các route có layout Dashboard */}
       <Route path="dashboard">
         <Route path="teacher" element={<Sidebar userRole="teacher" />}>
           <Route index element={<TeacherDashboard />} />
           <Route path="courses" element={<CourseManagement />} />
+          <Route path="classes" element={<ClassManagement />} />
         </Route>
         <Route path="student" element={<Sidebar userRole="student" />}>
           <Route index element={<StudentDashboard />} />
@@ -51,6 +59,9 @@ export default function RouteMap() {
           <Route path="quizzes" element={<QuizList />} />
           <Route path="quizzes/:quizId" element={<QuizDetail />} />
           <Route path="progress" element={<StudentProgress />} />
+        </Route>
+        <Route path="manager" element={<Sidebar userRole="manager" />}>
+          <Route index element={<ManagerDashboard />} />
         </Route>
         <Route path="admin" element={<Sidebar userRole="admin" />}>
           <Route index element={<AdminDashboard />} />
@@ -62,6 +73,8 @@ export default function RouteMap() {
         </Route>
         <Route index element={<Navigate to="/dashboard/teacher" replace />} />
       </Route>
+
+      {/* Các route có layout Header/Footer */}
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="*" element={<Fallback />} />

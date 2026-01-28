@@ -238,9 +238,9 @@ export default function StudentProgress() {
                                 const isDone = lesson.status === 'completed';
                                 return (
                                     <div key={idx} className="flex flex-col items-center gap-5 relative z-10 w-32">
-                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center border-4 transition-all duration-300 font-bold text-sm ${isDone ? 'bg-emerald-500 border-emerald-50 text-white shadow-lg shadow-emerald-100' :
-                                                isActive ? 'bg-blue-600 border-blue-50 text-white shadow-xl shadow-blue-100 scale-110 ring-4 ring-blue-50/50' :
-                                                    'bg-white border-gray-100 text-gray-300'
+                                        <div className={`w-11 h-11 rounded-full flex items-center justify-center border-4 transition-all duration-300 ${isDone ? 'bg-emerald-500 border-emerald-50 text-white shadow-lg shadow-emerald-100' :
+                                            isActive ? 'bg-blue-600 border-blue-50 text-white shadow-xl shadow-blue-100 scale-110 ring-4 ring-blue-50/50' :
+                                                'bg-white border-gray-100 text-gray-300'
                                             }`}>
                                             {isDone ? '✓' : isActive ? '▶' : '○'}
                                         </div>

@@ -10,15 +10,16 @@ import {
   ShieldAlert,
   User,
   GraduationCap as LogoIcon,
-  PanelLeftClose,
-  PanelLeft,
-  Bell,
-  Search,
   TrendingUp,
+  Bell,
   Lock,
   FileText,
+  PanelLeftClose,
+  PanelLeft,
+  Search,
 } from 'lucide-react';
 import ScrollToTop from './ScrollToTop';
+import Header from '../../features/dashboard/components/Header';
 
 const MENU_ITEMS = [
   {
@@ -102,7 +103,7 @@ const MENU_ITEMS = [
 ];
 
 export default function Sidebar({ userRole = 'teacher' }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const location = useLocation();
 
   // Auto-detect base path from current location
@@ -110,23 +111,25 @@ export default function Sidebar({ userRole = 'teacher' }) {
     ? '/dashboard/student'
     : location.pathname.startsWith('/dashboard/admin')
     ? '/dashboard/admin'
+    : location.pathname.startsWith('/dashboard/manager')
+    ? '/dashboard/manager'
     : '/dashboard/teacher';
 
-  // Auto-detect userRole from path if not provided
   const detectedRole = location.pathname.startsWith('/dashboard/student') ? 'student' :
     location.pathname.startsWith('/dashboard/admin') ? 'admin' :
-    location.pathname.startsWith('/dashboard/teacher') ? 'teacher' :
-      userRole;
+      location.pathname.startsWith('/dashboard/teacher') ? 'teacher' :
+        location.pathname.startsWith('/dashboard/manager') ? 'manager' :
+          userRole;
 
   const filteredMenu = MENU_ITEMS.filter((item) => item.allowedRoles.includes(detectedRole));
 
   return (
-    <div className="flex min-h-screen bg-gray-100 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
       <ScrollToTop />
 
       {/* Sidebar panel */}
       <div
-        className={`min-h-screen self-stretch bg-gradient-to-b from-[#1a44b8] to-[#1e3a8a] text-white flex flex-col transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-[72px] shadow-none' : 'w-64 shadow-xl'
+        className={`min-h-screen self-stretch bg-[#1a44b8] text-white flex flex-col font-sans transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-[72px] shadow-none' : 'w-64 shadow-xl'
           }`}
       >
         <div
@@ -135,7 +138,7 @@ export default function Sidebar({ userRole = 'teacher' }) {
         >
           {!collapsed && (
             <Link to={BASE_PATH} className="flex items-center gap-3 min-w-0 flex-1">
-              {detectedRole !== 'student' && <LogoIcon size={28} className="flex-shrink-0" />}
+              <LogoIcon size={28} className="flex-shrink-0" />
               <div className="min-w-0">
                 <h1 className="text-base font-bold leading-tight truncate">EDU-AI Classroom</h1>
                 <p className="text-xs text-blue-200 truncate">Học tập đơn giản hơn</p>
@@ -149,8 +152,7 @@ export default function Sidebar({ userRole = 'teacher' }) {
               className="flex justify-center w-full p-2 rounded-lg hover:bg-white/10 transition-colors"
               aria-label="Mở rộng sidebar"
             >
-              {detectedRole !== 'student' && <LogoIcon size={28} />}
-              {detectedRole === 'student' && <span className="text-white font-bold text-lg">E</span>}
+              <LogoIcon size={28} />
             </button>
           )}
           {!collapsed && (
@@ -165,7 +167,7 @@ export default function Sidebar({ userRole = 'teacher' }) {
           )}
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
           {filteredMenu.map((item) => {
             const Icon = item.icon;
             const href = item.path === 'dashboard' ? BASE_PATH : `${BASE_PATH}/${item.path}`;
@@ -177,11 +179,11 @@ export default function Sidebar({ userRole = 'teacher' }) {
               <Link
                 key={item.label}
                 to={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isActive ? 'bg-white/20 text-white shadow-md' : 'text-blue-100 hover:bg-white/10'
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10'
                   } ${collapsed ? 'justify-center' : ''}`}
               >
-                {detectedRole !== 'student' && <Icon size={20} className="flex-shrink-0" />}
-                {!collapsed && <span className="text-sm font-medium truncate">{item.label}</span>}
+                <Icon size={20} className="flex-shrink-0" />
+                {!collapsed && <span className="text-sm truncate">{item.label}</span>}
               </Link>
             );
           })}
@@ -194,16 +196,16 @@ export default function Sidebar({ userRole = 'teacher' }) {
               (collapsed ? 'justify-center p-3' : 'p-3')
             }
           >
-            <div className="w-10 h-10 rounded-full bg-blue-400 flex items-center justify-center text-blue-900 flex-shrink-0 font-bold">
-              {detectedRole !== 'student' ? <User size={20} /> : <span className="text-sm">JD</span>}
+            <div className="w-10 h-10 rounded-full bg-blue-400 flex items-center justify-center text-blue-900 flex-shrink-0">
+              <User size={20} />
             </div>
             {!collapsed && (
               <div className="min-w-0">
                 <p className="font-semibold text-sm truncate">John Doe</p>
                 <p className="text-xs text-blue-200 truncate">
-                  {detectedRole === 'teacher' ? 'Giáo viên' : 
-                   detectedRole === 'student' ? 'Học sinh' : 
-                   detectedRole === 'admin' ? 'Quản trị viên' : detectedRole}
+                  {detectedRole === 'teacher' ? 'Giáo viên' :
+                    detectedRole === 'student' ? 'Học sinh' :
+                      detectedRole === 'admin' ? 'Quản trị viên' : detectedRole}
                 </p>
               </div>
             )}
@@ -214,23 +216,19 @@ export default function Sidebar({ userRole = 'teacher' }) {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="flex-shrink-0 flex items-center justify-end gap-4 px-4 md:px-6 py-3 bg-white border-b border-gray-200">
           <div className="relative w-64 md:w-40">
-            {detectedRole !== 'student' && <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />}
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder={detectedRole === 'admin' ? 'Search notifications, logs, or users.' : 'Tìm kiếm...'}
-              className={`w-full ${detectedRole !== 'student' ? 'pl-9' : 'pl-3'} pr-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-900 placeholder-gray-500 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white`}
+              placeholder="Tìm kiếm..."
+              className="w-full pl-9 pr-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-900 placeholder-gray-500 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white"
             />
           </div>
-          {detectedRole !== 'student' && (
-            <>
-              <button type="button" className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors" aria-label="Thông báo">
-                <Bell size={20} />
-              </button>
-              <button type="button" className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors" aria-label="Cài đặt">
-                <Settings size={20} />
-              </button>
-            </>
-          )}
+          <button type="button" className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors" aria-label="Thông báo">
+            <Bell size={20} />
+          </button>
+          <button type="button" className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors" aria-label="Cài đặt">
+            <Settings size={20} />
+          </button>
         </header>
         <main className="flex-1 overflow-auto">
           <Outlet />
