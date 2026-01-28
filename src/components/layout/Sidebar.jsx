@@ -16,6 +16,7 @@ import {
   Search,
   TrendingUp,
   Lock,
+  FileText,
 } from 'lucide-react';
 import ScrollToTop from './ScrollToTop';
 
@@ -78,6 +79,12 @@ const MENU_ITEMS = [
     label: 'Thông báo',
     icon: Bell,
     path: 'notifications',
+    allowedRoles: ['admin']
+  },
+  {
+    label: 'Nhật ký Kiểm toán',
+    icon: FileText,
+    path: 'audit-logs',
     allowedRoles: ['admin']
   },
   {

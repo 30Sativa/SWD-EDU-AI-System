@@ -17,6 +17,7 @@ import AdminDashboard from "../feature/dashboard/admin/pages/AdminDashboard";
 import RolePermission from "../feature/role-permission/admin/pages/RolePermission";
 import UserManagement from "../feature/user/admin/pages/UserManagement";
 import NotificationManagement from "../feature/notification/admin/pages/NotificationManagement";
+import AuditLogManagement from "../feature/audit-log/admin/pages/AuditLogManagement";
 
 const Layout = () => (
   <div className="flex flex-col min-h-screen">
@@ -55,6 +56,7 @@ export default function RouteMap() {
           <Route path="roles-permissions" element={<RolePermission />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="notifications" element={<NotificationManagement />} />
+          <Route path="audit-logs" element={<AuditLogManagement />} />
         </Route>
         <Route index element={<Navigate to="/dashboard/teacher" replace />} />
       </Route>
