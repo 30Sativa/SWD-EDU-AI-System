@@ -88,6 +88,12 @@ const MENU_ITEMS = [
     allowedRoles: ['admin']
   },
   {
+    label: 'Cài đặt Hệ thống',
+    icon: Settings,
+    path: 'settings',
+    allowedRoles: ['admin']
+  },
+  {
     label: 'Cài đặt',
     icon: Settings,
     path: 'settings',
