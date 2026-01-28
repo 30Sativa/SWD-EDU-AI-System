@@ -45,23 +45,23 @@ function ScrollToTop() {
   };
 
   return (
-      <Button
-        type="primary"
-        shape="circle"
-        icon={<UpOutlined />}
-        size="large"
-        onClick={scrollToTop}
-        style={{
-          position: "fixed",
-          bottom: "20px",
-          right: "20px",
-          zIndex: 99,
-          opacity: isVisible ? 1 : 0,
-          visibility: isVisible ? "visible" : "hidden",
-          transition: "all 0.3s",
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-        }}
-      />
+    <Button
+      type="primary"
+      shape="circle"
+      icon={<UpOutlined />}
+      size="large"
+      onClick={scrollToTop}
+      style={{
+        position: "fixed",
+        bottom: "20px",
+        right: "20px",
+        zIndex: 99,
+        opacity: isVisible ? 1 : 0,
+        visibility: isVisible ? "visible" : "hidden",
+        transition: "all 0.3s",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+      }}
+    />
   );
 }
 

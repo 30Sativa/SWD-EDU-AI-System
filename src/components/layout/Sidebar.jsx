@@ -13,26 +13,26 @@ import {
   Lock,
   Bell,
   FileText,
+  Book,
 } from 'lucide-react';
 import ScrollToTop from './ScrollToTop';
 import Header from '../../features/dashboard/components/Header';
 
 const MENU_ITEMS = [
-  { label: 'Bảng điều khiển', icon: LayoutDashboard, path: 'dashboard', allowedRoles: ['admin', 'teacher', 'student'] },
-
-  // Admin specific items
+  { label: 'Bảng điều khiển', icon: LayoutDashboard, path: 'dashboard', allowedRoles: ['admin', 'teacher', 'student', 'manager'] },
   { label: 'Vai trò & Quyền', icon: Lock, path: 'roles-permissions', allowedRoles: ['admin'] },
   { label: 'Người dùng', icon: Users, path: 'users', allowedRoles: ['admin'] },
-  { label: 'Thông báo', icon: Bell, path: 'notifications', allowedRoles: ['admin'] },
+  { label: 'Thông báo', icon: Bell, path: 'notifications', allowedRoles: ['admin', 'manager'] },
   { label: 'Nhật ký hệ thống', icon: FileText, path: 'audit-logs', allowedRoles: ['admin'] },
-
+  { label: 'Quản lý Môn học', icon: Book, path: 'subjects', allowedRoles: ['manager'] },
+  { label: 'Ngân hàng câu hỏi', icon: ListChecks, path: 'question-bank', allowedRoles: ['manager'] },
   { label: 'Khóa học', icon: BookOpen, path: 'courses', allowedRoles: ['teacher', 'student'] },
   { label: 'Bài kiểm tra', icon: ListChecks, path: 'quizzes', allowedRoles: ['student'] },
   { label: 'Tiến độ', icon: TrendingUp, path: 'progress', allowedRoles: ['student'] },
   { label: 'Lớp học', icon: Users, path: 'classes', allowedRoles: ['teacher'] },
   { label: 'Học sinh', icon: GraduationCap, path: 'students', allowedRoles: ['teacher'] },
   { label: 'Câu hỏi', icon: ListChecks, path: 'question-bank', allowedRoles: ['teacher'] },
-  { label: 'Cài đặt', icon: Settings, path: 'settings', allowedRoles: ['admin', 'teacher', 'student'] },
+  { label: 'Cài đặt', icon: Settings, path: 'settings', allowedRoles: ['admin', 'teacher', 'student', 'manager'] },
 ];
 
 export default function Sidebar({ userRole = 'teacher' }) {

@@ -10,6 +10,9 @@ import TeacherDashboard from "../features/dashboard/teacher/pages/TeacherDashboa
 import CourseManagement from "../features/course/teacher/pages/CourseManagement";
 import StudentDashboard from "../features/dashboard/student/pages/StudentDashboard";
 import ClassManagement from "../features/classes/teacher/pages/ClassManagement";
+import StudentManagement from "../features/students/teacher/pages/StudentManagement";
+import QuestionBank from "../features/question-bank/teacher/pages/QuestionBank";
+import QuestionList from "../features/question-bank/teacher/pages/QuestionList";
 import ManagerDashboard from "../features/dashboard/manager/pages/ManagerDashboard";
 import CourseDetail from "../features/course/student/pages/CourseDetail";
 import CoursesList from "../features/course/student/pages/CoursesList";
@@ -50,6 +53,10 @@ export default function RouteMap() {
           <Route index element={<TeacherDashboard />} />
           <Route path="courses" element={<CourseManagement />} />
           <Route path="classes" element={<ClassManagement />} />
+          <Route path="classes" element={<ClassManagement />} />
+          <Route path="students" element={<StudentManagement />} />
+          <Route path="question-bank" element={<QuestionBank />} />
+          <Route path="question-bank/:folderId" element={<QuestionList />} />
         </Route>
         <Route path="student" element={<Sidebar userRole="student" />}>
           <Route index element={<StudentDashboard />} />
