@@ -8,118 +8,33 @@ import {
   ListChecks,
   Settings,
   ShieldAlert,
-  User,
   GraduationCap as LogoIcon,
   TrendingUp,
-  Bell,
-  Lock,
-  FileText,
-  PanelLeftClose,
-  PanelLeft,
-  Search,
 } from 'lucide-react';
 import ScrollToTop from './ScrollToTop';
 import Header from '../../features/dashboard/components/Header';
 
 const MENU_ITEMS = [
-  {
-    label: 'Bảng điều khiển',
-    icon: LayoutDashboard,
-    path: 'dashboard',
-    allowedRoles: ['admin', 'teacher', 'student']
-  },
-  {
-    label: 'Khóa học',
-    icon: BookOpen,
-    path: 'courses',
-    allowedRoles: ['teacher', 'student']
-  },
-  {
-    label: 'Bài kiểm tra',
-    icon: ListChecks,
-    path: 'quizzes',
-    allowedRoles: ['student']
-  },
-  {
-    label: 'Tiến độ',
-    icon: TrendingUp,
-    path: 'progress',
-    allowedRoles: ['student']
-  },
-  {
-    label: 'Lớp học',
-    icon: Users,
-    path: 'classes',
-    allowedRoles: ['teacher']
-  },
-  {
-    label: 'Học sinh',
-    icon: GraduationCap,
-    path: 'students',
-    allowedRoles: ['teacher']
-  },
-  {
-    label: 'Câu hỏi',
-    icon: ListChecks,
-    path: 'question-bank',
-    allowedRoles: ['teacher']
-  },
-  {
-    label: 'Vai trò & Quyền',
-    icon: Lock,
-    path: 'roles-permissions',
-    allowedRoles: ['admin']
-  },
-  {
-    label: 'Quản lý Người dùng',
-    icon: Users,
-    path: 'users',
-    allowedRoles: ['admin']
-  },
-  {
-    label: 'Thông báo',
-    icon: Bell,
-    path: 'notifications',
-    allowedRoles: ['admin']
-  },
-  {
-    label: 'Nhật ký Kiểm toán',
-    icon: FileText,
-    path: 'audit-logs',
-    allowedRoles: ['admin']
-  },
-  {
-    label: 'Cài đặt Hệ thống',
-    icon: Settings,
-    path: 'settings',
-    allowedRoles: ['admin']
-  },
-  {
-    label: 'Cài đặt',
-    icon: Settings,
-    path: 'settings',
-    allowedRoles: ['teacher', 'student']
-  },
+  { label: 'Bảng điều khiển', icon: LayoutDashboard, path: 'dashboard', allowedRoles: ['admin', 'teacher', 'student'] },
+  { label: 'Khóa học', icon: BookOpen, path: 'courses', allowedRoles: ['admin', 'teacher', 'student'] },
+  { label: 'Bài kiểm tra', icon: ListChecks, path: 'quizzes', allowedRoles: ['student'] },
+  { label: 'Tiến độ', icon: TrendingUp, path: 'progress', allowedRoles: ['student'] },
+  { label: 'Lớp học', icon: Users, path: 'classes', allowedRoles: ['admin', 'teacher'] },
+  { label: 'Học sinh', icon: GraduationCap, path: 'students', allowedRoles: ['admin', 'teacher'] },
+  { label: 'Câu hỏi', icon: ListChecks, path: 'question-bank', allowedRoles: ['teacher'] },
+  { label: 'Quản trị Hệ thống', icon: ShieldAlert, path: 'admin', allowedRoles: ['admin'] },
+  { label: 'Cài đặt', icon: Settings, path: 'settings', allowedRoles: ['admin', 'teacher', 'student'] },
 ];
 
 export default function Sidebar({ userRole = 'teacher' }) {
   const [collapsed, setCollapsed] = useState(true);
   const location = useLocation();
 
-  // Auto-detect base path from current location
-  const BASE_PATH = location.pathname.startsWith('/dashboard/student')
-    ? '/dashboard/student'
-    : location.pathname.startsWith('/dashboard/admin')
-    ? '/dashboard/admin'
-    : location.pathname.startsWith('/dashboard/manager')
-    ? '/dashboard/manager'
-    : '/dashboard/teacher';
-
+  const BASE_PATH = location.pathname.startsWith('/dashboard/student') ? '/dashboard/student' : '/dashboard/teacher';
+  
   const detectedRole = location.pathname.startsWith('/dashboard/student') ? 'student' :
-    location.pathname.startsWith('/dashboard/admin') ? 'admin' :
-      location.pathname.startsWith('/dashboard/teacher') ? 'teacher' :
-        location.pathname.startsWith('/dashboard/manager') ? 'manager' :
-          userRole;
+    location.pathname.startsWith('/dashboard/teacher') ? 'teacher' :
+      userRole;
 
   const filteredMenu = MENU_ITEMS.filter((item) => item.allowedRoles.includes(detectedRole));
 
@@ -127,44 +42,21 @@ export default function Sidebar({ userRole = 'teacher' }) {
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
       <ScrollToTop />
 
-      {/* Sidebar panel */}
-      <div
-        className={`min-h-screen self-stretch bg-[#1a44b8] text-white flex flex-col font-sans transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-[72px] shadow-none' : 'w-64 shadow-xl'
-          }`}
+      <aside
+        onMouseEnter={() => setCollapsed(false)}
+        onMouseLeave={() => setCollapsed(true)}
+        className={`flex flex-col flex-shrink-0 bg-[#1a44b8] text-white transition-all duration-300 ease-in-out shadow-xl z-40
+          ${collapsed ? 'w-[72px]' : 'w-64'}
+        `}
       >
-        <div
-          className={`p-4 flex flex-shrink-0 gap-2 ${collapsed ? 'flex-col items-center' : 'items-center justify-between'
-            }`}
-        >
-          {!collapsed && (
-            <Link to={BASE_PATH} className="flex items-center gap-3 min-w-0 flex-1">
-              <LogoIcon size={28} className="flex-shrink-0" />
-              <div className="min-w-0">
-                <h1 className="text-base font-bold leading-tight truncate">EDU-AI Classroom</h1>
-                <p className="text-xs text-blue-200 truncate">Học tập đơn giản hơn</p>
-              </div>
-            </Link>
-          )}
-          {collapsed && (
-            <button
-              type="button"
-              onClick={() => setCollapsed((c) => !c)}
-              className="flex justify-center w-full p-2 rounded-lg hover:bg-white/10 transition-colors"
-              aria-label="Mở rộng sidebar"
-            >
-              <LogoIcon size={28} />
-            </button>
-          )}
-          {!collapsed && (
-            <button
-              type="button"
-              onClick={() => setCollapsed((c) => !c)}
-              className="p-2 rounded-lg hover:bg-white/10 text-blue-100 transition-colors flex-shrink-0"
-              aria-label="Thu gọn sidebar"
-            >
-              <PanelLeftClose size={20} />
-            </button>
-          )}
+        <div className="h-16 flex items-center px-4 border-b border-white/10 overflow-hidden whitespace-nowrap">
+          <Link to="/" className={`flex items-center gap-3 transition-all ${collapsed ? 'justify-center w-full' : ''}`}>
+             <LogoIcon size={30} className="flex-shrink-0 text-white" />
+             <div className={`min-w-0 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 flex-1'}`}>
+                <h1 className="text-base font-bold leading-none">EDU-AI Classroom</h1>
+                <p className="text-[10px] text-blue-200 mt-1">Học tập đơn giản hơn</p>
+             </div>
+          </Link>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
@@ -179,58 +71,26 @@ export default function Sidebar({ userRole = 'teacher' }) {
               <Link
                 key={item.label}
                 to={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10'
-                  } ${collapsed ? 'justify-center' : ''}`}
+                className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 whitespace-nowrap
+                  ${isActive 
+                    ? 'bg-white/20 text-white font-medium shadow-sm' 
+                    : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                  } 
+                  ${collapsed ? 'justify-center' : ''}`}
               >
-                <Icon size={20} className="flex-shrink-0" />
-                {!collapsed && <span className="text-sm truncate">{item.label}</span>}
+                <Icon size={22} className="flex-shrink-0" />
+                <span className={`text-sm transition-opacity duration-200 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
+                    {item.label}
+                </span>
               </Link>
             );
           })}
         </nav>
-
-        <div className="p-4 mt-auto flex-shrink-0">
-          <div
-            className={
-              'bg-white/10 rounded-xl flex items-center gap-3 hover:bg-white/20 transition-colors cursor-pointer ' +
-              (collapsed ? 'justify-center p-3' : 'p-3')
-            }
-          >
-            <div className="w-10 h-10 rounded-full bg-blue-400 flex items-center justify-center text-blue-900 flex-shrink-0">
-              <User size={20} />
-            </div>
-            {!collapsed && (
-              <div className="min-w-0">
-                <p className="font-semibold text-sm truncate">John Doe</p>
-                <p className="text-xs text-blue-200 truncate">
-                  {detectedRole === 'teacher' ? 'Giáo viên' :
-                    detectedRole === 'student' ? 'Học sinh' :
-                      detectedRole === 'admin' ? 'Quản trị viên' : detectedRole}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex-shrink-0 flex items-center justify-end gap-4 px-4 md:px-6 py-3 bg-white border-b border-gray-200">
-          <div className="relative w-64 md:w-40">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm..."
-              className="w-full pl-9 pr-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-900 placeholder-gray-500 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white"
-            />
-          </div>
-          <button type="button" className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors" aria-label="Thông báo">
-            <Bell size={20} />
-          </button>
-          <button type="button" className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors" aria-label="Cài đặt">
-            <Settings size={20} />
-          </button>
-        </header>
-        <main className="flex-1 overflow-auto">
+        <Header userRole={detectedRole} />
+        <main className="flex-1 overflow-auto bg-gray-50 p-6">
           <Outlet />
         </main>
       </div>
