@@ -90,7 +90,7 @@ export default function StudentProgress() {
                                         <span className="text-xs font-bold text-gray-600">Tiến độ {task.progress}%</span>
                                     </div>
                                     <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden mb-3">
-                                        <div 
+                                        <div
                                             className={`h-full rounded-full ${task.color} transition-all duration-500`}
                                             style={{ width: `${task.progress}%` }}
                                         ></div>
@@ -135,7 +135,7 @@ export default function StudentProgress() {
                                 <div className="w-full h-px bg-gray-200"></div>
                                 <div className="w-full h-px bg-gray-200"></div>
                             </div>
-                            
+
                             <div className="relative h-full flex items-end justify-between gap-2">
                                 {/* Y-axis labels */}
                                 <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs font-bold text-gray-500 z-10">
@@ -145,7 +145,7 @@ export default function StudentProgress() {
                                     <span className="bg-gray-50 px-1">02</span>
                                     <span className="bg-gray-50 px-1">01</span>
                                 </div>
-                                
+
                                 {/* Bars */}
                                 <div className="flex-1 flex items-end justify-center gap-2 ml-8 h-full">
                                     {weeklyActivity.map((item, idx) => (
@@ -271,9 +271,8 @@ export default function StudentProgress() {
                         {quizHistory.map((item) => (
                             <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                                 <div className="flex items-center gap-4 flex-1">
-                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center font-bold text-xs ${
-                                        item.score > 0 ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300'
-                                    }`}>
+                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center font-bold text-xs ${item.score > 0 ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300'
+                                        }`}>
                                         {item.score > 0 ? '✓' : ''}
                                     </div>
                                     <div className="flex-1">

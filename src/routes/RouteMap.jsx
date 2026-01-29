@@ -3,6 +3,7 @@ import ScrollToTop from "../components/layout/ScrollToTop";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import Sidebar from "../components/layout/Sidebar";
+import StudentLayout from "../components/layout/StudentLayout";
 import Home from "../pages/Home";
 
 // Teacher & Student routes (using features/)
@@ -59,7 +60,7 @@ export default function RouteMap() {
           <Route path="question-bank" element={<QuestionBank />} />
           <Route path="question-bank/:folderId" element={<QuestionList />} />
         </Route>
-        <Route path="student" element={<Sidebar userRole="student" />}>
+        <Route path="student" element={<StudentLayout />}>
           <Route index element={<StudentDashboard />} />
           <Route path="courses" element={<CoursesList />} />
           <Route path="courses/:courseId" element={<CourseDetail />} />

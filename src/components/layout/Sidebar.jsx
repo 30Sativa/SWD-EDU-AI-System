@@ -58,16 +58,16 @@ export default function Sidebar({ userRole = 'teacher' }) {
       <aside
         onMouseEnter={() => setCollapsed(false)}
         onMouseLeave={() => setCollapsed(true)}
-        className={`flex flex-col flex-shrink-0 bg-[#1a44b8] text-white transition-all duration-300 ease-in-out shadow-xl z-40
+        className={`flex flex-col flex-shrink-0 bg-white border-r border-gray-200 transition-all duration-300 ease-in-out shadow-xl z-40
           ${collapsed ? 'w-[72px]' : 'w-64'}
         `}
       >
-        <div className="h-16 flex items-center px-4 border-b border-white/10 overflow-hidden whitespace-nowrap">
+        <div className="h-16 flex items-center px-4 border-b border-gray-200 overflow-hidden whitespace-nowrap">
           <Link to="/" className={`flex items-center gap-3 transition-all ${collapsed ? 'justify-center w-full' : ''}`}>
-            <LogoIcon size={30} className="flex-shrink-0 text-white" />
+            <LogoIcon size={30} className="flex-shrink-0 text-blue-600" />
             <div className={`min-w-0 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 flex-1'}`}>
-              <h1 className="text-base font-bold leading-none">EDU-AI Classroom</h1>
-              <p className="text-[10px] text-blue-200 mt-1">Học tập đơn giản hơn</p>
+              <h1 className="text-base font-bold leading-none text-gray-900">EDU-AI Classroom</h1>
+              <p className="text-[10px] text-gray-500 mt-1">Học tập đơn giản hơn</p>
             </div>
           </Link>
         </div>
@@ -86,8 +86,8 @@ export default function Sidebar({ userRole = 'teacher' }) {
                 to={href}
                 className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 whitespace-nowrap
                   ${isActive
-                    ? 'bg-white/20 text-white font-medium shadow-sm'
-                    : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                    ? 'bg-blue-50 text-blue-600 font-medium shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   } 
                   ${collapsed ? 'justify-center' : ''}`}
               >
