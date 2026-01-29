@@ -20,6 +20,19 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="Persistence\" />
+	  <Folder Include="BackgroundJobs\" />
+	  <Folder Include="Settings\" />
+	  <Folder Include="Persistence\Repositories\" />
+	  <Folder Include="Services\Identity\" />
+	  <Folder Include="Services\Email\" />
+	  <Folder Include="Services\FileStorage\" />
+	  <Folder Include="Services\Cache\" />
+	  <Folder Include="Services\ExternalApis\" />
+	  <Folder Include="Services\Payment\" />
 	</ItemGroup>
-</Project>
+	<ItemGroup>
+	  <ProjectReference Include="..\EduAISystem.Application\EduAISystem.Application.csproj" />
+	  <ProjectReference Include="..\EduAISystem.Domain\EduAISystem.Domain.csproj" />
+	</ItemGroup>
+
+	</Project>

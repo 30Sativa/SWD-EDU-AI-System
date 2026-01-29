@@ -10,4 +10,14 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Middlewares\" />
+    <Folder Include="Filters\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EduAISystem.Application\EduAISystem.Application.csproj" />
+    <ProjectReference Include="..\EduAISystem.Infrastructure\EduAISystem.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
