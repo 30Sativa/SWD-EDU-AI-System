@@ -44,6 +44,6 @@ jobs:
 
             sudo docker run -d \
               --name eduai-api \
-              -p 80:5000 \
+              -p 80:8080 \
               -e ASPNETCORE_ENVIRONMENT=Production \
               307sativa/eduai-api:latest
