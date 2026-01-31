@@ -7,18 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Common\Behaviours\" />
-    <Folder Include="Common\Exceptions\" />
-    <Folder Include="Common\Models\" />
     <Folder Include="Common\Mappings\" />
-    <Folder Include="Features\Auth\Commands\" />
-    <Folder Include="Features\Auth\DTOs\Response\" />
-    <Folder Include="Features\Auth\DTOs\Request\" />
     <Folder Include="Features\Auth\Mappings\" />
-    <Folder Include="Features\Auth\Validators\" />
     <Folder Include="Features\Auth\Queries\" />
   </ItemGroup>
 	<ItemGroup>
+		<PackageReference Include="FluentValidation" Version="12.1.1" />
+		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+		<PackageReference Include="MediatR" Version="13.0.0" />
+		<PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
 	</ItemGroup>
 

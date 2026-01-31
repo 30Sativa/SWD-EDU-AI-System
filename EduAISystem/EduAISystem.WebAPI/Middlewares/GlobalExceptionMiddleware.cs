@@ -1,4 +1,6 @@
-﻿using EduAISystem.WebAPI.Models;
+﻿using EduAISystem.Application.Common.Exceptions;
+using EduAISystem.Application.Common.Models;
+using EduAISystem.WebAPI.Models;
 using System.Net;
 using System.Text.Json;
 
@@ -28,23 +30,35 @@ namespace EduAISystem.WebAPI.Middlewares
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message);
-
                 context.Response.ContentType = "application/json";
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
-                var response = new ErrorResponse
+                var statusCode = ex switch
                 {
-                    Message = _env.IsDevelopment()
-                        ? ex.Message
-                        : "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.",
-
-                    Detail = _env.IsDevelopment()
-                        ? ex.StackTrace
-                        : null
+                    ValidationException => StatusCodes.Status400BadRequest,
+                    NotFoundException => StatusCodes.Status404NotFound,
+                    ForbiddenException => StatusCodes.Status403Forbidden,
+                    _ => StatusCodes.Status500InternalServerError
                 };
 
-                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                context.Response.StatusCode = statusCode;
+
+                var error = ex switch
+                {
+                    ValidationException ve => new ApiError
+                    {
+                        Message = ve.Message,
+                        Errors = ve.Errors
+                    },
+                    _ => new ApiError
+                    {
+                        Message = _env.IsDevelopment()
+                            ? ex.Message
+                            : "Internal server error"
+                    }
+                };
+
+                await context.Response.WriteAsync(
+                    JsonSerializer.Serialize(error));
             }
         }
     }

@@ -11,7 +11,7 @@ public partial class User
 
     public string PasswordHash { get; set; } = null!;
 
-    public Guid RoleId { get; set; }
+    public int Role { get; set; }
 
     public string? UserName { get; set; }
 
@@ -40,8 +40,6 @@ public partial class User
     public virtual ICollection<PasswordReset> PasswordResets { get; set; } = new List<PasswordReset>();
 
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
-
-    public virtual Role Role { get; set; } = null!;
 
     public virtual Student? Student { get; set; }
 

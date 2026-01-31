@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EduAISystem.Application.Abstractions
+namespace EduAISystem.Application.Abstractions.Persistence
 {
-    internal class Class1
+    public class IRefreshTokenRepository
     {
+
     }
 }
