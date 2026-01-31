@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Bell, LogOut, Search } from 'lucide-react';
+import { Bell, LogOut, Search, GraduationCap } from 'lucide-react';
 
 export default function StudentHeader() {
     const location = useLocation();
@@ -15,7 +15,14 @@ export default function StudentHeader() {
 
     return (
         <header className="h-16 w-full bg-white border-b border-gray-200/60 shadow-sm sticky top-0 z-50">
-            <div className="h-full w-full px-8 relative flex items-center justify-end">
+            <div className="h-full w-full px-8 relative flex items-center justify-between">
+                <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    <GraduationCap size={28} className="flex-shrink-0 text-blue-600" />
+                    <div>
+                        <h1 className="text-base font-bold leading-none text-gray-900">EDU-AI Classroom</h1>
+                        <p className="text-[10px] text-gray-500 mt-1">Học tập đơn giản hơn</p>
+                    </div>
+                </Link>
 
                 {/* Navigation - Perfectly Centered, Absolute */}
                 <nav className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-2">
@@ -29,9 +36,9 @@ export default function StudentHeader() {
                             <Link
                                 key={item.label}
                                 to={fullPath}
-                                className={`font-medium text-sm px-4 py-2 rounded-lg transition-all duration-200 ${isActive
-                                    ? 'text-blue-600 bg-blue-50 shadow-sm'
-                                    : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                                className={`font-medium text-sm px-2 py-1 mx-2 border-b-2 transition-all duration-200 ${isActive
+                                    ? 'text-blue-600 border-blue-600'
+                                    : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-600'
                                     }`}
                             >
                                 {item.label}

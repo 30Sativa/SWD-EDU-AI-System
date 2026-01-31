@@ -158,7 +158,7 @@ export default function QuizList() {
 
                                 {/* Icon */}
                                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-inner ${quiz.status === 'completed' ? 'bg-emerald-50 text-emerald-600' :
-                                        quiz.status === 'overdue' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                                    quiz.status === 'overdue' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
                                     }`}>
                                     <FileText size={28} />
                                 </div>
@@ -167,7 +167,7 @@ export default function QuizList() {
                                 <div className="flex-1 w-full text-center md:text-left">
                                     <div className="flex items-center justify-center md:justify-start gap-2.5 mb-2">
                                         <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider ${quiz.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                                                quiz.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                            quiz.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
                                             }`}>{quiz.subject}</span>
                                         <span className="text-xs font-bold text-gray-400 opacity-60">•</span>
                                         <span className="text-xs font-bold text-gray-500">{quiz.className}</span>

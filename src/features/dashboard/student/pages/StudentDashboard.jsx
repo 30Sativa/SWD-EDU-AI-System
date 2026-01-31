@@ -8,10 +8,11 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
+  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
@@ -73,7 +74,7 @@ export default function StudentDashboard() {
       {/* Header */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-2xl font-semibold text-[#0463ca]">
             Chào buổi sáng, Ngọc
           </h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -84,7 +85,7 @@ export default function StudentDashboard() {
         <Link
           to="/dashboard/student/courses"
           className="inline-flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-xl
-                     bg-blue-600 text-white hover:bg-blue-700 transition"
+                      bg-[#0487e2] text-white hover:bg-[#0463ca] transition"
         >
           Vào học tiếp
           <ArrowRight size={16} />
@@ -98,7 +99,7 @@ export default function StudentDashboard() {
             key={idx}
             className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4"
           >
-            <item.icon size={18} className="text-blue-500" />
+            <item.icon size={18} className="text-[#0487e2]" />
             <div>
               <p className="text-sm text-gray-500">{item.label}</p>
               <p className="text-xl font-semibold text-gray-900">
@@ -109,34 +110,51 @@ export default function StudentDashboard() {
         ))}
       </div>
 
-      {/* 📊 Study Chart */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">
-          Thời gian học 7 ngày gần đây
-        </h3>
+      {/* 📊 Study Chart (UPDATED) */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+        <div className="flex justify-between items-center mb-6">
+           <h3 className="text-base font-bold text-gray-900">
+             Thời gian học tập
+           </h3>
+           <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded-md">7 ngày qua</span>
+        </div>
 
-        <div className="h-40">
+        <div className="h-[240px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={studyData}>
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
+            <AreaChart data={studyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#0487e2" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#0487e2" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="day" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{fill: '#9ca3af', fontSize: 12}} 
+                dy={10}
               />
-              <YAxis hide />
-              <Tooltip
-                formatter={(value) => `${value} giờ`}
-                labelStyle={{ fontSize: 12 }}
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{fill: '#9ca3af', fontSize: 12}} 
               />
-              <Line
-                type="monotone"
-                dataKey="hours"
-                stroke="#2563eb"
-                strokeWidth={2.5}
-                dot={false}
+              <Tooltip 
+                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                cursor={{ stroke: '#0487e2', strokeWidth: 1, strokeDasharray: '4 4' }}
               />
-            </LineChart>
+              <Area 
+                type="monotone" 
+                dataKey="hours" 
+                stroke="#0487e2" 
+                strokeWidth={3} 
+                fillOpacity={1} 
+                fill="url(#colorHours)" 
+                activeDot={{ r: 6, strokeWidth: 0, fill: '#0463ca' }}
+              />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
@@ -151,7 +169,7 @@ export default function StudentDashboard() {
             </h2>
             <Link
               to="/dashboard/student/courses"
-              className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              className="text-sm text-[#0487e2] hover:text-[#0463ca] flex items-center gap-1"
             >
               Xem tất cả <ArrowRight size={14} />
             </Link>
@@ -184,7 +202,7 @@ export default function StudentDashboard() {
                     </div>
                     <div className="h-1.5 bg-gray-100 rounded-full">
                       <div
-                        className="h-full bg-blue-600 rounded-full"
+                        className="h-full bg-[#0487e2] rounded-full"
                         style={{ width: `${item.progress}%` }}
                       />
                     </div>
@@ -201,7 +219,7 @@ export default function StudentDashboard() {
           {/* Schedule */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Calendar size={16} className="text-blue-500" />
+              <Calendar size={16} className="text-[#0487e2]" />
               Lịch sắp tới
             </h3>
 
@@ -214,7 +232,7 @@ export default function StudentDashboard() {
                   <p className="text-xs text-gray-500">
                     {item.course}
                   </p>
-                  <p className="text-xs text-blue-600 mt-1">
+                  <p className="text-xs text-[#0487e2] mt-1">
                     {item.date}
                   </p>
                 </div>
@@ -223,7 +241,7 @@ export default function StudentDashboard() {
           </div>
 
           {/* Weekly Goal */}
-          <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100">
+          <div className="bg-[#e0f2fe] rounded-2xl p-6 border border-[#b0d6f5]">
             <h3 className="font-semibold text-gray-900 mb-4">
               Mục tiêu tuần
             </h3>
@@ -247,9 +265,9 @@ function Progress({ label, value, percent }) {
         <span>{label}</span>
         <span className="text-gray-900 font-medium">{value}</span>
       </div>
-      <div className="h-1.5 bg-blue-100 rounded-full">
+      <div className="h-1.5 bg-[#e0f2fe] rounded-full">
         <div
-          className="h-full bg-blue-600 rounded-full"
+          className="h-full bg-[#0487e2] rounded-full"
           style={{ width: `${percent}%` }}
         />
       </div>

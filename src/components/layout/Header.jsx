@@ -19,7 +19,7 @@ export default function Header() {
             <a
               key={index}
               href={item.href}
-              className="font-medium text-sm px-4 py-2 text-gray-600 rounded-lg transition-all duration-200 hover:text-blue-600 hover:bg-blue-50"
+              className="font-medium text-sm px-2 py-1 mx-2 border-b-2 border-transparent text-gray-600 transition-all duration-200 hover:text-blue-600 hover:border-blue-600"
             >
               {item.label}
             </a>
