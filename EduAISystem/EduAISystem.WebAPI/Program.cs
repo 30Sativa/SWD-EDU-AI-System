@@ -64,7 +64,10 @@ var app = builder.Build();
 #region Database initialization
 
 // Seed database (DB First)
-await DbSeed.SeedAsync(app.Services);
+await DbSeedRunner.RunAsync(
+    app.Services,
+    app.Environment
+);
 
 #endregion
 
