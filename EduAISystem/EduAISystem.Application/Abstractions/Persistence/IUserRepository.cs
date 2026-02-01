@@ -1,9 +1,5 @@
-﻿using EduAISystem.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using EduAISystem.Application.Common.Models;
+using EduAISystem.Domain.Entities;
 
 namespace EduAISystem.Application.Abstractions.Persistence
 {
@@ -11,5 +7,12 @@ namespace EduAISystem.Application.Abstractions.Persistence
     {
         Task<UserDomain?> GetByEmailAsync(string email);
         Task AddAsync(UserDomain? user);
+        Task<PagedResult<UserDomain>> GetUsersPagedAsync(
+            int page,
+            int pageSize,
+            string? searchTerm,
+            int? roleFilter,
+            bool? isActiveFilter,
+            CancellationToken cancellationToken = default);
     }
 }
