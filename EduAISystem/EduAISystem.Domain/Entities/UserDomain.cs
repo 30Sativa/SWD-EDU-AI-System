@@ -1,9 +1,4 @@
 ﻿using EduAISystem.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EduAISystem.Domain.Entities
 {
@@ -19,6 +14,9 @@ namespace EduAISystem.Domain.Entities
         public UserRoleDomain Role { get; private set; }
 
         public DateTime CreatedAt { get; private set; }
+
+        public virtual UserProfileDomain? UserProfile { get; private set; }
+
 
         protected UserDomain() { } // EF
 

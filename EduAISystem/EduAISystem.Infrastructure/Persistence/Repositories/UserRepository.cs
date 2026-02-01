@@ -1,13 +1,9 @@
 ﻿using EduAISystem.Application.Abstractions.Persistence;
+using EduAISystem.Application.Common.Models;
 using EduAISystem.Domain.Entities;
 using EduAISystem.Domain.Enums;
 using EduAISystem.Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EduAISystem.Infrastructure.Persistence.Repositories
 {
@@ -49,6 +45,60 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 (UserRoleDomain)entity.Role,
                 entity.CreatedAt ?? DateTime.MinValue
             );
+        }
+
+        public async Task<PagedResult<UserDomain>> GetUsersPagedAsync(
+            int page, 
+            int pageSize, 
+            string? searchTerm, 
+            int? roleFilter, 
+            bool? isActiveFilter, 
+            CancellationToken cancellationToken = default)
+        {
+            var query = _context.Users
+            .AsNoTracking()
+            .Include(u => u.UserProfile)
+            .Where(u => u.DeletedAt == null);
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim();
+                query = query.Where(u =>
+                    u.Email.Contains(term) ||
+                    (u.UserName != null && u.UserName.Contains(term)) ||
+                    (u.UserProfile != null && u.UserProfile.FullName.Contains(term)));
+            }
+
+            if (roleFilter.HasValue)
+                query = query.Where(u => u.Role == roleFilter.Value);
+
+            if (isActiveFilter.HasValue)
+                query = query.Where(u => u.IsActive == isActiveFilter.Value);
+
+            query = query.OrderByDescending(u => u.CreatedAt ?? DateTime.MinValue);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var users = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => new UserDomain(
+                    u.Id,
+                    u.Email,
+                    u.PasswordHash,
+                    u.IsActive ?? false,
+                    (UserRoleDomain)u.Role,
+                    u.CreatedAt ?? DateTime.MinValue
+                ))
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<UserDomain>
+            {
+                Items = users,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
     }
 }
