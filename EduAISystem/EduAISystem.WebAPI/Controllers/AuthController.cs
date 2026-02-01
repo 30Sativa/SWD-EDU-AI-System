@@ -25,5 +25,12 @@ namespace EduAISystem.WebAPI.Controllers
             var result = await _meditor.Send(new LoginCommand(dto));
             return Ok(ApiResponse<LoginResponseDto>.Ok(result, "Login successfully"));
         }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(RegisterRequestDto dto)
+        {
+            var result = await _meditor.Send(new RegisterCommand(dto));
+            return Ok(ApiResponse<RegisterResponseDto>.Ok(result, "Register successfully"));
+        }
     }
 }

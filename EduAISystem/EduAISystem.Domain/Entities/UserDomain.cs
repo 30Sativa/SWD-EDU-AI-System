@@ -12,6 +12,7 @@ namespace EduAISystem.Domain.Entities
         public Guid Id { get; private set; }
 
         public string Email { get; private set; } = string.Empty;
+        public string UserName { get; private set; } = string.Empty;
         public string PasswordHash { get; private set; } = string.Empty;
 
         public bool IsActive { get; private set; }
@@ -48,6 +49,21 @@ namespace EduAISystem.Domain.Entities
             IsActive = isActive;
             Role = role;
             CreatedAt = createdAt;
+        }
+
+        public static UserDomain Create(
+            string email,
+            string username,
+            string passwordHash,
+            UserRoleDomain role)
+        {
+            return new UserDomain
+            {
+                Email = email,
+                UserName = username,
+                PasswordHash = passwordHash,
+                Role = role,
+            };
         }
 
 
