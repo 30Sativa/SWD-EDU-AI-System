@@ -37,6 +37,7 @@ namespace EduAISystem.WebAPI.Middlewares
                     ValidationException => StatusCodes.Status400BadRequest,
                     NotFoundException => StatusCodes.Status404NotFound,
                     ForbiddenException => StatusCodes.Status403Forbidden,
+                    ConflictException => StatusCodes.Status409Conflict,
                     _ => StatusCodes.Status500InternalServerError
                 };
 

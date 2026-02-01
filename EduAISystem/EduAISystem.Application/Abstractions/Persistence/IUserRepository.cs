@@ -10,5 +10,6 @@ namespace EduAISystem.Application.Abstractions.Persistence
     public interface IUserRepository
     {
         Task<UserDomain?> GetByEmailAsync(string email);
+        Task AddAsync(UserDomain? user);
     }
 }

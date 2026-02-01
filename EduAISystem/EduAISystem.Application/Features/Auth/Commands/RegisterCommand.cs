@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace EduAISystem.Application.Features.Auth.Commands
 {
-    public record LoginCommand(LoginRequestDto Request) : IRequest<LoginResponseDto>
+    public record RegisterCommand(RegisterRequestDto Request) : IRequest<RegisterResponseDto>
     {
     }
 }

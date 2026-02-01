@@ -9,5 +9,6 @@ namespace EduAISystem.Application.Abstractions.Security
     public interface IPasswordHasher
     {
         bool Verify(string password, string passwordHash);
+        string Hash(string password);
     }
 }

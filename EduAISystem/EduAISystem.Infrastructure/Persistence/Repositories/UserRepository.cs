@@ -19,6 +19,23 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         {
             _context = context;
         }
+
+        public Task AddAsync(UserDomain? user)
+        {
+            var entity = new Infrastructure.Persistence.Entities.User
+            {
+                Id = user!.Id,
+                Email = user.Email,
+                UserName = user.UserName,
+                PasswordHash = user.PasswordHash,
+                IsActive = user.IsActive,
+                Role = (int)user.Role,
+                CreatedAt = user.CreatedAt
+            };
+            _context.Users.Add(entity);
+            return _context.SaveChangesAsync();
+        }
+
         public async Task<UserDomain?> GetByEmailAsync(string email)
         {
             var entity = await _context.Users
