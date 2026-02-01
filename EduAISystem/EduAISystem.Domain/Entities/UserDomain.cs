@@ -12,7 +12,7 @@ namespace EduAISystem.Domain.Entities
         public Guid Id { get; private set; }
 
         public string Email { get; private set; } = string.Empty;
-        public string UserName { get; private set; } = string.Empty;
+        public string UserName { get; private set; } = string.Empty;   
         public string PasswordHash { get; private set; } = string.Empty;
 
         public bool IsActive { get; private set; }

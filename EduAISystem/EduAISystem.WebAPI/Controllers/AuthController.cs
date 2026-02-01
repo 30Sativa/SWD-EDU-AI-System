@@ -19,7 +19,7 @@ namespace EduAISystem.WebAPI.Controllers
             _meditor = mediator;
         }
 
-        [HttpPost]
+        [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequestDto dto)
         {
             var result = await _meditor.Send(new LoginCommand(dto));
