@@ -1,4 +1,4 @@
-﻿using EduAISystem.Application.Features.Users.Queries;
+using EduAISystem.Application.Features.Users.Queries;
 using EduAISystem.Domain.Enums;
 using FluentValidation;
 

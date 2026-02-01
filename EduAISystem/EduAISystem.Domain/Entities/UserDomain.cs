@@ -1,4 +1,4 @@
-﻿using EduAISystem.Domain.Enums;
+using EduAISystem.Domain.Enums;
 
 namespace EduAISystem.Domain.Entities
 {
@@ -15,7 +15,7 @@ namespace EduAISystem.Domain.Entities
 
         public DateTime CreatedAt { get; private set; }
 
-        public virtual UserProfileDomain? UserProfile { get; private set; }
+        public virtual UserProfileDomain? UserProfile { get; internal set; }
 
 
         protected UserDomain() { } // EF
@@ -34,15 +34,17 @@ namespace EduAISystem.Domain.Entities
 
         //mapping constructor
         internal UserDomain(
-        Guid id,
-        string email,
-        string passwordHash,
-        bool isActive,
-        UserRoleDomain role,
-        DateTime createdAt)
+            Guid id,
+            string email,
+            string? userName,
+            string passwordHash,
+            bool isActive,
+            UserRoleDomain role,
+            DateTime createdAt)
         {
             Id = id;
             Email = email;
+            UserName = userName ?? string.Empty;
             PasswordHash = passwordHash;
             IsActive = isActive;
             Role = role;
@@ -57,10 +59,13 @@ namespace EduAISystem.Domain.Entities
         {
             return new UserDomain
             {
+                Id = Guid.NewGuid(),
                 Email = email,
                 UserName = username,
                 PasswordHash = passwordHash,
                 Role = role,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
             };
         }
 
