@@ -5,7 +5,13 @@ export const getUsers = (params) => {
     return axiosClient.get(url, { params });
 };
 
-// Mapping Role Enum based on Backend UserRoleDomain
+export const createUser = (data) => {
+    const url = '/api/admin/users';
+    return axiosClient.post(url, data);
+};
+
+
+
 export const ROLE_ENUM = {
     USER: 1,
     ADMIN: 2,

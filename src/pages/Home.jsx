@@ -13,9 +13,8 @@ function HeroSection() {
   }, []);
 
   const handleGetStarted = useCallback(() => {
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 2000);
-  }, []);
+    navigate('/login');
+  }, [navigate]);
 
   const stats = useMemo(() => [
     { value: '100%', label: 'Chuẩn Bộ GD' },
@@ -370,12 +369,12 @@ function ProcessStep({ step, index }) {
 }
 
 function CTASection() {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = useCallback(() => {
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 2000);
-  }, []);
+    navigate('/login');
+  }, [navigate]);
 
   return (
     <section className="py-16 md:py-20 px-4 md:px-6 relative z-10">

@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, Search, Plus, Edit, Trash2, Filter, Download, Upload, FileSpreadsheet, FileText, X, CheckCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Save, Power, PowerOff, MoreVertical } from 'lucide-react';
+import { Users, Search, Plus, Edit, Trash2, Filter, Download, Upload, FileSpreadsheet, FileText, X, CheckCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Save, Power, PowerOff, MoreVertical, Mail, Shield, Activity } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { message, Spin } from 'antd';
-import { getUsers, getRoleName, ROLE_ENUM } from "../../api/userApi";
+import { getUsers, createUser, getRoleName, ROLE_ENUM } from "../../api/userApi";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -305,14 +305,43 @@ export default function UserManagement() {
     XLSX.writeFile(workbook, `users_export.xlsx`);
   };
 
-  const handleCreateUser = () => {
-    if (!formData.name || !formData.email) return alert('Vui lòng điền đủ thông tin');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return alert('Email không hợp lệ');
-    if (users.find(u => u.email.toLowerCase() === formData.email.toLowerCase())) return alert('Email đã tồn tại');
-    const newUser = { id: users.length + 1, name: formData.name, email: formData.email.toLowerCase(), role: formData.role, status: formData.status, joinDate: new Date().toLocaleDateString('vi-VN') };
-    setUsers([...users, newUser]);
-    setShowCreateModal(false);
-    setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
+  const handleCreateUser = async () => {
+    if (!formData.name || !formData.email) return message.warning('Vui lòng điền đủ thông tin');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return message.warning('Email không hợp lệ');
+
+    // Map role string to ID
+    let roleId = ROLE_ENUM.USER; // Default Học sinh
+    switch (formData.role) {
+      case 'Quản trị viên': roleId = ROLE_ENUM.ADMIN; break;
+      case 'Quản lý': roleId = ROLE_ENUM.MANAGER; break;
+      case 'Giáo viên': roleId = ROLE_ENUM.USER; break; // Map Giáo viên to User for now as BE has no Teacher role yet
+      default: roleId = ROLE_ENUM.USER;
+    }
+
+    try {
+      setIsLoading(true);
+      const payload = {
+        userName: formData.name,
+        email: formData.email,
+        role: roleId,
+        password: 'Password123!', // DTO confirms 'Password' key
+      };
+
+      await createUser(payload);
+      message.success('Tạo người dùng thành công!');
+      setShowCreateModal(false);
+      setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
+      window.location.reload();
+
+    } catch (error) {
+      console.error("Create user failed:", error);
+      const errorMsg = error.response?.data?.errors
+        ? Object.values(error.response.data.errors).flat().join(', ')
+        : (error.response?.data?.message || 'Tạo người dùng thất bại. Vui lòng kiểm tra lại thông tin.');
+      message.error(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEditUser = (user) => {
@@ -472,9 +501,9 @@ export default function UserManagement() {
                       <td className="px-6 py-4 text-sm text-slate-600 font-medium">{user.email}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${user.role.match(/Admin|Quản trị/) ? 'bg-purple-50 text-purple-700 ring-1 ring-purple-100' :
-                            user.role.match(/Manager|Quản lý/) ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-100' :
-                              user.role.match(/Teacher|Giáo viên/) ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' :
-                                'bg-blue-50 text-blue-700 ring-1 ring-blue-100'
+                          user.role.match(/Manager|Quản lý/) ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-100' :
+                            user.role.match(/Teacher|Giáo viên/) ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' :
+                              'bg-blue-50 text-blue-700 ring-1 ring-blue-100'
                           }`}>
                           {user.role}
                         </span>
@@ -591,44 +620,117 @@ export default function UserManagement() {
 
       {/* Create/Edit Modal */}
       {(showCreateModal || showEditModal) && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-[#0463ca]">{showEditModal ? 'Cập nhật Thông tin' : 'Thêm Người dùng Mới'}</h2>
-              <button onClick={() => { setShowCreateModal(false); setShowEditModal(false); }} className="text-slate-400 hover:text-slate-600 transition-all"><X size={20} /></button>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden scale-100 transition-all">
+            {/* Header */}
+            <div className="relative px-8 py-6 border-b border-slate-100 bg-slate-50/50">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-slate-800">
+                  {showEditModal ? 'Cập nhật Thông tin' : 'Thêm Người dùng Mới'}
+                </h2>
+                <p className="text-sm text-slate-500 font-medium mt-1">
+                  {showEditModal ? 'Chỉnh sửa thông tin thành viên hiện tại' : 'Tạo hồ sơ thành viên mới vào hệ thống'}
+                </p>
+              </div>
+              <button
+                onClick={() => { setShowCreateModal(false); setShowEditModal(false); }}
+                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 p-2 rounded-full transition-all"
+              >
+                <X size={22} />
+              </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider">Họ và tên</label>
-                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0487e2]/20 outline-none font-medium text-sm transition-all" placeholder="Nguyễn Văn A" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider">Email định danh</label>
-                <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0487e2]/20 outline-none font-medium text-sm transition-all" placeholder="user@domain.com" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider">Vai trò</label>
-                  <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none transition-all">
-                    <option value="Học sinh">Học sinh</option>
-                    <option value="Giáo viên">Giáo viên</option>
-                    <option value="Quản lý">Quản lý</option>
-                    <option value="Quản trị viên">Quản trị viên</option>
-                  </select>
+
+            {/* Body */}
+            <div className="p-8 space-y-6">
+              <div className="space-y-4">
+                {/* Name Input */}
+                <div className="group">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider ml-1">Họ và tên</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#0487e2] transition-colors">
+                      <Users size={18} />
+                    </div>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0487e2]/20 focus:border-[#0487e2] outline-none font-semibold text-slate-700 transition-all placeholder-slate-400"
+                      placeholder="Nhập tên hiển thị..."
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider">Trạng thái</label>
-                  <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none transition-all">
-                    <option value="Hoạt động">Hoạt động</option>
-                    <option value="Tạm khóa">Tạm khóa</option>
-                  </select>
+
+                {/* Email Input */}
+                <div className="group">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider ml-1">Email định danh</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#0487e2] transition-colors">
+                      <Mail size={18} />
+                    </div>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0487e2]/20 focus:border-[#0487e2] outline-none font-medium text-slate-700 transition-all placeholder-slate-400"
+                      placeholder="user@example.com"
+                    />
+                  </div>
+                </div>
+
+                {/* Row: Role & Status */}
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="group">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider ml-1">Vai trò</label>
+                    <div className="relative">
+                      <select
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#0487e2]/20 focus:border-[#0487e2] appearance-none transition-all cursor-pointer hover:bg-white"
+                      >
+                        <option value="Học sinh">Học sinh</option>
+                        <option value="Giáo viên">Giáo viên</option>
+                        <option value="Quản lý">Quản lý</option>
+                        <option value="Quản trị viên">Quản trị viên</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 bg-transparent">
+                        <ArrowDown size={16} strokeWidth={2.5} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="group">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider ml-1">Trạng thái</label>
+                    <div className="relative">
+                      <select
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#0487e2]/20 focus:border-[#0487e2] appearance-none transition-all cursor-pointer hover:bg-white"
+                      >
+                        <option value="Hoạt động">Hoạt động</option>
+                        <option value="Tạm khóa">Tạm khóa</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 bg-transparent">
+                        <ArrowDown size={16} strokeWidth={2.5} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* Footer */}
             <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
-              <button onClick={() => { setShowCreateModal(false); setShowEditModal(false); }} className="px-5 py-2 text-sm font-bold text-slate-500">Hủy</button>
-              <button onClick={showEditModal ? handleUpdateUser : handleCreateUser} className="px-6 py-2 bg-[#0487e2] text-white font-bold rounded-xl text-sm hover:bg-[#0463ca] shadow-md shadow-[#0487e2]/20 transition-all flex items-center gap-2">
-                <Save size={16} />
+              <button
+                onClick={() => { setShowCreateModal(false); setShowEditModal(false); }}
+                className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-xl transition-all"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={showEditModal ? handleUpdateUser : handleCreateUser}
+                className={`px-8 py-2.5 text-white font-bold rounded-xl text-sm shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2 transform active:scale-95 ${showEditModal ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#0487e2] hover:bg-[#0463ca]'}`}
+              >
+                <Save size={18} />
                 <span>{showEditModal ? 'Lưu thay đổi' : 'Tạo tài khoản'}</span>
               </button>
             </div>

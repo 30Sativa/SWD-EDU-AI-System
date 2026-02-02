@@ -1,94 +1,112 @@
 # Kiến thức Frontend trong Project SWD-EDU-AI-System
 
-File này tổng hợp toàn bộ các công nghệ, thư viện, cấu trúc và nguyên lý đang được sử dụng trong dự án này.
+File này tổng hợp toàn bộ các công nghệ, thư viện, cấu trúc, nguyên lý và tiến độ phát triển của dự án.
 
 ## 1. Tech Stack (Công nghệ cốt lõi)
 
-- **Library**: `React` (v19) - Phiên bản mới nhất của React với các tính năng Concurrent Mode mặc định.
-  - Sử dụng 100% **Functional Components**.
-  - **React Hooks**: `useState`, `useEffect`, `useMemo`, `useParams`, `useLocation`...
-- **Build Tool**: `Vite` (v7) - Công cụ build cực nhanh, hỗ trợ HMR (Hot Module Replacement) ngay lập tức.
-- **Language**: `JavaScript` (.jsx) - Dự án sử dụng JS thuần với cú pháp JSX.
-- **Routing**: `react-router-dom` (v7) - Quản lý điều hướng trang.
-  - Sử dụng `Routes`, `Route`, `Outlet`, `Link`, `useNavigate`.
-  - Kiến thức về **Nested Routes** (Route lồng nhau) để chia Layout.
-  - **Dynamic Routing**: (ví dụ `/courses/:id`).
+### Core
+- **Library**: `React` (v19) - Functional Components, Hooks (`useState`, `useEffect`, `useCallback`, `useMemo`).
+- **Build Tool**: `Vite` (v7) - Fast build, HMR, Environment Variables.
+- **Language**: `JavaScript` (.jsx).
+- **Routing**: `react-router-dom` (v7) - Routes, Outlet, Navigate, Hooks (`useNavigate`, `useSearchParams`).
 
-## 2. Giao diện & Styling (UI/UX)
-
-Dự án kết hợp giữa **Tailwind CSS** (chính) và các thư viện UI bổ trợ:
-
+### Styling & UI
 - **Tailwind CSS 4**:
-  - Sử dụng `@tailwindcss/vite` plugin.
-  - Tư duy **Utility-first**.
-  - **Color Palette Project**:
-    - **Primary**: `#0487e2` (Màu xanh chủ đạo cho Nút, Icon, Progress).
-    - **Secondary**: `#0463ca` (Hover, Tiêu đề đậm).
-    - **Accent**: `#09b1ec` (Badge, Decor).
-    - **Background**: `bg-slate-50` (Nền xám nhạt hiện đại).
-  - **Responsive**: `sm:`, `md:`, `lg:` breakpoints.
-  - **Flexbox & Grid**: Layout chính.
+  - Utility-first CSS.
+  - Theme Colors:
+    - **Primary**: `#0487e2` (Blue) - Main actions.
+    - **Secondary**: `#0463ca` - Hover states.
+    - **Neutral**: `bg-slate-50` - Backgrounds.
+- **Lucide React**: Modern Outline Icons.
+- **Ant Design (antd)**: Sử dụng cho các component phức tạp như `Spin` (Loading), `message` (Toast notification).
+- **Recharts**: Thư viện biểu đồ (AreaChart, BarChart) cho Dashboard.
 
-- **Lucide React**: Bộ icon chính (nhẹ, hiện đại, open source).
-  - Ví dụ: `GraduationCap`, `BookOpen`, `Clock`, `ArrowRight`...
+### Data & Logic
+- **Axios**: HTTP Client quản lý request/response.
+- **XLSX**: Thư viện xử lý Excel (Import/Export user data).
+- **LocalStorage**: Lưu trữ Access Token & User Info.
 
-- **Ant Design (antd v6)** & **@ant-design/icons**:
-  - Dùng cho các component quản trị phức tạp (Table, Modal, DatePicker) khi cần.
+## 2. Kiến trúc dự án (Architecture)
 
-## 3. Xử lý Logic & Dữ liệu
+Dự án áp dụng kiến trúc **Feature-based** hybrid (kết hợp global & modular):
 
-- **Recharts**: Thư viện vẽ biểu đồ chính.
-  - `AreaChart`: Biểu đồ vùng (Gradient Blue).
-  - `LineChart`, `BarChart`, `PieChart`.
-  - Tùy biến `Tooltip` custom, `CartesianGrid`.
+### Cấu trúc API (`src/features/.../api` & `src/api`)
+1.  **Global Lib (`src/lib/axiosClient.js`)**:
+    - Config `baseURL` từ biến môi trường.
+    - Interceptors: Tự động gắn `Authorization: Bearer <token>` vào request header.
+    - Xử lý lỗi chung (401 Unauthorized -> Logout).
 
-- **XLSX (SheetJS)**:
-  - Xử lý file Excel (Đọc/Ghi) cho tính năng Import/Export danh sách học sinh/điểm.
+2.  **Global API (`src/api/authApi.js`)**:
+    - Chứa logic Authentication (Login, Register).
+    - Đây là feature dùng chung toàn app nên đặt ở root `api`.
 
-## 4. Kiến trúc dự án (Architecture)
+3.  **Feature API (`src/features/*/api/*.js`)**:
+    - Mỗi feature tự quản lý API của nó.
+    - Ví dụ: `src/features/user/api/userApi.js` chứa `getUsers`.
+    - Sử dụng **Named Exports** (`export const getUsers...`) thay vì default export object.
 
-Dự án áp dụng kiến trúc **Feature-based** phân chia theo Role:
+### Routing Logic (`src/routes/RouteMap.jsx`)
+- **Public Routes**: `/login`, `/register`, `/` (Home - Redirects to Login).
+- **Protected Routes**: Được bọc bởi `<ProtectedRoute allowedRoles={[...]} />`. check token từ localStorage.
+- **Role-based Redirects**:
+  - `/student` -> Student Dashboard.
+  - `/dashboard/teacher` -> Teacher Dashboard.
+  - `/dashboard/manager` -> Manager Dashboard.
+  - `/dashboard/admin` -> Admin Dashboard.
 
-### Routing Structure (`src/routes/RouteMap.jsx`)
-1. **Student Routing (Top-level)**:
-   - Base Path: `/student`
-   - Layout: [`StudentLayout`](src/components/layout/StudentLayout.jsx) (Logo riêng, Menu ngang).
-   - Pages: `/student`, `/student/courses`, `/student/quizzes`...
-   
-2. **Dashboard Routing (Nested)**:
-   - Base Path: `/dashboard/:role` (teacher, manager, admin)
-   - Layout: `Sidebar Layout` (Menu dọc bên trái).
-   - Pages: Dashboard tương ứng theo role.
+## 3. Các tính năng đã hoàn thiện (Completed Features)
 
-### Cấu trúc thư mục (`src/`)
-- **features/**: Logic nghiệp vụ chia theo domain (`dashboard`, `course`, `lesson`, `quiz`...).
-- **components/**: UI chung (`layout`, `common`).
-- **routes/**: Cấu hình Route tập trung.
+### A. Authentication
+- **Login**: Gọi API, lưu token, điều hướng theo role của user.
+- **Register**: Đăng ký tài khoản mới (hiện đang mock hoặc logic cơ bản).
+- **Home Page**: Landing page giới thiệu, các nút CTA đều điều hướng về Login form để ép luồng user.
 
-## 5. Patterns & Best Practices
+### B. Admin Dashboard (`src/features/dashboard/admin`)
+- **UI**: Giao diện Slate/Blue modern style.
+- **Stats**: Hiển thị 4 metrics chính (Users, Active, Courses, Subjects) với Sparkline Charts (Recharts).
+- **Charts**: Biểu đồ phân bố Role (Donut Chart).
+- **System Info**: Trạng thái hạ tầng (CPU/RAM dummy visualizations).
 
-- **Role-based Access Control (RBAC)**: Check role trước khi render nội dung Dashboard.
-- **Layout Pattern**: Tách `Layout` (Header, Sidebar) khỏi `Page Content` bằng `<Outlet />`.
-- **Mock Data**: Dữ liệu mẫu (JSON array) được đặt trực tiếp trong component để demo UI nhanh chóng.
-- **UI Consistency**:
-  - Stats Card: Số hiển thị lớn (`text-4xl`), đậm, margin thoáng.
-  - Navigation: Active state sử dụng Border Bottom (`border-b-2`) thay vì Background color.
+### C. User Management (`src/features/user/admin`)
+- **Data Fetching**: Tích hợp API thật `/api/admin/users`.
+  - Xử lý response đa dạng (`response.data`, `response.data.items`).
+- **Filtering & Sorting**:
+  - Filter: Vai trò, Trạng thái.
+  - Search: Tên, Email.
+  - Client-side processing: Fetch danh sách lớn và filter/sort tại client để UX mượt mà (Tạm thời).
+- **Role Visualization**:
+  - **Admin**: Purple Badge.
+  - **Manager**: Orange Badge.
+  - **Teacher**: Emerald/Green Badge.
+  - **Student**: Blue Badge.
+- **Import/Export**:
+  - **Import**: Hỗ trợ CSV/Excel, validate dữ liệu trước khi thêm.
+  - **Export**: Xuất danh sách user ra file CSV/Excel.
+- **CRUD UI**: Modal Tạo mới/Chỉnh sửa user đẹp mắt (sử dụng Backdrop blur).
 
-## 6. Luồng người dùng (User Flows)
+## 4. Quy ước Code (Conventions)
 
-1. **Student Flow**:
-   - Vào `/student` -> Xem tổng quan (Chart, Deadline).
-   - Vào `/student/courses` -> Chọn khóa học -> Xem chi tiết khóa -> Vào học (`LessonDetail`).
-   
-2. **Teacher Flow**:
-   - Vào `/dashboard/teacher` -> Xem lớp chủ nhiệm, lịch dạy.
-   
-3. **Manager Flow**:
-   - Vào `/dashboard/manager` -> Xem thống kê toàn trường.
+- **Components**: PascalCase (`UserManagement.jsx`).
+- **Hooks**: camelCase (`useAuth`, `useNavigate`).
+- **API Functions**: camelCase (`getUsers`, `loginAPI`).
+- **Constants**: UPPER_CASE (`ROLE_ENUM`).
+- **Imports**: Ưu tiên Named Imports.
+  ```javascript
+  import { getUsers } from "../../api/userApi";
+  ```
 
-## 7. Kiến thức JavaScript/ES6+ quan trọng
-- **ES Modules**: Import/Export.
-- **Destructuring**: `const { id } = useParams()`.
-- **Spread Operator**: `...props`.
-- **Array Methods**: `.map()`, `.filter()`, `.reduce()`.
-- **Optional Chaining**: `user?.name`.
+## 5. Kế hoạch tiếp theo (Next Steps)
+
+1.  **Course Management**:
+    - Xây dựng API `courseApi.js`.
+    - CRUD Courses cho Teacher/Admin.
+2.  **Class Management**:
+    - Quản lý lớp học, gán học sinh vào lớp.
+3.  **Student Experience**:
+    - Hoàn thiện trang Dashboard học sinh.
+    - Vào học (Lesson View), Làm bài tập (Quiz UI).
+4.  **Refactor**:
+    - Chuyển đổi các mock data còn lại sang API call thực tế khi Backend sẵn sàng.
+
+---
+*Last Updated: 2026-02-03*
