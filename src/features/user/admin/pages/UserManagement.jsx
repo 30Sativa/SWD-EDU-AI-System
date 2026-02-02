@@ -1,48 +1,19 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Users, Search, Plus, Edit, Trash2, Filter, Download, Upload, FileSpreadsheet, FileText, X, CheckCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Save, Power, PowerOff } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { message, Spin } from 'antd';
+import { getUsers, getRoleName, ROLE_ENUM } from "../../api/userApi";
 
 export default function UserManagement() {
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: 'Nguyễn Văn A',
-      email: 'nguyenvana@example.com',
-      role: 'Học sinh',
-      status: 'Hoạt động',
-      joinDate: '15/01/2024',
-    },
-    {
-      id: 2,
-      name: 'Trần Thị B',
-      email: 'tranthib@example.com',
-      role: 'Giáo viên',
-      status: 'Hoạt động',
-      joinDate: '10/12/2023',
-    },
-    {
-      id: 3,
-      name: 'Lê Văn C',
-      email: 'levanc@example.com',
-      role: 'Quản lý',
-      status: 'Tạm khóa',
-      joinDate: '05/11/2023',
-    },
-    {
-      id: 4,
-      name: 'Phạm Thị D',
-      email: 'phamthid@example.com',
-      role: 'Học sinh',
-      status: 'Hoạt động',
-      joinDate: '20/01/2024',
-    },
-  ]);
-
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('Tất cả');
   const [filterStatus, setFilterStatus] = useState('Tất cả');
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
+
+  // Modal states
   const [showImportModal, setShowImportModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -62,7 +33,73 @@ export default function UserManagement() {
     status: 'Hoạt động',
   });
 
-  // Filter and sort users
+  // Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      try {
+        let roleFilterVal = null;
+        if (filterRole === 'Admin') roleFilterVal = ROLE_ENUM.ADMIN;
+        else if (filterRole === 'Manager') roleFilterVal = ROLE_ENUM.MANAGER;
+        else if (filterRole === 'User') roleFilterVal = ROLE_ENUM.USER;
+
+        let isActiveFilterVal = null;
+        if (filterStatus === 'Hoạt động') isActiveFilterVal = true;
+        else if (filterStatus === 'Tạm khóa') isActiveFilterVal = false;
+
+        const params = {
+          SearchTerm: searchTerm || null,
+          RoleFilter: roleFilterVal,
+          IsActiveFilter: isActiveFilterVal,
+          Page: 1,
+          PageSize: 100 // Tạm thời lấy nhiều
+        };
+
+        const response = await getUsers(params);
+
+        console.log("API Response:", response);
+
+        // Robust parsing of response
+        let rawItems = [];
+        if (Array.isArray(response)) {
+          rawItems = response;
+        } else if (response && Array.isArray(response.items)) {
+          rawItems = response.items;
+        } else if (response && Array.isArray(response.data)) {
+          rawItems = response.data;
+        } else if (response && response.data && Array.isArray(response.data.items)) {
+          rawItems = response.data.items;
+        } else {
+          console.warn("API returned unexpected structure:", response);
+        }
+
+        const mappedUsers = rawItems.map(u => ({
+          id: u.id,
+          name: u.fullName || u.userName || 'No Name',
+          email: u.email || u.userName,
+          role: getRoleName(u.role), // Convert number to string for display
+          status: u.isActive ? 'Hoạt động' : 'Tạm khóa',
+          joinDate: u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'
+        }));
+
+        setUsers(mappedUsers);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+        // message.error("Lỗi tải danh sách người dùng");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Debounce search
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, filterRole, filterStatus]);
+
+  // Client-side sorting on the fetched list
   const filteredAndSortedUsers = users
     .filter((user) => {
       const matchesSearch =
@@ -74,22 +111,18 @@ export default function UserManagement() {
     })
     .sort((a, b) => {
       if (!sortField) return 0;
-
       let aValue = a[sortField];
       let bValue = b[sortField];
-
       // Handle date sorting
       if (sortField === 'joinDate') {
         aValue = new Date(aValue.split('/').reverse().join('-'));
         bValue = new Date(bValue.split('/').reverse().join('-'));
       }
-
       // Handle string sorting
       if (typeof aValue === 'string') {
         aValue = aValue.toLowerCase();
         bValue = bValue.toLowerCase();
       }
-
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
       return 0;
@@ -529,595 +562,610 @@ export default function UserManagement() {
 
         {/* Users Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    <button
-                      onClick={() => handleSort('name')}
-                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
-                    >
-                      Tên
-                      {getSortIcon('name')}
-                    </button>
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    <button
-                      onClick={() => handleSort('email')}
-                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
-                    >
-                      Email
-                      {getSortIcon('email')}
-                    </button>
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    <button
-                      onClick={() => handleSort('role')}
-                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
-                    >
-                      Vai trò
-                      {getSortIcon('role')}
-                    </button>
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    <button
-                      onClick={() => handleSort('status')}
-                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
-                    >
-                      Trạng thái
-                      {getSortIcon('status')}
-                    </button>
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    <button
-                      onClick={() => handleSort('joinDate')}
-                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
-                    >
-                      Ngày tham gia
-                      {getSortIcon('joinDate')}
-                    </button>
-                  </th>
-                  <th className="text-right py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Hành động
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedUsers.map((user) => (
-                  <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <Users size={20} className="text-blue-600" />
+          {isLoading ? (
+            <div className="text-center py-12">
+              <Spin size="large" />
+              <p className="mt-4 text-gray-500">Đang tải dữ liệu...</p>
+            </div>
+          ) : (<>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('name')}
+                        className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                      >
+                        Tên
+                        {getSortIcon('name')}
+                      </button>
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('email')}
+                        className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                      >
+                        Email
+                        {getSortIcon('email')}
+                      </button>
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('role')}
+                        className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                      >
+                        Vai trò
+                        {getSortIcon('role')}
+                      </button>
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('status')}
+                        className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                      >
+                        Trạng thái
+                        {getSortIcon('status')}
+                      </button>
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('joinDate')}
+                        className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                      >
+                        Ngày tham gia
+                        {getSortIcon('joinDate')}
+                      </button>
+                    </th>
+                    <th className="text-right py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Hành động
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAndSortedUsers.map((user) => (
+                    <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <Users size={20} className="text-blue-600" />
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900">{user.name}</span>
                         </div>
-                        <span className="text-sm font-semibold text-gray-900">{user.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-700">{user.email}</td>
-                    <td className="py-4 px-4">
-                      <span className="inline-block px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span
-                        className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                          user.status === 'Hoạt động'
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-700">{user.email}</td>
+                      <td className="py-4 px-4">
+                        <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${user.role.includes('Quản trị viên') || user.role.includes('Admin') ? 'bg-purple-100 text-purple-700' :
+                          user.role.includes('Quản lý') || user.role.includes('Manager') ? 'bg-orange-100 text-orange-700' :
+                            user.role.includes('Giáo viên') || user.role.includes('Teacher') ? 'bg-green-100 text-green-700' :
+                              'bg-blue-100 text-blue-700'
+                          }`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span
+                          className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${user.status === 'Hoạt động'
                             ? 'bg-green-100 text-green-700'
                             : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-700">{user.joinDate}</td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleToggleStatus(user)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            user.status === 'Hoạt động'
+                            }`}
+                        >
+                          {user.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-700">{user.joinDate}</td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleToggleStatus(user)}
+                            className={`p-2 rounded-lg transition-colors ${user.status === 'Hoạt động'
                               ? 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'
                               : 'text-gray-500 hover:text-green-600 hover:bg-green-50'
-                          }`}
-                          aria-label={user.status === 'Hoạt động' ? 'Tạm khóa' : 'Kích hoạt'}
-                          title={user.status === 'Hoạt động' ? 'Tạm khóa tài khoản' : 'Kích hoạt tài khoản'}
-                        >
-                          {user.status === 'Hoạt động' ? <PowerOff size={16} /> : <Power size={16} />}
-                        </button>
-                        <button
-                          onClick={() => handleEditUser(user)}
-                          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          aria-label="Chỉnh sửa"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user)}
-                          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          aria-label="Xóa"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {filteredAndSortedUsers.length === 0 && (
-            <div className="text-center py-12">
-              <Users size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-500">Không tìm thấy người dùng nào</p>
+                              }`}
+                            aria-label={user.status === 'Hoạt động' ? 'Tạm khóa' : 'Kích hoạt'}
+                            title={user.status === 'Hoạt động' ? 'Tạm khóa tài khoản' : 'Kích hoạt tài khoản'}
+                          >
+                            {user.status === 'Hoạt động' ? <PowerOff size={16} /> : <Power size={16} />}
+                          </button>
+                          <button
+                            onClick={() => handleEditUser(user)}
+                            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            aria-label="Chỉnh sửa"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user)}
+                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            aria-label="Xóa"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+
+            {filteredAndSortedUsers.length === 0 && (
+              <div className="text-center py-12">
+                <Users size={48} className="mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500">Không tìm thấy người dùng nào</p>
+              </div>
+            )}
+          </>
           )}
         </div>
-      </div>
 
-      {/* Import Modal */}
-      {showImportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Nhập Người dùng từ File</h2>
-                <p className="text-sm text-gray-600 mt-1">Hỗ trợ file CSV và Excel (.xlsx, .xls)</p>
-              </div>
-              <button
-                onClick={() => {
-                  setShowImportModal(false);
-                  setImportFile(null);
-                  setImportPreview([]);
-                  setImportErrors([]);
-                  setShowAllPreview(false);
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                  }
-                }}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
+        {/* Import Modal */}
+        {
+          showImportModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Nhập Người dùng từ File</h2>
+                    <p className="text-sm text-gray-600 mt-1">Hỗ trợ file CSV và Excel (.xlsx, .xls)</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowImportModal(false);
+                      setImportFile(null);
+                      setImportPreview([]);
+                      setImportErrors([]);
+                      setShowAllPreview(false);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                      }
+                    }}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
 
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* File Upload */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="cursor-pointer flex flex-col items-center gap-4"
-                >
-                  {importFile ? (
-                    <>
-                      <FileSpreadsheet size={48} className="text-blue-600" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{importFile.name}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {(importFile.size / 1024).toFixed(2)} KB
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setImportFile(null);
-                          setImportPreview([]);
-                          setImportErrors([]);
-                          setShowAllPreview(false);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = '';
-                          }
-                        }}
-                        className="text-sm text-red-600 hover:text-red-700"
-                      >
-                        Xóa file
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <Upload size={48} className="text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          Click để chọn file hoặc kéo thả file vào đây
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          CSV, XLSX, XLS (Tối đa 10MB)
-                        </p>
-                      </div>
-                    </>
+                {/* Modal Body */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* File Upload */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv,.xlsx,.xls"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <label
+                      htmlFor="file-upload"
+                      className="cursor-pointer flex flex-col items-center gap-4"
+                    >
+                      {importFile ? (
+                        <>
+                          <FileSpreadsheet size={48} className="text-blue-600" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{importFile.name}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {(importFile.size / 1024).toFixed(2)} KB
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setImportFile(null);
+                              setImportPreview([]);
+                              setImportErrors([]);
+                              setShowAllPreview(false);
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = '';
+                              }
+                            }}
+                            className="text-sm text-red-600 hover:text-red-700"
+                          >
+                            Xóa file
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={48} className="text-gray-400" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              Click để chọn file hoặc kéo thả file vào đây
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              CSV, XLSX, XLS (Tối đa 10MB)
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </label>
+                  </div>
+
+                  {/* Loading State */}
+                  {isImporting && (
+                    <div className="text-center py-8">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <p className="text-sm text-gray-600 mt-2">Đang xử lý file...</p>
+                    </div>
                   )}
-                </label>
-              </div>
 
-              {/* Loading State */}
-              {isImporting && (
-                <div className="text-center py-8">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <p className="text-sm text-gray-600 mt-2">Đang xử lý file...</p>
-                </div>
-              )}
-
-              {/* Preview Valid Data */}
-              {importPreview.length > 0 && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle size={20} className="text-green-600" />
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Dữ liệu hợp lệ ({importPreview.length} người dùng)
-                      </h3>
-                    </div>
-                    {importPreview.length > 10 && (
-                      <button
-                        onClick={() => setShowAllPreview(!showAllPreview)}
-                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                      >
-                        {showAllPreview ? 'Thu gọn' : `Xem tất cả (${importPreview.length})`}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Summary Statistics */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                    {['Học sinh', 'Giáo viên', 'Quản lý', 'Quản trị viên'].map((role) => {
-                      const count = importPreview.filter((r) => r.role === role).length;
-                      return (
-                        <div key={role} className="bg-white rounded-lg p-3 border border-green-200">
-                          <p className="text-xs text-gray-600 mb-1">{role}</p>
-                          <p className="text-lg font-bold text-gray-900">{count}</p>
+                  {/* Preview Valid Data */}
+                  {importPreview.length > 0 && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={20} className="text-green-600" />
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            Dữ liệu hợp lệ ({importPreview.length} người dùng)
+                          </h3>
                         </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Preview Table */}
-                  <div className="border border-green-200 rounded-lg overflow-hidden bg-white">
-                    <div className="overflow-x-auto" style={{ maxHeight: showAllPreview ? '400px' : '300px' }}>
-                      <table className="w-full text-sm">
-                        <thead className="bg-green-50 sticky top-0">
-                          <tr>
-                            <th className="text-left py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
-                              STT
-                            </th>
-                            <th className="text-left py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
-                              Tên
-                            </th>
-                            <th className="text-left py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
-                              Email
-                            </th>
-                            <th className="text-left py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
-                              Vai trò
-                            </th>
-                            <th className="text-left py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
-                              Trạng thái
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(showAllPreview ? importPreview : importPreview.slice(0, 10)).map((row, index) => (
-                            <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                              <td className="py-3 px-4 text-gray-600 font-medium">{index + 1}</td>
-                              <td className="py-3 px-4 font-semibold text-gray-900">{row.name}</td>
-                              <td className="py-3 px-4 text-gray-700">{row.email}</td>
-                              <td className="py-3 px-4">
-                                <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                                  {row.role}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4">
-                                <span
-                                  className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                                    row.status === 'Hoạt động'
-                                      ? 'bg-green-100 text-green-700'
-                                      : 'bg-red-100 text-red-700'
-                                  }`}
-                                >
-                                  {row.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    {!showAllPreview && importPreview.length > 10 && (
-                      <div className="bg-green-50 px-4 py-3 text-sm text-gray-600 text-center border-t border-green-200">
-                        Đang hiển thị 10/{importPreview.length} người dùng. 
-                        <button
-                          onClick={() => setShowAllPreview(true)}
-                          className="text-blue-600 hover:text-blue-700 font-medium ml-1"
-                        >
-                          Xem tất cả
-                        </button>
+                        {importPreview.length > 10 && (
+                          <button
+                            onClick={() => setShowAllPreview(!showAllPreview)}
+                            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                          >
+                            {showAllPreview ? 'Thu gọn' : `Xem tất cả (${importPreview.length})`}
+                          </button>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
-              {/* Error Messages */}
-              {importErrors.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <AlertCircle size={20} className="text-red-600" />
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Lỗi ({importErrors.length} dòng)
-                    </h3>
-                  </div>
-                  <div className="border border-red-200 rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto max-h-64">
-                      <table className="w-full text-sm">
-                        <thead className="bg-red-50 sticky top-0">
-                          <tr>
-                            <th className="text-left py-2 px-3 font-semibold text-red-700">Dòng</th>
-                            <th className="text-left py-2 px-3 font-semibold text-red-700">Dữ liệu</th>
-                            <th className="text-left py-2 px-3 font-semibold text-red-700">Lỗi</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {importErrors.slice(0, 10).map((error, index) => (
-                            <tr key={index} className="border-b border-red-100">
-                              <td className="py-2 px-3 font-medium">{error.row}</td>
-                              <td className="py-2 px-3">
-                                {error.data.name || '-'} / {error.data.email || '-'}
-                              </td>
-                              <td className="py-2 px-3">
-                                <ul className="list-disc list-inside text-red-600">
-                                  {error.errors.map((err, i) => (
-                                    <li key={i} className="text-xs">{err}</li>
-                                  ))}
-                                </ul>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    {importErrors.length > 10 && (
-                      <div className="bg-red-50 px-3 py-2 text-xs text-red-600 text-center">
-                        Và {importErrors.length - 10} lỗi khác...
+                      {/* Summary Statistics */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        {['Học sinh', 'Giáo viên', 'Quản lý', 'Quản trị viên'].map((role) => {
+                          const count = importPreview.filter((r) => r.role === role).length;
+                          return (
+                            <div key={role} className="bg-white rounded-lg p-3 border border-green-200">
+                              <p className="text-xs text-gray-600 mb-1">{role}</p>
+                              <p className="text-lg font-bold text-gray-900">{count}</p>
+                            </div>
+                          );
+                        })}
                       </div>
-                    )}
+
+                      {/* Preview Table */}
+                      <div className="border border-green-200 rounded-lg overflow-hidden bg-white">
+                        <div className="overflow-x-auto" style={{ maxHeight: showAllPreview ? '400px' : '300px' }}>
+                          <table className="w-full text-sm">
+                            <thead className="bg-green-50 sticky top-0">
+                              <tr>
+                                <th className="text-left py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                  STT
+                                </th>
+                                <th className="text-left py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                  Tên
+                                </th>
+                                <th className="text-left py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                  Email
+                                </th>
+                                <th className="text-left py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                  Vai trò
+                                </th>
+                                <th className="text-left py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                  Trạng thái
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(showAllPreview ? importPreview : importPreview.slice(0, 10)).map((row, index) => (
+                                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                  <td className="py-3 px-4 text-gray-600 font-medium">{index + 1}</td>
+                                  <td className="py-3 px-4 font-semibold text-gray-900">{row.name}</td>
+                                  <td className="py-3 px-4 text-gray-700">{row.email}</td>
+                                  <td className="py-3 px-4">
+                                    <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                                      {row.role}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <span
+                                      className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${row.status === 'Hoạt động'
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-red-100 text-red-700'
+                                        }`}
+                                    >
+                                      {row.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {!showAllPreview && importPreview.length > 10 && (
+                          <div className="bg-green-50 px-4 py-3 text-sm text-gray-600 text-center border-t border-green-200">
+                            Đang hiển thị 10/{importPreview.length} người dùng.
+                            <button
+                              onClick={() => setShowAllPreview(true)}
+                              className="text-blue-600 hover:text-blue-700 font-medium ml-1"
+                            >
+                              Xem tất cả
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error Messages */}
+                  {importErrors.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <AlertCircle size={20} className="text-red-600" />
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Lỗi ({importErrors.length} dòng)
+                        </h3>
+                      </div>
+                      <div className="border border-red-200 rounded-lg overflow-hidden">
+                        <div className="overflow-x-auto max-h-64">
+                          <table className="w-full text-sm">
+                            <thead className="bg-red-50 sticky top-0">
+                              <tr>
+                                <th className="text-left py-2 px-3 font-semibold text-red-700">Dòng</th>
+                                <th className="text-left py-2 px-3 font-semibold text-red-700">Dữ liệu</th>
+                                <th className="text-left py-2 px-3 font-semibold text-red-700">Lỗi</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {importErrors.slice(0, 10).map((error, index) => (
+                                <tr key={index} className="border-b border-red-100">
+                                  <td className="py-2 px-3 font-medium">{error.row}</td>
+                                  <td className="py-2 px-3">
+                                    {error.data.name || '-'} / {error.data.email || '-'}
+                                  </td>
+                                  <td className="py-2 px-3">
+                                    <ul className="list-disc list-inside text-red-600">
+                                      {error.errors.map((err, i) => (
+                                        <li key={i} className="text-xs">{err}</li>
+                                      ))}
+                                    </ul>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {importErrors.length > 10 && (
+                          <div className="bg-red-50 px-3 py-2 text-xs text-red-600 text-center">
+                            Và {importErrors.length - 10} lỗi khác...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* File Format Guide */}
+                  {!importFile && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-blue-900 mb-2">Định dạng file yêu cầu:</h4>
+                      <div className="text-xs text-blue-800 space-y-1">
+                        <p>• Cột 1: Tên (hoặc Name, Họ và tên)</p>
+                        <p>• Cột 2: Email (hoặc Email Address, Địa chỉ email)</p>
+                        <p>• Cột 3: Vai trò (Học sinh, Giáo viên, Quản lý, Quản trị viên)</p>
+                        <p>• Cột 4: Trạng thái (Hoạt động, Tạm khóa) - Tùy chọn</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Modal Footer */}
+                <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+                  <button
+                    onClick={() => {
+                      setShowImportModal(false);
+                      setImportFile(null);
+                      setImportPreview([]);
+                      setImportErrors([]);
+                      setShowAllPreview(false);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                      }
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleImportConfirm}
+                    disabled={importPreview.length === 0 || isImporting}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                  >
+                    <CheckCircle size={16} />
+                    Xác nhận Nhập ({importPreview.length})
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+        {/* Create User Modal */}
+        {
+          showCreateModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                  <h2 className="text-xl font-bold text-gray-900">Thêm Người dùng Mới</h2>
+                  <button
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
+                    }}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tên *</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Nhập tên người dùng"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="example@email.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Vai trò *</label>
+                    <select
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="Học sinh">Học sinh</option>
+                      <option value="Giáo viên">Giáo viên</option>
+                      <option value="Quản lý">Quản lý</option>
+                      <option value="Quản trị viên">Quản trị viên</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái *</label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="Hoạt động">Hoạt động</option>
+                      <option value="Tạm khóa">Tạm khóa</option>
+                    </select>
                   </div>
                 </div>
-              )}
 
-              {/* File Format Guide */}
-              {!importFile && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-blue-900 mb-2">Định dạng file yêu cầu:</h4>
-                  <div className="text-xs text-blue-800 space-y-1">
-                    <p>• Cột 1: Tên (hoặc Name, Họ và tên)</p>
-                    <p>• Cột 2: Email (hoặc Email Address, Địa chỉ email)</p>
-                    <p>• Cột 3: Vai trò (Học sinh, Giáo viên, Quản lý, Quản trị viên)</p>
-                    <p>• Cột 4: Trạng thái (Hoạt động, Tạm khóa) - Tùy chọn</p>
+                <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+                  <button
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleCreateUser}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                  >
+                    <Save size={16} />
+                    Tạo Người dùng
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+        {/* Edit User Modal */}
+        {
+          showEditModal && editingUser && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                  <h2 className="text-xl font-bold text-gray-900">Chỉnh sửa Người dùng</h2>
+                  <button
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingUser(null);
+                      setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
+                    }}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tên *</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Nhập tên người dùng"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="example@email.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Vai trò *</label>
+                    <select
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="Học sinh">Học sinh</option>
+                      <option value="Giáo viên">Giáo viên</option>
+                      <option value="Quản lý">Quản lý</option>
+                      <option value="Quản trị viên">Quản trị viên</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái *</label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="Hoạt động">Hoạt động</option>
+                      <option value="Tạm khóa">Tạm khóa</option>
+                    </select>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => {
-                  setShowImportModal(false);
-                  setImportFile(null);
-                  setImportPreview([]);
-                  setImportErrors([]);
-                  setShowAllPreview(false);
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                  }
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleImportConfirm}
-                disabled={importPreview.length === 0 || isImporting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
-              >
-                <CheckCircle size={16} />
-                Xác nhận Nhập ({importPreview.length})
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create User Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Thêm Người dùng Mới</h2>
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
-                }}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tên *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập tên người dùng"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="example@email.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Vai trò *</label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Học sinh">Học sinh</option>
-                  <option value="Giáo viên">Giáo viên</option>
-                  <option value="Quản lý">Quản lý</option>
-                  <option value="Quản trị viên">Quản trị viên</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái *</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Hoạt động">Hoạt động</option>
-                  <option value="Tạm khóa">Tạm khóa</option>
-                </select>
+                <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+                  <button
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingUser(null);
+                      setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleUpdateUser}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                  >
+                    <Save size={16} />
+                    Cập nhật
+                  </button>
+                </div>
               </div>
             </div>
-
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleCreateUser}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
-              >
-                <Save size={16} />
-                Tạo Người dùng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit User Modal */}
-      {showEditModal && editingUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Chỉnh sửa Người dùng</h2>
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditingUser(null);
-                  setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
-                }}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tên *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập tên người dùng"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="example@email.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Vai trò *</label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Học sinh">Học sinh</option>
-                  <option value="Giáo viên">Giáo viên</option>
-                  <option value="Quản lý">Quản lý</option>
-                  <option value="Quản trị viên">Quản trị viên</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái *</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Hoạt động">Hoạt động</option>
-                  <option value="Tạm khóa">Tạm khóa</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditingUser(null);
-                  setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleUpdateUser}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
-              >
-                <Save size={16} />
-                Cập nhật
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          )
+        }
+      </div>
     </div>
   );
 }
