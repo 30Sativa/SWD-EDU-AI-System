@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="EduAISystem.Application/EduAISystem.Application.csproj" />
+  <Project Path="EduAISystem.Domain/EduAISystem.Domain.csproj" />
+  <Project Path="EduAISystem.Infrastructure/EduAISystem.Infrastructure.csproj" />
+  <Project Path="EduAISystem.WebAPI/EduAISystem.WebAPI.csproj" />
+</Solution>
