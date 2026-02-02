@@ -6,7 +6,17 @@ import { message } from 'antd';
 export default function StudentHeader() {
     const location = useLocation();
     const navigate = useNavigate();
+    const [user, setUser] = useState({ name: 'User', role: 'Student' });
     const BASE_PATH = '/dashboard/student';
+
+    React.useEffect(() => {
+        const storedName = localStorage.getItem('userName');
+        const storedRole = localStorage.getItem('userRole');
+        setUser({
+            name: storedName || 'User',
+            role: storedRole || 'Student'
+        });
+    }, []);
 
     const navItems = [
         { label: 'Tổng quan', path: 'dashboard' },
@@ -15,9 +25,21 @@ export default function StudentHeader() {
         { label: 'Tiến độ', path: 'progress' },
     ];
 
+    const getInitials = (name) => {
+        if (!name) return 'U';
+        return name
+            .split(' ')
+            .map(n => n[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
+    };
+
     const handleLogout = () => {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userName');
         message.success('Đăng xuất thành công');
         navigate('/');
     };
@@ -72,11 +94,11 @@ export default function StudentHeader() {
 
                     <div className="flex items-center gap-3 cursor-pointer group">
                         <div className="text-right hidden sm:block">
-                            <p className="text-sm font-bold text-gray-800 leading-none group-hover:text-blue-600 transition-colors">Ngọc Nguyễn</p>
-                            <p className="text-[11px] text-gray-500 mt-0.5 font-medium">Student</p>
+                            <p className="text-sm font-bold text-gray-800 leading-none group-hover:text-blue-600 transition-colors">{user.name}</p>
+                            <p className="text-[11px] text-gray-500 mt-0.5 font-medium">{user.role}</p>
                         </div>
                         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-white group-hover:ring-blue-100 transition-all">
-                            NN
+                            {getInitials(user.name)}
                         </div>
                     </div>
 

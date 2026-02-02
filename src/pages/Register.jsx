@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
-import authApi from '../api/authApi';
+import { registerAPI } from '../api/authApi';
 
 export default function Register() {
     const navigate = useNavigate();
@@ -45,7 +45,7 @@ export default function Register() {
             };
 
             console.log("Sending Register Payload:", payload);
-            await authApi.register(payload);
+            await registerAPI(payload);
 
             message.success("Đăng ký thành công! Vui lòng đăng nhập.");
             navigate('/login');

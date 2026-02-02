@@ -14,6 +14,9 @@ export default function Header({ userRole }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
+  // Get user info from localStorage
+  const userName = localStorage.getItem('userName') || 'User';
+
   const getRoleLabel = (role) => {
     switch (role) {
       case 'teacher': return 'Giáo viên';
@@ -25,8 +28,7 @@ export default function Header({ userRole }) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('token'); // Clear possible other token keys
+    localStorage.clear(); // Clear all data to be safe
     message.success('Đăng xuất thành công');
     navigate('/');
   };
@@ -61,7 +63,7 @@ export default function Header({ userRole }) {
               <User size={16} />
             </div>
             <div className="hidden md:flex flex-col items-start">
-              <span className="text-sm font-semibold text-gray-800 leading-tight">John Doe</span>
+              <span className="text-sm font-semibold text-gray-800 leading-tight">{userName}</span>
               <span className="text-[10px] text-gray-500 font-medium uppercase">{getRoleLabel(userRole)}</span>
             </div>
             <ChevronDown size={14} className={`text-gray-400 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
@@ -72,7 +74,7 @@ export default function Header({ userRole }) {
               <div className="fixed inset-0 z-30" onClick={() => setUserDropdownOpen(false)} />
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-40 animate-in fade-in zoom-in-95 duration-75">
                 <div className="px-4 py-3 border-b border-gray-100 md:hidden">
-                  <p className="text-sm font-semibold text-gray-900">John Doe</p>
+                  <p className="text-sm font-semibold text-gray-900">{userName}</p>
                   <p className="text-xs text-gray-500">{getRoleLabel(userRole)}</p>
                 </div>
                 <Link to="/profile" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">

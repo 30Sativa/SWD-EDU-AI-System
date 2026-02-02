@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
-import authApi from '../api/authApi';
+import { loginAPI } from '../api/authApi';
 
 const parseJwt = (token) => {
     try {
@@ -44,28 +44,46 @@ export default function Login() {
         setError('');
 
         try {
-            const response = await authApi.login(formData);
+            const response = await loginAPI(formData);
 
-            // Try to find the token in various common places
             const token = response.accessToken || response.token || response.data?.accessToken || response.data?.token;
 
             if (token) {
                 localStorage.setItem('accessToken', token);
-
-                // Decode token to get role
                 const decoded = parseJwt(token);
-                console.log("Decoded Token:", decoded);
-
-                // Extract role from standard claims
                 const role = decoded?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded?.role;
-                console.log("Extracted Role:", role);
 
                 if (role) {
                     localStorage.setItem('userRole', role);
+                    // 1. Try to get userName directly from response
+                    let name = response.userName || response.data?.userName || response.userInfo?.userName;
+
+                    // 2. If not in response, try to get from Token
+                    if (!name) {
+
+                        name = decoded?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
+                            || decoded?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/name'] // Try MS claim style
+                            || decoded?.name
+                            || decoded?.unique_name
+                            || decoded?.preferred_username;
+
+                        // 3. Fallback: Parse from email if name is still missing or looks like a UUID
+                        const isUUID = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+                        if (!name || isUUID(name)) {
+                            const email = decoded?.email || decoded?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'];
+                            if (email && !isUUID(email)) {
+                                name = email.split('@')[0];
+                            }
+                        }
+                    }
+
+                    // 4. Last resort
+                    if (!name) name = 'User';
+
+                    localStorage.setItem('userName', name);
                     message.success('Đăng nhập thành công!');
 
                     const lowerRole = String(role).toLowerCase();
-                    console.log("Redirecting for role:", lowerRole);
 
                     if (lowerRole.includes('admin')) {
                         navigate('/dashboard/admin');

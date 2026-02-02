@@ -1,16 +1,20 @@
 import axiosClient from '../lib/axiosClient';
 
-const authApi = {
-    login: (params) => {
-        const url = '/api/Auth/login';
-        return axiosClient.post(url, params);
-    },
+export const registerAPI = async (values) => {
+    const payload = {
+        email: values.email,
+        userName: values.username,
+        passwordHash: values.password,
+    };
 
-
-    register: (params) => {
-        const url = '/api/Auth/register';
-        return axiosClient.post(url, params);
-    },
+    return axiosClient.post('/api/Auth/register', payload);
 };
 
-export default authApi;
+export const loginAPI = async (values) => {
+    const payload = {
+        email: values.email,
+        password: values.password,
+    };
+
+    return axiosClient.post('/api/Auth/login', payload);
+};
