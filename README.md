@@ -35,30 +35,30 @@ EduAISystem/
 ## 🎯 Tính năng chính
 
 ### Cho Học sinh (Student)
-- 📊 Dashboard học tập với thống kê tiến độ
-- 📚 Xem danh sách khóa học và chi tiết khóa học
-- 📖 Xem bài học và nội dung chi tiết
-- ✅ Làm bài kiểm tra (Quiz)
-- 📈 Theo dõi tiến độ học tập
+-  Dashboard học tập với thống kê tiến độ
+-  Xem danh sách khóa học và chi tiết khóa học
+-  Xem bài học và nội dung chi tiết
+-  Làm bài kiểm tra (Quiz)
+-  Theo dõi tiến độ học tập
 
 ### Cho Giáo viên (Teacher)
-- 📊 Dashboard quản lý lớp học
-- 📚 Quản lý khóa học (tạo, chỉnh sửa, xem chi tiết)
-- 👥 Quản lý lớp học và danh sách học sinh
-- 📝 Quản lý ngân hàng câu hỏi (Question Bank)
-- 📁 Tổ chức câu hỏi theo thư mục
+-  Dashboard quản lý lớp học
+-  Quản lý khóa học (tạo, chỉnh sửa, xem chi tiết)
+-  Quản lý lớp học và danh sách học sinh
+-  Quản lý ngân hàng câu hỏi (Question Bank)
+-  Tổ chức câu hỏi theo thư mục
 
 ### Cho Quản lý (Manager)
-- 📊 Dashboard quản lý tổng quan
-- 📈 Xem báo cáo và thống kê hệ thống
+-  Dashboard quản lý tổng quan
+-  Xem báo cáo và thống kê hệ thống
 
 ### Cho Quản trị viên (Admin)
-- 📊 Dashboard quản trị hệ thống
-- 👥 Quản lý người dùng
-- 🔐 Quản lý vai trò và quyền truy cập
-- 📢 Quản lý thông báo
-- 📋 Xem nhật ký kiểm tra (Audit Logs)
-- ⚙️ Cài đặt hệ thống
+-  Dashboard quản trị hệ thống
+-  Quản lý người dùng
+-  Quản lý vai trò và quyền truy cập
+-  Quản lý thông báo
+-  Xem nhật ký kiểm tra (Audit Logs)
+-  Cài đặt hệ thống
 
 ## 🚀 Cài đặt và Chạy dự án
 
@@ -140,9 +140,9 @@ docker run -p 5000:5000 swd-edu-ai-api
 
 Dự án có thể được cấu hình với GitHub Actions để tự động hóa:
 
-- ✅ Build và test tự động khi push code
-- ✅ Build Docker image
-- ✅ Deploy tự động (tùy cấu hình)
+-  Build và test tự động khi push code
+-  Build Docker image
+-  Deploy tự động (tùy cấu hình)
 
 Workflow files được đặt trong `.github/workflows/` (nếu có).
 
