@@ -5,6 +5,8 @@ import Footer from "../components/layout/Footer";
 import Sidebar from "../components/layout/Sidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import Home from "../pages/Home";
+import Login from "../pages/Login";
+import Register from "../pages/Register";
 
 // Teacher & Student routes (using features/)
 import TeacherDashboard from "../features/dashboard/teacher/pages/TeacherDashboard";
@@ -84,6 +86,8 @@ export default function RouteMap() {
       </Route>
 
       {/* Các route có layout Header/Footer */}
+      <Route path="login" element={<Login />} />
+      <Route path="register" element={<Register />} />
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="*" element={<Fallback />} />

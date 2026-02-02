@@ -13,6 +13,13 @@ export default function StudentHeader() {
         { label: 'Tiến độ', path: 'progress' },
     ];
 
+    const handleLogout = () => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('token'); // Clear possible other token keys
+        message.success('Đăng xuất thành công');
+        navigate('/');
+    };
+
     return (
         <header className="h-16 w-full bg-white border-b border-gray-200/60 shadow-sm sticky top-0 z-50">
             <div className="h-full w-full px-8 relative flex items-center justify-between">
@@ -70,6 +77,7 @@ export default function StudentHeader() {
                             NN
                         </div>
                     </div>
+                    
                 </div>
 
             </div>

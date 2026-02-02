@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Bell,
   Search,
@@ -8,17 +8,27 @@ import {
   LogOut,
   ChevronDown
 } from 'lucide-react';
+import { message } from 'antd';
 
 export default function Header({ userRole }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const navigate = useNavigate();
 
   const getRoleLabel = (role) => {
     switch (role) {
       case 'teacher': return 'Giáo viên';
       case 'student': return 'Học sinh';
       case 'admin': return 'Quản trị viên';
+      case 'manager': return 'Quản lý chuyên môn';
       default: return role;
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('token'); // Clear possible other token keys
+    message.success('Đăng xuất thành công');
+    navigate('/');
   };
 
   return (
@@ -26,7 +36,7 @@ export default function Header({ userRole }) {
       <div className="flex-1"></div>
 
       <div className="flex items-center gap-4">
-        <div className="relative hidden md:block md:w-64"> 
+        <div className="relative hidden md:block md:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -72,7 +82,10 @@ export default function Header({ userRole }) {
                   <Settings size={16} /> Cài đặt
                 </Link>
                 <div className="my-1 border-t border-gray-100"></div>
-                <button className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 text-left">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 text-left"
+                >
                   <LogOut size={16} /> Đăng xuất
                 </button>
               </div>

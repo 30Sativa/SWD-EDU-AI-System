@@ -23,12 +23,6 @@ function HeroSection() {
     { value: '24/7', label: 'Hỗ trợ AI' },
   ], []);
 
-  const dashboardButtons = useMemo(() => [
-    { label: 'Teacher', path: '/dashboard/teacher' },
-    { label: 'Student', path: '/dashboard/student' },
-    { label: 'Admin', path: '/dashboard/admin' },
-    { label: 'Manager', path: '/dashboard/manager' },
-  ], []);
 
   return (
     <section className="relative pt-12 pb-12 px-4 md:px-6 z-10">
@@ -79,18 +73,7 @@ function HeroSection() {
                 ) : 'Bắt đầu ngay'}
               </button>
 
-              <span className="hidden sm:inline self-center text-gray-400 text-sm">hoặc</span>
 
-              {dashboardButtons.map((button) => (
-                <button
-                  key={button.label}
-                  onClick={() => navigate(button.path)}
-                  className="px-6 py-3 bg-white font-semibold rounded-lg border-2 transition-all duration-300 text-sm md:text-base hover:shadow-lg hover:scale-105 border-blue-600 text-blue-600 hover:bg-blue-50"
-                  aria-label={`Vào Dashboard ${button.label.toLowerCase()}`}
-                >
-                  {button.label}
-                </button>
-              ))}
             </div>
 
             {/* Stats */}
@@ -164,8 +147,8 @@ function FeatureCardsCarousel() {
                   }
                 }}
                 className={`p-5 rounded-xl transition-all duration-500 cursor-pointer ${currentFeature === idx
-                    ? 'bg-blue-50 shadow-md scale-105 border border-blue-200'
-                    : 'bg-gray-50 hover:bg-blue-50/30'
+                  ? 'bg-blue-50 shadow-md scale-105 border border-blue-200'
+                  : 'bg-gray-50 hover:bg-blue-50/30'
                   }`}
                 role="button"
                 tabIndex={0}

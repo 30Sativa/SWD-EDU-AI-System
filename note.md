@@ -5,86 +5,90 @@ File này tổng hợp toàn bộ các công nghệ, thư viện, cấu trúc v�
 ## 1. Tech Stack (Công nghệ cốt lõi)
 
 - **Library**: `React` (v19) - Phiên bản mới nhất của React với các tính năng Concurrent Mode mặc định.
+  - Sử dụng 100% **Functional Components**.
+  - **React Hooks**: `useState`, `useEffect`, `useMemo`, `useParams`, `useLocation`...
 - **Build Tool**: `Vite` (v7) - Công cụ build cực nhanh, hỗ trợ HMR (Hot Module Replacement) ngay lập tức.
 - **Language**: `JavaScript` (.jsx) - Dự án sử dụng JS thuần với cú pháp JSX.
-- **Routing**: `react-router-dom` (v7) - Quản lý điều hướng trang, sử dụng cấu trúc `Routes`, `Route` và `Outlet`.
+- **Routing**: `react-router-dom` (v7) - Quản lý điều hướng trang.
+  - Sử dụng `Routes`, `Route`, `Outlet`, `Link`, `useNavigate`.
+  - Kiến thức về **Nested Routes** (Route lồng nhau) để chia Layout.
+  - **Dynamic Routing**: (ví dụ `/courses/:id`).
 
-## 2. Styling (Giao diện & Styles)
+## 2. Giao diện & Styling (UI/UX)
 
-Dự án kết hợp giữa **Tailwind CSS** (chính) và **Ant Design** (bổ trợ):
+Dự án kết hợp giữa **Tailwind CSS** (chính) và các thư viện UI bổ trợ:
 
 - **Tailwind CSS 4**:
   - Sử dụng `@tailwindcss/vite` plugin.
-  - Styles được viết trực tiếp trong className (Utility-first).
-  - Config màu sắc/theme nằm trong CSS variables hoặc mặc định của Tailwind.
-  - Các class thường dùng: `flex`, `grid`, `rounded-2xl`, `bg-white`, `border-gray-100`, `shadow-sm`, `text-blue-600`...
-  
-- **Ant Design (antd v6)**:
-  - Có thể được sử dụng cho các component phức tạp như Table, Modal, Button (nếu cần nhất quán styles enterprise).
-  - Icons: `@ant-design/icons` (bộ icon của Antd).
+  - Tư duy **Utility-first**.
+  - **Color Palette Project**:
+    - **Primary**: `#0487e2` (Màu xanh chủ đạo cho Nút, Icon, Progress).
+    - **Secondary**: `#0463ca` (Hover, Tiêu đề đậm).
+    - **Accent**: `#09b1ec` (Badge, Decor).
+    - **Background**: `bg-slate-50` (Nền xám nhạt hiện đại).
+  - **Responsive**: `sm:`, `md:`, `lg:` breakpoints.
+  - **Flexbox & Grid**: Layout chính.
 
-- **Lucide React**:
-  - Bộ icon chính được dùng trong giao diện Dashboard (nhẹ, đẹp, hiện đại).
-  - Ví dụ: `BookOpen`, `Clock`, `ArrowRight`.
+- **Lucide React**: Bộ icon chính (nhẹ, hiện đại, open source).
+  - Ví dụ: `GraduationCap`, `BookOpen`, `Clock`, `ArrowRight`...
 
-## 3. Kiến trúc dự án (Architecture)
+- **Ant Design (antd v6)** & **@ant-design/icons**:
+  - Dùng cho các component quản trị phức tạp (Table, Modal, DatePicker) khi cần.
 
-Dự án áp dụng kiến trúc **Feature-based** (dựa trên tính năng) kết hợp phân quyền (Role-based):
+## 3. Xử lý Logic & Dữ liệu
+
+- **Recharts**: Thư viện vẽ biểu đồ chính.
+  - `AreaChart`: Biểu đồ vùng (Gradient Blue).
+  - `LineChart`, `BarChart`, `PieChart`.
+  - Tùy biến `Tooltip` custom, `CartesianGrid`.
+
+- **XLSX (SheetJS)**:
+  - Xử lý file Excel (Đọc/Ghi) cho tính năng Import/Export danh sách học sinh/điểm.
+
+## 4. Kiến trúc dự án (Architecture)
+
+Dự án áp dụng kiến trúc **Feature-based** phân chia theo Role:
+
+### Routing Structure (`src/routes/RouteMap.jsx`)
+1. **Student Routing (Top-level)**:
+   - Base Path: `/student`
+   - Layout: [`StudentLayout`](src/components/layout/StudentLayout.jsx) (Logo riêng, Menu ngang).
+   - Pages: `/student`, `/student/courses`, `/student/quizzes`...
+   
+2. **Dashboard Routing (Nested)**:
+   - Base Path: `/dashboard/:role` (teacher, manager, admin)
+   - Layout: `Sidebar Layout` (Menu dọc bên trái).
+   - Pages: Dashboard tương ứng theo role.
 
 ### Cấu trúc thư mục (`src/`)
-- **features/**: Chứa toàn bộ logic nghiệp vụ, chia theo domain.
-  - Ví dụ: `dashboard`, `course`, `classes`, `quiz`, `user`...
-  - Trong mỗi feature thường chia nhỏ theo role: `student`, `teacher`, `manager`, `admin`.
-  - Mỗi role folder có `pages/` riêng.
-- **components/**: Các UI components dùng chung (Global).
-  - `layout/`: Sidebar, Header, Footer, Layout Wrappers.
-- **routes/**: Cấu hình routing tập trung (`RouteMap.jsx`).
-- **pages/**: Các trang chung không thuộc feature cụ thể (ví dụ: `Home`, `Login` - nếu có).
+- **features/**: Logic nghiệp vụ chia theo domain (`dashboard`, `course`, `lesson`, `quiz`...).
+- **components/**: UI chung (`layout`, `common`).
+- **routes/**: Cấu hình Route tập trung.
 
-### Layout System
-Dự án sử dụng Nested Routes để chia Layout:
-1. **Public Layout**: Header + Footer (Dành cho trang chủ).
-2. **Dashboard Layout**:
-   - Sidebar + Header + Content Area.
-   - Các layout riêng biệt cho từng role:
-     - `Sidebar` (Teacher/Manager/Admin)
-     - `StudentLayout` (Student)
+## 5. Patterns & Best Practices
 
-## 4. Các thư viện hỗ trợ khác
+- **Role-based Access Control (RBAC)**: Check role trước khi render nội dung Dashboard.
+- **Layout Pattern**: Tách `Layout` (Header, Sidebar) khỏi `Page Content` bằng `<Outlet />`.
+- **Mock Data**: Dữ liệu mẫu (JSON array) được đặt trực tiếp trong component để demo UI nhanh chóng.
+- **UI Consistency**:
+  - Stats Card: Số hiển thị lớn (`text-4xl`), đậm, margin thoáng.
+  - Navigation: Active state sử dụng Border Bottom (`border-b-2`) thay vì Background color.
 
-- **Recharts**: Vẽ biểu đồ (LineChart, BarChart...) - Dùng trong Dashboard để hiển thị thống kê học tập.
-- **xlsx**: Xử lý file Excel (Import/Export dữ liệu).
-- **ESLint**: Linter để kiểm tra lỗi code và quy chuẩn.
+## 6. Luồng người dùng (User Flows)
 
-## 5. Patterns & Best Practices đang dùng
+1. **Student Flow**:
+   - Vào `/student` -> Xem tổng quan (Chart, Deadline).
+   - Vào `/student/courses` -> Chọn khóa học -> Xem chi tiết khóa -> Vào học (`LessonDetail`).
+   
+2. **Teacher Flow**:
+   - Vào `/dashboard/teacher` -> Xem lớp chủ nhiệm, lịch dạy.
+   
+3. **Manager Flow**:
+   - Vào `/dashboard/manager` -> Xem thống kê toàn trường.
 
-- **Functional Components & Hooks**: Chỉ sử dụng React Hooks (`useState`, `useEffect`...).
-- **Mock Data**: Hiện tại dữ liệu (stats, danh sách khóa học, chart data) đang được hardcode trực tiếp trong file (ví dụ `StudentDashboard.jsx`).
-- **Separation of Concerns**:
-  - Logic hiển thị tách biệt theo feature.
-  - Layout tách biệt khỏi Page content.
-- **Responsive Design**: Mobile-first hoặc Desktop-first tùy trang, sử dụng các prefix `sm:`, `md:`, `lg:` của Tailwind.
-
-## 6. Ghi chú luồng Role (Role-based Flow)
-
-Dự án phân chia rõ ràng 4 luồng người dùng:
-1. **Student**: Tập trung vào Dashboard học tập, xem khóa học, làm bài quiz, xem tiến độ.
-2. **Teacher**: Quản lý lớp học, học sinh, tạo khóa học, chấm điểm.
-3. **Manager**: Quản lý chung (sẽ được mở rộng).
-4. **Admin**: Quản lý cấu hình hệ thống, roles, users, audit logs.
-
-Hiện tại Routing đã cấu hình sẵn đường dẫn `/dashboard/:role` để map tới đúng giao diện của role đó.
-
-## 7. Cập nhật mới nhất (Recent Updates)
-- **UI/UX Refactoring**:
-  - Áp dụng Color Palette mới: Primary Blue (`#0487e2`), Secondary (`#0463ca`).
-  - Giao diện Dashboard được làm sạch, sử dụng nền `bg-slate-50`.
-  - Thống nhất style hiển thị Stats Card (số to, bold, margin thoáng).
-  - Navigation styles chuyển từ background active sang border-bottom active tinh tế hơn.
-- **Routing Structure Changes**:
-  - Chuyển `Student Dashboard` ra khỏi nested route `/dashboard`.
-  - Đường dẫn mới cho học sinh: `/student`, `/student/courses`... (Top-level route).
-  - Các role Teacher, Manager, Admin vẫn giữ cấu trúc `/dashboard/:role`.
-- **Component Updates**:
-  - `StudentHeader`: Đã thêm Logo riêng, đồng bộ style với Sidebar.
-  - `StudentDashboard`: Cập nhật Chart (AreaChart với Gradient) và UI tổng quan.
+## 7. Kiến thức JavaScript/ES6+ quan trọng
+- **ES Modules**: Import/Export.
+- **Destructuring**: `const { id } = useParams()`.
+- **Spread Operator**: `...props`.
+- **Array Methods**: `.map()`, `.filter()`, `.reduce()`.
+- **Optional Chaining**: `user?.name`.
