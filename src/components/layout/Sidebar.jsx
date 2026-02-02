@@ -63,13 +63,13 @@ export default function Sidebar({ userRole = 'teacher' }) {
         `}
       >
         <div className="h-16 flex items-center px-4 border-b border-gray-200 overflow-hidden whitespace-nowrap">
-          <Link to="/" className={`flex items-center gap-3 transition-all ${collapsed ? 'justify-center w-full' : ''}`}>
+          <div className={`flex items-center gap-3 transition-all ${collapsed ? 'justify-center w-full' : ''}`}>
             <LogoIcon size={30} className="flex-shrink-0 text-blue-600" />
             <div className={`min-w-0 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 flex-1'}`}>
               <h1 className="text-base font-bold leading-none text-gray-900">EDU-AI Classroom</h1>
               <p className="text-[10px] text-gray-500 mt-1">Học tập đơn giản hơn</p>
             </div>
-          </Link>
+          </div>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar overflow-x-hidden">

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, LogOut, Search, GraduationCap } from 'lucide-react';
+import { message } from 'antd';
 
 export default function StudentHeader() {
     const location = useLocation();
+    const navigate = useNavigate();
     const BASE_PATH = '/dashboard/student';
 
     const navItems = [
@@ -15,7 +17,7 @@ export default function StudentHeader() {
 
     const handleLogout = () => {
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('token'); // Clear possible other token keys
+        localStorage.removeItem('token');
         message.success('Đăng xuất thành công');
         navigate('/');
     };
@@ -23,13 +25,13 @@ export default function StudentHeader() {
     return (
         <header className="h-16 w-full bg-white border-b border-gray-200/60 shadow-sm sticky top-0 z-50">
             <div className="h-full w-full px-8 relative flex items-center justify-between">
-                <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <div className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <GraduationCap size={28} className="flex-shrink-0 text-blue-600" />
                     <div>
                         <h1 className="text-base font-bold leading-none text-gray-900">EDU-AI Classroom</h1>
                         <p className="text-[10px] text-gray-500 mt-1">Học tập đơn giản hơn</p>
                     </div>
-                </Link>
+                </div>
 
                 {/* Navigation - Perfectly Centered, Absolute */}
                 <nav className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-2">
@@ -77,9 +79,16 @@ export default function StudentHeader() {
                             NN
                         </div>
                     </div>
-                    
-                </div>
 
+                    <button
+                        onClick={handleLogout}
+                        className="text-gray-500 hover:text-red-600 transition-colors ml-2"
+                        title="Đăng xuất"
+                    >
+                        <LogOut size={20} />
+                    </button>
+
+                </div>
             </div>
         </header>
     );

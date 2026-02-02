@@ -1,13 +1,12 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-    baseURL: '', // Use Vite Proxy to avoid CORS
+    baseURL: '',
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// 1. Interceptors Request: Tự động gắn Token vào mỗi API (nếu đã login)
 axiosClient.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('accessToken');
