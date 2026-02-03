@@ -3,6 +3,7 @@ using EduAISystem.Application.Features.Users.Commands;
 using EduAISystem.Application.Features.Users.DTOs.Request;
 using EduAISystem.Application.Features.Users.DTOs.Response;
 using EduAISystem.Application.Features.Users.Queries;
+using EduAISystem.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -40,6 +41,45 @@ namespace EduAISystem.WebAPI.Controllers.Admin
         {
             var result = await _mediator.Send(new CreateUserCommand { Request = dto }, cancellationToken);
             return Ok(ApiResponse<UserDetailResponseDto>.Ok(result, "Tạo người dùng thành công"));
+        }
+
+        [HttpPost("students")]
+        public async Task<IActionResult> CreateStudent([FromBody] CreateUserRequestDto dto, CancellationToken cancellationToken)
+        {
+            // Đảm bảo luôn là học sinh
+            dto.Role = (int)UserRoleDomain.User;
+
+            var result = await _mediator.Send(new CreateUserCommand { Request = dto }, cancellationToken);
+            return Ok(ApiResponse<UserDetailResponseDto>.Ok(result, "Tạo tài khoản học sinh thành công"));
+        }
+
+        [HttpPost("teachers")]
+        public async Task<IActionResult> CreateTeacher([FromBody] CreateUserRequestDto dto, CancellationToken cancellationToken)
+        {
+            // Hiện tại hệ thống dùng Role = User cho cả giáo viên/học sinh,
+            // việc phân biệt dựa trên bảng Teacher/Student ở tầng persistence.
+            dto.Role = (int)UserRoleDomain.User;
+
+            var result = await _mediator.Send(new CreateUserCommand { Request = dto }, cancellationToken);
+            return Ok(ApiResponse<UserDetailResponseDto>.Ok(result, "Tạo tài khoản giáo viên thành công"));
+        }
+
+        [HttpPost("admins")]
+        public async Task<IActionResult> CreateAdmin([FromBody] CreateUserRequestDto dto, CancellationToken cancellationToken)
+        {
+            dto.Role = (int)UserRoleDomain.Admin;
+
+            var result = await _mediator.Send(new CreateUserCommand { Request = dto }, cancellationToken);
+            return Ok(ApiResponse<UserDetailResponseDto>.Ok(result, "Tạo tài khoản admin thành công"));
+        }
+
+        [HttpPost("managers")]
+        public async Task<IActionResult> CreateManager([FromBody] CreateUserRequestDto dto, CancellationToken cancellationToken)
+        {
+            dto.Role = (int)UserRoleDomain.Manager;
+
+            var result = await _mediator.Send(new CreateUserCommand { Request = dto }, cancellationToken);
+            return Ok(ApiResponse<UserDetailResponseDto>.Ok(result, "Tạo tài khoản manager thành công"));
         }
 
         [HttpPut("{id:guid}/profile")]
