@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, Search, Plus, Edit, Trash2, Filter, Download, Upload, FileSpreadsheet, FileText, X, CheckCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Save, Power, PowerOff, MoreVertical, Mail, Shield, Activity } from 'lucide-react';
+import { Users, Search, Plus, Edit, Trash2, Filter, Download, Upload, FileSpreadsheet, FileText, X, CheckCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Save, Power, PowerOff, MoreVertical, Mail, Shield, Activity, Eye } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { message, Spin } from 'antd';
-import { getUsers, createUser, getRoleName, ROLE_ENUM } from "../../api/userApi";
+import { getUsers, getRoleName, ROLE_ENUM, getUserById, deleteUser, createUser, createStudent, createTeacher, createAdmin, createManager } from "../../api/userApi";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -17,7 +17,10 @@ export default function UserManagement() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false); // New state
   const [editingUser, setEditingUser] = useState(null);
+  const [viewingUser, setViewingUser] = useState(null); // New state
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false); // New state
   const [importFile, setImportFile] = useState(null);
   const [importPreview, setImportPreview] = useState([]);
   const [importErrors, setImportErrors] = useState([]);
@@ -39,9 +42,10 @@ export default function UserManagement() {
       setIsLoading(true);
       try {
         let roleFilterVal = null;
-        if (filterRole === 'Admin') roleFilterVal = ROLE_ENUM.ADMIN;
-        else if (filterRole === 'Manager') roleFilterVal = ROLE_ENUM.MANAGER;
-        else if (filterRole === 'User') roleFilterVal = ROLE_ENUM.USER;
+
+        if (filterRole === 'Quản trị viên') roleFilterVal = ROLE_ENUM.ADMIN;
+        else if (filterRole === 'Quản lý') roleFilterVal = ROLE_ENUM.MANAGER;
+        else if (filterRole === 'Học sinh' || filterRole === 'Giáo viên') roleFilterVal = ROLE_ENUM.USER;
 
         let isActiveFilterVal = null;
         if (filterStatus === 'Hoạt động') isActiveFilterVal = true;
@@ -309,25 +313,53 @@ export default function UserManagement() {
     if (!formData.name || !formData.email) return message.warning('Vui lòng điền đủ thông tin');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return message.warning('Email không hợp lệ');
 
-    // Map role string to ID
-    let roleId = ROLE_ENUM.USER; // Default Học sinh
-    switch (formData.role) {
-      case 'Quản trị viên': roleId = ROLE_ENUM.ADMIN; break;
-      case 'Quản lý': roleId = ROLE_ENUM.MANAGER; break;
-      case 'Giáo viên': roleId = ROLE_ENUM.USER; break; // Map Giáo viên to User for now as BE has no Teacher role yet
-      default: roleId = ROLE_ENUM.USER;
-    }
-
     try {
       setIsLoading(true);
+
+      // Define role mapping
+      let roleId = ROLE_ENUM.USER;
+      switch (formData.role) {
+        case 'Quản trị viên': roleId = ROLE_ENUM.ADMIN; break;
+        case 'Quản lý': roleId = ROLE_ENUM.MANAGER; break;
+        case 'Giáo viên': roleId = ROLE_ENUM.USER; break; // Map to User for now
+        case 'Học sinh': roleId = ROLE_ENUM.USER; break;
+        default: roleId = ROLE_ENUM.USER;
+      }
+
+      // Sanitize userName: use part before @, remove non-alphanumeric chars
+      const safeUserName = formData.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+
+      // Try PascalCase to ensure backend matching if camelCase fails
       const payload = {
-        userName: formData.name,
-        email: formData.email,
-        role: roleId,
-        password: 'Password123!', // DTO confirms 'Password' key
+        FullName: formData.name,
+        UserName: safeUserName,
+        Email: formData.email,
+        Password: 'Password123!',
+        Role: roleId
       };
 
-      await createUser(payload);
+      console.log("Creating user with payload (PascalCase):", payload);
+
+      // Call specific API based on role
+      switch (formData.role) {
+        case 'Học sinh':
+          // Fallback to generic createUser because /students endpoint has validation bug (requires Admin/Manager role)
+          await createUser(payload);
+          break;
+        case 'Giáo viên':
+          // Fallback to generic createUser
+          await createUser(payload);
+          break;
+        case 'Quản lý':
+          await createManager(payload);
+          break;
+        case 'Quản trị viên':
+          await createAdmin(payload);
+          break;
+        default:
+          await createUser(payload);
+      }
+
       message.success('Tạo người dùng thành công!');
       setShowCreateModal(false);
       setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
@@ -335,10 +367,28 @@ export default function UserManagement() {
 
     } catch (error) {
       console.error("Create user failed:", error);
-      const errorMsg = error.response?.data?.errors
-        ? Object.values(error.response.data.errors).flat().join(', ')
-        : (error.response?.data?.message || 'Tạo người dùng thất bại. Vui lòng kiểm tra lại thông tin.');
+
+      let errorMsg = 'Tạo người dùng thất bại.';
+      let debugInfo = '';
+
+      if (error.response?.data) {
+        console.error("Error Response Data:", error.response.data);
+        debugInfo = JSON.stringify(error.response.data, null, 2);
+
+        if (error.response.data.errors) {
+          errorMsg = Object.values(error.response.data.errors).flat().join('\n');
+        } else if (typeof error.response.data === 'string') {
+          errorMsg = error.response.data;
+        } else if (error.response.data.message) {
+          errorMsg = error.response.data.message;
+        } else if (error.response.data.title) {
+          errorMsg = error.response.data.title;
+        }
+      }
+
       message.error(errorMsg);
+      // Optional: Alert for immediate visibility if message is missed
+      // alert(`Debug Error: ${debugInfo || error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -357,15 +407,69 @@ export default function UserManagement() {
     setEditingUser(null);
   };
 
-  const handleDeleteUser = (user) => {
-    if (window.confirm(`Xóa người dùng "${user.name}"?`)) {
-      setUsers(users.filter(u => u.id !== user.id));
-    }
-  };
+  // Delete Modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(null);
+  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
 
   const handleToggleStatus = (user) => {
     const newStatus = user.status === 'Hoạt động' ? 'Tạm khóa' : 'Hoạt động';
     setUsers(users.map(u => u.id === user.id ? { ...u, status: newStatus } : u));
+  };
+
+  const handleDeleteClick = (user) => {
+    setDeletingUser(user);
+    setDeleteConfirmationInput('');
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingUser) return;
+
+    if (deleteConfirmationInput !== deletingUser.email) {
+      message.error('Email xác nhận không khớp!');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await deleteUser(deletingUser.id);
+      setUsers(users.filter(u => u.id !== deletingUser.id));
+      message.success('Xóa người dùng thành công');
+      setShowDeleteModal(false);
+      setDeletingUser(null);
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+      message.error('Xóa người dùng thất bại');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+
+  const handleViewUser = async (user) => {
+    setViewingUser(null);
+    setShowDetailModal(true);
+    setIsLoadingDetail(true);
+    try {
+      const response = await getUserById(user.id);
+      const userData = response.data || response; // Adapt to likely response structure
+
+      // Ensure consistent structure for display
+      setViewingUser({
+        ...userData,
+        roleName: getRoleName(userData.role),
+        status: userData.isActive ? 'Hoạt động' : 'Tạm khóa',
+        joinDate: userData.createdAt ? new Date(userData.createdAt).toLocaleDateString('vi-VN') : '-'
+      });
+    } catch (error) {
+      console.error("Failed to fetch user detail:", error);
+      message.error("Không thể tải thông tin chi tiết");
+      setShowDetailModal(false);
+    } finally {
+      setIsLoadingDetail(false);
+    }
   };
 
   return (
@@ -479,12 +583,7 @@ export default function UserManagement() {
                         Trạng thái {getSortIcon('status')}
                       </button>
                     </th>
-                    <th className="px-6 py-4">
-                      <button onClick={() => handleSort('joinDate')} className="flex items-center gap-1 hover:text-[#0487e2]">
-                        Tham gia {getSortIcon('joinDate')}
-                      </button>
-                    </th>
-                    <th className="px-6 py-4 text-right">Thao tác</th>
+                    <th className="px-6 py-4 text-center">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -503,7 +602,7 @@ export default function UserManagement() {
                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${user.role.match(/Admin|Quản trị/) ? 'bg-purple-50 text-purple-700 ring-1 ring-purple-100' :
                           user.role.match(/Manager|Quản lý/) ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-100' :
                             user.role.match(/Teacher|Giáo viên/) ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' :
-                              'bg-blue-50 text-blue-700 ring-1 ring-blue-100'
+                              'bg-blue-50 text-blue-700 text-center ring-1 ring-blue-100'
                           }`}>
                           {user.role}
                         </span>
@@ -514,17 +613,19 @@ export default function UserManagement() {
                           {user.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-500">{user.joinDate}</td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleToggleStatus(user)} className="p-2 text-slate-400 hover:text-orange-600 rounded-lg hover:bg-orange-50" title="Đổi trạng thái">
-                            {user.status === 'Hoạt động' ? <PowerOff size={16} /> : <Power size={16} />}
+                        <div className="flex items-center justify-center gap-3">
+                          <button onClick={() => handleToggleStatus(user)} className="p-2 text-slate-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition-colors" title="Đổi trạng thái">
+                            {user.status === 'Hoạt động' ? <PowerOff size={18} /> : <Power size={18} />}
                           </button>
-                          <button onClick={() => handleEditUser(user)} className="p-2 text-slate-400 hover:text-[#0487e2] rounded-lg hover:bg-[#f0f6fa]" title="Sửa">
-                            <Edit size={16} />
+                          <button onClick={() => handleViewUser(user)} className="p-2 text-slate-400 hover:text-cyan-600 rounded-lg hover:bg-cyan-50 transition-colors" title="Xem chi tiết">
+                            <Eye size={18} />
                           </button>
-                          <button onClick={() => handleDeleteUser(user)} className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50" title="Xóa">
-                            <Trash2 size={16} />
+                          <button onClick={() => handleEditUser(user)} className="p-2 text-slate-400 hover:text-[#0487e2] rounded-lg hover:bg-[#f0f6fa] transition-colors" title="Sửa">
+                            <Edit size={18} />
+                          </button>
+                          <button onClick={() => handleDeleteClick(user)} className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors" title="Xóa">
+                            <Trash2 size={18} />
                           </button>
                         </div>
                       </td>
@@ -612,6 +713,87 @@ export default function UserManagement() {
               <button onClick={() => setShowImportModal(false)} className="px-5 py-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-all">Hủy bỏ</button>
               <button onClick={handleImportConfirm} disabled={importPreview.length === 0} className="px-6 py-2 bg-[#0487e2] text-white font-bold rounded-xl text-sm hover:bg-[#0463ca] shadow-md shadow-[#0487e2]/20 disabled:opacity-50 transition-all">
                 Xác nhận Nhập dữ liệu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Detail Modal */}
+      {showDetailModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden scale-100 transition-all">
+            {/* Header */}
+            <div className="relative px-8 py-6 border-b border-slate-100 bg-slate-50/50">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-slate-800">Thông tin chi tiết</h2>
+              </div>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 p-2 rounded-full transition-all"
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="p-8">
+              {isLoadingDetail ? (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <Spin />
+                  <p className="mt-4 text-slate-500 text-sm">Đang tải thông tin...</p>
+                </div>
+              ) : viewingUser ? (
+                <div className="space-y-6">
+                  <div className="flex flex-col items-center pb-6 border-b border-slate-50">
+                    <div className="w-20 h-20 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-2xl font-bold mb-3 shadow-inner">
+                      {viewingUser.fullName?.charAt(0) || viewingUser.userName?.charAt(0) || 'U'}
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">{viewingUser.fullName || viewingUser.userName}</h3>
+                    <p className="text-slate-500 text-sm">{viewingUser.email}</p>
+                    <span className={`mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${viewingUser.roleName === 'Quản trị viên' ? 'bg-purple-100 text-purple-700' :
+                      viewingUser.roleName === 'Quản lý' ? 'bg-orange-100 text-orange-700' :
+                        viewingUser.roleName === 'Giáo viên' ? 'bg-emerald-100 text-emerald-700' :
+                          'bg-blue-100 text-blue-700'
+                      }`}>
+                      {viewingUser.roleName}
+                    </span>
+                  </div>
+
+                  <div className="space-y-4 text-sm mt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-slate-400 font-medium mb-1 uppercase text-xs">ID Người dùng</p>
+                        <p className="font-semibold text-slate-700 truncate" title={viewingUser.id}>{viewingUser.id}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 font-medium mb-1 uppercase text-xs">Trạng thái</p>
+                        <span className={`inline-flex items-center gap-1.5 font-bold ${viewingUser.status === 'Hoạt động' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          <span className={`w-2 h-2 rounded-full ${viewingUser.status === 'Hoạt động' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                          {viewingUser.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-slate-400 font-medium mb-1 uppercase text-xs">Ngày tham gia</p>
+                        <p className="font-semibold text-slate-700">{viewingUser.joinDate}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-10 text-slate-500">
+                  Không có dữ liệu
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="px-6 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl text-sm hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all"
+              >
+                Đóng
               </button>
             </div>
           </div>
@@ -733,6 +915,47 @@ export default function UserManagement() {
                 <Save size={18} />
                 <span>{showEditModal ? 'Lưu thay đổi' : 'Tạo tài khoản'}</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 overflow-hidden transform transition-all scale-100">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Xác nhận xóa tài khoản?</h3>
+              <p className="text-slate-500 mb-6 text-sm">
+                Hành động này không thể hoàn tác. Để xác nhận, vui lòng nhập email của người dùng <span className="font-bold text-slate-700">{deletingUser.email}</span> vào ô bên dưới.
+              </p>
+
+              <input
+                type="text"
+                value={deleteConfirmationInput}
+                onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+                placeholder="Nhập email xác nhận..."
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none font-medium text-slate-700 transition-all mb-6 text-center placeholder-slate-400"
+              />
+
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => { setShowDeleteModal(false); setDeletingUser(null); }}
+                  className="px-5 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl text-sm hover:bg-slate-200 transition-all"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={deleteConfirmationInput !== deletingUser.email}
+                  className="px-5 py-2.5 bg-rose-600 text-white font-bold rounded-xl text-sm hover:bg-rose-700 shadow-lg shadow-rose-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                >
+                  <Trash2 size={16} />
+                  Xóa người dùng
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -5,11 +5,36 @@ export const getUsers = (params) => {
     return axiosClient.get(url, { params });
 };
 
+
 export const createUser = (data) => {
-    const url = '/api/admin/users';
-    return axiosClient.post(url, data);
+    return axiosClient.post('/api/admin/users', data);
 };
 
+export const createStudent = (data) => {
+    return axiosClient.post('/api/admin/users/students', data);
+};
+
+export const createTeacher = (data) => {
+    return axiosClient.post('/api/admin/users/teachers', data);
+};
+
+export const createAdmin = (data) => {
+    return axiosClient.post('/api/admin/users/admins', data);
+};
+
+export const createManager = (data) => {
+    return axiosClient.post('/api/admin/users/managers', data);
+};
+
+export const getUserById = (id) => {
+    const url = `/api/admin/users/${id}`;
+    return axiosClient.get(url);
+};
+
+export const deleteUser = (id) => {
+    const url = `/api/admin/users/${id}`;
+    return axiosClient.delete(url);
+};
 
 
 export const ROLE_ENUM = {

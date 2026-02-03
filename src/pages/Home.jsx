@@ -449,6 +449,21 @@ function BackgroundAnimations() {
 }
 
 export default function HomePage() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    const role = localStorage.getItem('userRole');
+
+    if (token && role) {
+      const lowerRole = String(role).toLowerCase();
+      if (lowerRole.includes('admin')) navigate('/dashboard/admin');
+      else if (lowerRole.includes('teacher')) navigate('/dashboard/teacher');
+      else if (lowerRole.includes('manager')) navigate('/dashboard/manager');
+      else if (lowerRole.includes('user') || lowerRole.includes('student')) navigate('/dashboard/student');
+    }
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-white overflow-hidden">
       <BackgroundAnimations />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
@@ -28,6 +28,20 @@ export default function Login() {
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        const token = localStorage.getItem('accessToken');
+        const role = localStorage.getItem('userRole');
+
+        if (token && role) {
+            const lowerRole = String(role).toLowerCase();
+            if (lowerRole.includes('admin')) navigate('/dashboard/admin');
+            else if (lowerRole.includes('teacher')) navigate('/dashboard/teacher');
+            else if (lowerRole.includes('manager')) navigate('/dashboard/manager');
+            else if (lowerRole.includes('user') || lowerRole.includes('student')) navigate('/dashboard/student');
+            else navigate('/');
+        }
+    }, [navigate]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;

@@ -1,9 +1,21 @@
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 
 const ProtectedRoute = ({ allowedRoles = [] }) => {
+    const navigate = useNavigate();
     const token = localStorage.getItem('accessToken');
     const userRole = localStorage.getItem('userRole');
+
+    useEffect(() => {
+        const handleStorageChange = (event) => {
+            if (event.key === 'accessToken' && event.newValue === null) {
+                navigate('/login');
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [navigate]);
 
     if (!token) {
         return <Navigate to="/login" replace />;
