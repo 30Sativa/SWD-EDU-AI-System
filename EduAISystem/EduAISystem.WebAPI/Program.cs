@@ -8,7 +8,8 @@ using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-// 🔎 CHECK CONFIG NGAY SAU KHI BUILD CONFIG
+builder.Configuration.AddEnvironmentVariables();
+//  CHECK CONFIG NGAY SAU KHI BUILD CONFIG
 var jwtSection = builder.Configuration.GetSection("Jwt");
 
 Console.WriteLine("===== JWT CONFIG CHECK =====");
@@ -17,7 +18,7 @@ Console.WriteLine("Audience : " + jwtSection["Audience"]);
 Console.WriteLine("Secret   : " + jwtSection["Secret"]);
 Console.WriteLine("============================");
 
-// ❌ nếu thiếu thì cho chết sớm
+//  nếu thiếu thì cho chết sớm
 if (string.IsNullOrWhiteSpace(jwtSection["Secret"]))
 {
     throw new Exception("JWT Secret is missing BEFORE AddAuthentication");
