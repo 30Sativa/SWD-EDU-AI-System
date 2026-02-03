@@ -4,6 +4,7 @@ using EduAISystem.Infrastructure.Persistence.Seed;
 using EduAISystem.WebAPI.Middlewares;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -80,6 +81,8 @@ builder.Services.AddAuthentication("Bearer")
             ValidAudience = jwt["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwt["Secret"]!)),
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role,
 
             // Do not allow clock skew
             ClockSkew = TimeSpan.Zero
