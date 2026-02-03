@@ -25,8 +25,9 @@ namespace EduAISystem.Infrastructure.Security
             var claims = new List<Claim>
         {
             // chuẩn JWT
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role.ToString()),
 
             // custom claim
             new Claim("session_id", sessionId.ToString())

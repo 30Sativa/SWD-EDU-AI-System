@@ -5,6 +5,7 @@ using EduAISystem.Application.Features.Users.DTOs.Response;
 using EduAISystem.Application.Features.Users.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace EduAISystem.WebAPI.Controllers.Admin
 {

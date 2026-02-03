@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EduAISystem.WebAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     [ApiController]
     public class AuthController : ControllerBase
     {
@@ -22,7 +22,6 @@ namespace EduAISystem.WebAPI.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequestDto dto)
         {
-            Console.WriteLine("Login endpoint hit");
             var result = await _meditor.Send(new LoginCommand(dto));
             return Ok(ApiResponse<LoginResponseDto>.Ok(result, "Login successfully"));
         }
@@ -30,7 +29,6 @@ namespace EduAISystem.WebAPI.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequestDto dto)
         {
-            Console.WriteLine("Login endpoint hit");
             var result = await _meditor.Send(new RegisterCommand(dto));
             return Ok(ApiResponse<RegisterResponseDto>.Ok(result, "Register successfully"));
         }
