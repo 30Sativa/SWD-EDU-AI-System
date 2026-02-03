@@ -43,6 +43,10 @@ export const ROLE_ENUM = {
     MANAGER: 3,
 };
 
+export const updateUserProfile = (id, data) => {
+    return axiosClient.put(`/api/admin/users/${id}/profile`, data);
+};
+
 // Đảo ngược để map từ số sang tên hiển thị
 export const getRoleName = (roleId) => {
     switch (roleId) {

@@ -18,6 +18,8 @@ import ClassStudentList from "../features/classes/teacher/pages/ClassStudentList
 import QuestionBank from "../features/question-bank/teacher/pages/QuestionBank";
 import QuestionList from "../features/question-bank/teacher/pages/QuestionList";
 import ManagerDashboard from "../features/dashboard/manager/pages/ManagerDashboard";
+import SubjectManagement from "../features/subject/manager/pages/SubjectManagement";
+import SubjectDetail from "../features/subject/manager/pages/SubjectDetail";
 import CourseDetail from "../features/course/student/pages/CourseDetail";
 import CoursesList from "../features/course/student/pages/CoursesList";
 import LessonDetail from "../features/lesson/student/pages/LessonDetail";
@@ -83,6 +85,8 @@ export default function RouteMap() {
         <Route element={<ProtectedRoute allowedRoles={['manager']} />}>
           <Route path="manager" element={<Sidebar userRole="manager" />}>
             <Route index element={<ManagerDashboard />} />
+            <Route path="subjects" element={<SubjectManagement />} />
+            <Route path="subjects/:id" element={<SubjectDetail />} />
           </Route>
         </Route>
 
