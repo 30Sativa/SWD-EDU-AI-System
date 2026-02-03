@@ -27,6 +27,7 @@ namespace EduAISystem.Infrastructure
             // 2. Repository
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ISubjectRepository, SubjectRepository>();
+            services.AddScoped<ICourseRepository, CourseRepository>();
             services.AddScoped<ILoginSessionRepository, LoginSessionRepository>();
             services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();

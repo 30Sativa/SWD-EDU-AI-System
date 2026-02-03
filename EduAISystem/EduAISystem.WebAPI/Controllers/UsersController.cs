@@ -1,4 +1,5 @@
-﻿using EduAISystem.Application.Features.Users.Queries;
+using EduAISystem.Application.Common.Models;
+using EduAISystem.Application.Features.Users.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,12 +23,12 @@ namespace EduAISystem.WebAPI.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized("UserId not found in token");
+                return Unauthorized(ApiResponse<object>.Fail("Không tìm thấy UserId trong token"));
             var result = await _mediator.Send(
                 new GetCurrentUserQuery(Guid.Parse(userId))
             );
 
-            return Ok(result);
+            return Ok(ApiResponse<object>.Ok(result, "Lấy thông tin người dùng hiện tại thành công"));
         }
     }
 }
