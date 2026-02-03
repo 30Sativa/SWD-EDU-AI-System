@@ -1,4 +1,3 @@
-@ -0,0 +1,71 @@
 namespace EduAISystem.Domain.Entities
 {
     public class GradeLevelDomain
