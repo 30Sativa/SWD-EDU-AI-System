@@ -4,7 +4,6 @@ using EduAISystem.Application.Features.Courses.DTOs.Request;
 using EduAISystem.Application.Features.Courses.DTOs.Response;
 using EduAISystem.Application.Features.Courses.Queries;
 using MediatR;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
