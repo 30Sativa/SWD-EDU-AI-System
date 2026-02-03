@@ -34,6 +34,7 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IClientContext, ClientContext>();
+            services.AddScoped<ISectionRepository, SectionRepository>();
             // 3. Services khác (nếu có)
             // services.AddScoped<IEmailService, EmailService>();
             services.AddHttpContextAccessor();
