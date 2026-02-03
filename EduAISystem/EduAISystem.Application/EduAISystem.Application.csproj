@@ -10,6 +10,9 @@
     <Folder Include="Common\Mappings\" />
     <Folder Include="Features\Auth\Mappings\" />
     <Folder Include="Features\Auth\Queries\" />
+    <Folder Include="Features\Subjects\DTOs\" />
+    <Folder Include="Features\Subjects\Handler\" />
+    <Folder Include="Features\Subjects\Validators\" />
   </ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="FluentValidation" Version="12.1.1" />

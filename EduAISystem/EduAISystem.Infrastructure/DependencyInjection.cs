@@ -1,4 +1,4 @@
-﻿using EduAISystem.Application.Abstractions.Common;
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Infrastructure.Persistence.Context;
@@ -26,6 +26,7 @@ namespace EduAISystem.Infrastructure
 
             // 2. Repository
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<ISubjectRepository, SubjectRepository>();
             services.AddScoped<ILoginSessionRepository, LoginSessionRepository>();
             services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
