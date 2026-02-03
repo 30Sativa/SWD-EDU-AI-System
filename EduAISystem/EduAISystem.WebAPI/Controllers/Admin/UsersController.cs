@@ -10,11 +10,11 @@ namespace EduAISystem.WebAPI.Controllers.Admin
 {
     [Route("api/admin/users")]
     [ApiController]
-    public class UserAccountsController : ControllerBase
+    public class UsersController : ControllerBase
     {
         private readonly IMediator _mediator;
 
-        public UserAccountsController(IMediator mediator)
+        public UsersController(IMediator mediator)
         {
             _mediator = mediator;
         }
@@ -31,7 +31,7 @@ namespace EduAISystem.WebAPI.Controllers.Admin
         {
             var result = await _mediator.Send(new GetUserByIdQuery { Id = id }, cancellationToken);
             if (result == null)
-                return NotFound(ApiResponse<UserDetailResponseDto?>.Ok(null, "Không tìm thấy người dùng"));
+                return NotFound(ApiResponse<UserDetailResponseDto?>.Fail("Không tìm thấy người dùng"));
             return Ok(ApiResponse<UserDetailResponseDto>.Ok(result, "Lấy thông tin người dùng thành công"));
         }
 
@@ -47,7 +47,7 @@ namespace EduAISystem.WebAPI.Controllers.Admin
         {
             var result = await _mediator.Send(new UpdateUserProfileCommand { UserId = id, Request = dto }, cancellationToken);
             if (result == null)
-                return NotFound(ApiResponse<UserDetailResponseDto?>.Ok(null, "Không tìm thấy người dùng"));
+                return NotFound(ApiResponse<UserDetailResponseDto?>.Fail("Không tìm thấy người dùng"));
             return Ok(ApiResponse<UserDetailResponseDto>.Ok(result, "Cập nhật hồ sơ thành công"));
         }
 
@@ -56,7 +56,7 @@ namespace EduAISystem.WebAPI.Controllers.Admin
         {
             var deleted = await _mediator.Send(new SoftDeleteUserCommand { Id = id }, cancellationToken);
             if (!deleted)
-                return NotFound(ApiResponse<object>.Ok(null, "Không tìm thấy người dùng"));
+                return NotFound(ApiResponse<object>.Fail("Không tìm thấy người dùng"));
             return Ok(ApiResponse<object>.Ok(null, "Đã đánh dấu xóa người dùng"));
         }
     }
