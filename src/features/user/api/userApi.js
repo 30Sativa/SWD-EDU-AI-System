@@ -38,9 +38,10 @@ export const deleteUser = (id) => {
 
 
 export const ROLE_ENUM = {
-    USER: 1,
-    ADMIN: 2,
-    MANAGER: 3,
+    ADMIN: 1,
+    MANAGER: 2,
+    TEACHER: 3,
+    STUDENT: 4
 };
 
 export const updateUserProfile = (id, data) => {
@@ -50,9 +51,10 @@ export const updateUserProfile = (id, data) => {
 // Đảo ngược để map từ số sang tên hiển thị
 export const getRoleName = (roleId) => {
     switch (roleId) {
-        case 1: return 'Học viên';
-        case 2: return 'Quản trị viên';
-        case 3: return 'Quản lý';
+        case 1: return 'Quản trị viên';
+        case 2: return 'Quản lý';
+        case 3: return 'Giáo viên';
+        case 4: return 'Học sinh';
         default: return 'Khác';
     }
 };

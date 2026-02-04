@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, Search, Plus, Edit, Trash2, Filter, Download, Upload, FileSpreadsheet, FileText, X, CheckCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Save, Power, PowerOff, MoreVertical, Mail, Shield, Activity, Eye } from 'lucide-react';
+import { Users, Search, Plus, Edit, Trash2, Filter, Download, Upload, FileSpreadsheet, FileText, X, CheckCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Save, Power, PowerOff, MoreVertical, Mail, Shield, Activity, Eye, ChevronDown, User } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { message, Spin } from 'antd';
 import { getUsers, getRoleName, ROLE_ENUM, getUserById, deleteUser, createUser, createStudent, createTeacher, createAdmin, createManager, updateUserProfile } from "../../api/userApi";
@@ -44,8 +44,8 @@ export default function UserManagement() {
         const ROLE_FILTER_MAP = {
           'Quản trị viên': ROLE_ENUM.ADMIN,
           'Quản lý': ROLE_ENUM.MANAGER,
-          'Học sinh': ROLE_ENUM.USER,
-          'Giáo viên': ROLE_ENUM.USER
+          'Học sinh': ROLE_ENUM.STUDENT,
+          'Giáo viên': ROLE_ENUM.TEACHER
         };
 
         const STATUS_FILTER_MAP = {
@@ -312,8 +312,22 @@ export default function UserManagement() {
   };
 
   const handleCreateUser = async () => {
-    if (!formData.name || !formData.email) return message.warning('Vui lòng điền đủ thông tin');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return message.warning('Email không hợp lệ');
+    // Constraint checks
+    if (!formData.name || formData.name.trim().length < 2) {
+      return message.warning('Họ và tên phải có ít nhất 2 ký tự');
+    }
+    if (!formData.email) {
+      return message.warning('Vui lòng nhập địa chỉ email');
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      return message.warning('Định dạng email không hợp lệ (VD: user@example.com)');
+    }
+
+    // Check for duplicate email in local list
+    const isDuplicateEmail = users.some(u => u.email.toLowerCase() === formData.email.trim().toLowerCase());
+    if (isDuplicateEmail) {
+      return message.warning('Email này đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.');
+    }
 
     try {
       setIsLoading(true);
@@ -323,11 +337,11 @@ export default function UserManagement() {
       const ROLE_ID_MAP = {
         'Quản trị viên': ROLE_ENUM.ADMIN,
         'Quản lý': ROLE_ENUM.MANAGER,
-        'Giáo viên': ROLE_ENUM.USER,
-        'Học sinh': ROLE_ENUM.USER
+        'Giáo viên': ROLE_ENUM.TEACHER,
+        'Học sinh': ROLE_ENUM.STUDENT
       };
 
-      const roleId = ROLE_ID_MAP[formData.role] || ROLE_ENUM.USER;
+      const roleId = ROLE_ID_MAP[formData.role] || ROLE_ENUM.STUDENT;
 
       // Sanitize userName: use part before @, remove non-alphanumeric chars
       const safeUserName = formData.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
@@ -341,18 +355,10 @@ export default function UserManagement() {
         Role: roleId
       };
 
-      console.log("Creating user with payload (PascalCase):", payload);
+      console.log("Creating user with payload:", payload);
 
-      // Map role to specific API creation function
-      const CREATE_API_MAP = {
-        'Học sinh': createUser, // Fallback to generic
-        'Giáo viên': createUser, // Fallback to generic
-        'Quản lý': createManager,
-        'Quản trị viên': createAdmin
-      };
-
-      const createApiFn = CREATE_API_MAP[formData.role] || createUser;
-      await createApiFn(payload);
+      // Uniformly use createUser as Role ID is already in payload
+      await createUser(payload);
 
       message.success('Tạo người dùng thành công!');
       setShowCreateModal(false);
@@ -362,27 +368,37 @@ export default function UserManagement() {
     } catch (error) {
       console.error("Create user failed:", error);
 
-      let errorMsg = 'Tạo người dùng thất bại.';
-      let debugInfo = '';
+      let errorMsg = 'Hệ thống đang gặp sự cố, vui lòng thử lại sau.';
 
-      if (error.response?.data) {
-        console.error("Error Response Data:", error.response.data);
-        debugInfo = JSON.stringify(error.response.data, null, 2);
+      if (error.response) {
+        // Server responded with a status code out of 2xx
+        const serverData = error.response.data;
 
-        if (error.response.data.errors) {
-          errorMsg = Object.values(error.response.data.errors).flat().join('\n');
-        } else if (typeof error.response.data === 'string') {
-          errorMsg = error.response.data;
-        } else if (error.response.data.message) {
-          errorMsg = error.response.data.message;
-        } else if (error.response.data.title) {
-          errorMsg = error.response.data.title;
+        if (serverData) {
+          if (serverData.errors) {
+            // Handle ASP.NET Core Validation Errors
+            errorMsg = Object.values(serverData.errors).flat().join(' | ');
+          } else if (serverData.message) {
+            errorMsg = serverData.message;
+          } else if (typeof serverData === 'string') {
+            errorMsg = serverData;
+          } else if (serverData.title) {
+            errorMsg = serverData.title;
+          }
         }
+
+        if (error.response.status === 401) errorMsg = "Phiên làm việc hết hạn, vui lòng đăng nhập lại.";
+        if (error.response.status === 403) errorMsg = "Bạn không có quyền thực hiện hành động này.";
+        if (error.response.status === 409) errorMsg = "Email hoặc Tên đăng nhập đã tồn tại trong hệ thống.";
+        if (error.response.status === 405) errorMsg = "Hệ thống không hỗ trợ phương thức tạo này (405). Hoặc sai đường dẫn API.";
+      } else if (error.request) {
+        // Request was made but no response received
+        errorMsg = "Không thể kết nối tới máy chủ. Vui lòng kiểm tra đường truyền mạng.";
+      } else {
+        errorMsg = error.message || "Lỗi khởi tạo yêu cầu.";
       }
 
-      message.error(errorMsg);
-      // Optional: Alert for immediate visibility if message is missed
-      // alert(`Debug Error: ${debugInfo || error.message}`);
+      message.error(errorMsg, 5);
     } finally {
       setIsLoading(false);
     }
@@ -525,74 +541,88 @@ export default function UserManagement() {
       <div className="max-w-7xl mx-auto space-y-8">
 
         {/* Header Section */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Quản lý Người dùng</h1>
-            <p className="text-slate-500 text-sm mt-1">Quản lý tài khoản, phân quyền và trạng thái hệ thống.</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#0463ca]">Quản lý Người dùng</h1>
+            <p className="text-slate-500 text-sm mt-1 font-medium">Quản trị toàn bộ nhân sự, phân quyền và giám sát trạng thái tài khoản.</p>
           </div>
-          <div className="flex gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-3 w-full md:w-auto">
             <button
               onClick={() => setShowImportModal(true)}
-              className="flex-1 md:flex-none justify-center px-5 py-2.5 bg-white text-[#0487e2] font-semibold rounded-lg border border-[#0487e2] hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2"
+              className="flex-1 md:flex-none justify-center px-6 py-3 bg-white text-[#0487e2] font-bold rounded-xl border-2 border-[#0487e2]/10 hover:border-[#0487e2]/30 hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2 active:scale-95"
             >
-              <Upload size={18} />
-              <span className="whitespace-nowrap">Nhập File</span>
+              <Upload size={18} strokeWidth={2.5} />
+              <span className="whitespace-nowrap uppercase text-xs tracking-wider">Nhập dữ liệu</span>
             </button>
             <button
               onClick={() => {
                 setFormData({ name: '', email: '', role: 'Học sinh', status: 'Hoạt động' });
                 setShowCreateModal(true);
               }}
-              className="flex-1 md:flex-none justify-center px-5 py-2.5 bg-[#0487e2] text-white font-semibold rounded-lg hover:bg-[#0463ca] transition-all shadow-md shadow-[#0487e2]/20 flex items-center gap-2"
+              className="flex-1 md:flex-none justify-center px-6 py-3 bg-[#0487e2] text-white font-bold rounded-xl hover:bg-[#0463ca] transition-all shadow-lg shadow-[#0487e2]/25 flex items-center gap-2 active:scale-95"
             >
-              <Plus size={18} />
-              <span className="whitespace-nowrap">Thêm Người dùng</span>
+              <Plus size={18} strokeWidth={2.5} />
+              <span className="whitespace-nowrap uppercase text-xs tracking-wider">Thêm người dùng</span>
             </button>
           </div>
         </header>
 
         {/* Filters Card */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)]">
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
           <div className="flex flex-col lg:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-[#0487e2] transition-colors" />
               <input
                 type="text"
-                placeholder="Tìm kiếm tên hoặc email..."
+                placeholder="Tìm kiếm theo tên, email hoặc mã định danh..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0487e2]/20 focus:border-[#0487e2] transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0487e2]/10 focus:border-[#0487e2] focus:bg-white transition-all placeholder-slate-400"
               />
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <select
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
-                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0487e2]/20 w-full sm:w-auto"
-              >
-                <option>Tất cả Vai trò</option>
-                <option>Học sinh</option>
-                <option>Giáo viên</option>
-                <option>Quản lý</option>
-                <option>Quản trị viên</option>
-              </select>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0487e2]/20 w-full sm:w-auto"
-              >
-                <option>Tất cả Trạng thái</option>
-                <option>Hoạt động</option>
-                <option>Tạm khóa</option>
-              </select>
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <select
+                  value={filterRole}
+                  onChange={(e) => setFilterRole(e.target.value)}
+                  className="pl-9 pr-8 py-3 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0487e2]/10 focus:border-[#0487e2] transition-all appearance-none cursor-pointer w-full sm:w-[180px]"
+                >
+                  <option>Tất cả Vai trò</option>
+                  <option>Học sinh</option>
+                  <option>Giáo viên</option>
+                  <option>Quản lý</option>
+                  <option>Quản trị viên</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              </div>
+
+              <div className="relative">
+                <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="pl-9 pr-8 py-3 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0487e2]/10 focus:border-[#0487e2] transition-all appearance-none cursor-pointer w-full sm:w-[180px]"
+                >
+                  <option>Tất cả Trạng thái</option>
+                  <option>Hoạt động</option>
+                  <option>Tạm khóa</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              </div>
+
               <div className="relative group w-full sm:w-auto">
-                <button className="w-full sm:w-auto justify-center px-4 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl text-sm hover:bg-slate-200 transition-all flex items-center gap-2">
-                  <Download size={16} />
+                <button className="w-full sm:w-auto justify-center px-5 py-3 bg-[#f0f6fa] text-[#0487e2] font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-[#e0f2fe] transition-all flex items-center gap-2">
+                  <Download size={16} strokeWidth={2.5} />
                   <span>Xuất dữ liệu</span>
                 </button>
-                <div className="absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded-xl shadow-xl z-20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                  <button onClick={handleExportCSV} className="w-full text-left px-4 py-3 text-sm font-semibold hover:bg-slate-50 rounded-t-xl text-slate-700">File CSV</button>
-                  <button onClick={handleExportExcel} className="w-full text-left px-4 py-3 text-sm font-semibold hover:bg-slate-50 rounded-b-xl text-slate-700">File Excel</button>
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all py-2 border-t-4 border-t-[#0487e2]">
+                  <button onClick={handleExportCSV} className="w-full text-left px-4 py-2.5 text-sm font-bold hover:bg-slate-50 text-slate-700 flex items-center gap-2">
+                    <FileText size={16} className="text-slate-400" /> CSV
+                  </button>
+                  <button onClick={handleExportExcel} className="w-full text-left px-4 py-2.5 text-sm font-bold hover:bg-slate-50 text-slate-700 flex items-center gap-2">
+                    <FileSpreadsheet size={16} className="text-slate-400" /> Excel
+                  </button>
                 </div>
               </div>
             </div>
@@ -636,43 +666,57 @@ export default function UserManagement() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredAndSortedUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-50/80 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#f0f6fa] text-[#0487e2] flex items-center justify-center font-bold shadow-sm">
+                    <tr key={user.id} className="hover:bg-slate-50/80 transition-all group">
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black shadow-sm text-lg transition-transform group-hover:scale-110 ${user.role.match(/Admin|Quản trị/) ? 'bg-purple-100 text-purple-700' :
+                            user.role.match(/Manager|Quản lý/) ? 'bg-orange-100 text-orange-700' :
+                              user.role.match(/Teacher|Giáo viên/) ? 'bg-emerald-100 text-emerald-700' :
+                                'bg-[#f0f6fa] text-[#0487e2]'
+                            }`}>
                             {user.name.charAt(0)}
                           </div>
-                          <span className="text-sm font-bold text-slate-900">{user.name}</span>
+                          <div>
+                            <span className="text-sm font-bold text-slate-900 block group-hover:text-[#0487e2] transition-colors">{user.name}</span>
+                            <span className="text-[11px] text-slate-400 font-bold tracking-tight uppercase">Mã: {user.id.toString().slice(0, 8)}...</span>
+                          </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600 font-medium">{user.email}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${user.role.match(/Admin|Quản trị/) ? 'bg-purple-50 text-purple-700 ring-1 ring-purple-100' :
-                          user.role.match(/Manager|Quản lý/) ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-100' :
-                            user.role.match(/Teacher|Giáo viên/) ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' :
-                              'bg-blue-50 text-blue-700 text-center ring-1 ring-blue-100'
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-2">
+                          <Mail size={14} className="text-slate-300" />
+                          <span className="text-sm text-slate-600 font-semibold">{user.email}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 w-fit ${user.role.match(/Admin|Quản trị/) ? 'bg-purple-50 text-purple-700 ring-1 ring-purple-100/50' :
+                          user.role.match(/Manager|Quản lý/) ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-100/50' :
+                            user.role.match(/Teacher|Giáo viên/) ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100/50' :
+                              'bg-blue-50 text-blue-700 ring-1 ring-blue-100/50'
                           }`}>
+                          <Shield size={10} strokeWidth={3} />
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${user.status === 'Hoạt động' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-100'
+                      <td className="px-6 py-5">
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${user.status === 'Hoạt động' ? 'text-emerald-700 bg-emerald-50 ring-1 ring-emerald-100' : 'text-rose-700 bg-rose-50 ring-1 ring-rose-100'
                           }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'Hoạt động' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
                           {user.status}
-                        </span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-3">
-                          <button onClick={() => handleToggleStatus(user)} className="p-2 text-slate-400 hover:text-orange-600 rounded-lg hover:bg-orange-50 transition-colors" title="Đổi trạng thái">
+                      <td className="px-6 py-5">
+                        <div className="flex items-center justify-center gap-1">
+                          <button onClick={() => handleToggleStatus(user)} className="p-2.5 text-slate-400 hover:text-amber-600 rounded-xl hover:bg-amber-50 transition-colors" title="Đổi trạng thái">
                             {user.status === 'Hoạt động' ? <PowerOff size={18} /> : <Power size={18} />}
                           </button>
-                          <button onClick={() => handleViewUser(user)} className="p-2 text-slate-400 hover:text-cyan-600 rounded-lg hover:bg-cyan-50 transition-colors" title="Xem chi tiết">
+                          <button onClick={() => handleViewUser(user)} className="p-2.5 text-slate-400 hover:text-cyan-600 rounded-xl hover:bg-cyan-50 transition-colors" title="Xem chi tiết">
                             <Eye size={18} />
                           </button>
-                          <button onClick={() => handleEditUser(user)} className="p-2 text-slate-400 hover:text-[#0487e2] rounded-lg hover:bg-[#f0f6fa] transition-colors" title="Sửa">
+                          <button onClick={() => handleEditUser(user)} className="p-2.5 text-slate-400 hover:text-[#0487e2] rounded-xl hover:bg-[#f0f6fa] transition-colors" title="Chỉnh sửa">
                             <Edit size={18} />
                           </button>
-                          <button onClick={() => handleDeleteClick(user)} className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors" title="Xóa">
+                          <button onClick={() => handleDeleteClick(user)} className="p-2.5 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 transition-colors" title="Xóa tài khoản">
                             <Trash2 size={18} />
                           </button>
                         </div>
@@ -698,36 +742,41 @@ export default function UserManagement() {
 
       {/* Import Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-slate-200">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-white/20">
+            <div className="flex items-center justify-between p-8 border-b border-slate-100 bg-slate-50/50">
               <div>
-                <h2 className="text-xl font-bold text-[#0463ca]">Nhập Dữ liệu Hệ thống</h2>
-                <p className="text-xs text-slate-500 mt-1">Hỗ trợ định dạng chuẩn .csv, .xlsx, .xls</p>
+                <h2 className="text-2xl font-black text-[#0463ca] tracking-tight">Nhập Dữ liệu Hệ thống</h2>
+                <p className="text-sm text-slate-500 mt-1 font-medium italic">Hỗ trợ các định dạng tiêu chuẩn: .csv, .xlsx, .xls</p>
               </div>
-              <button onClick={() => setShowImportModal(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all">
-                <X size={20} />
+              <button onClick={() => setShowImportModal(false)} className="p-3 text-slate-400 hover:text-slate-600 hover:bg-white rounded-2xl transition-all shadow-sm">
+                <X size={24} strokeWidth={2.5} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center hover:border-[#0487e2] hover:bg-[#f0f6fa]/50 transition-all cursor-pointer group">
+            <div className="flex-1 overflow-y-auto p-8 space-y-8">
+              <div className="border-4 border-dashed border-slate-100 rounded-[2.5rem] p-12 text-center hover:border-[#0487e2]/30 hover:bg-[#f0f6fa]/30 transition-all cursor-pointer group relative overflow-hidden">
                 <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFileSelect} className="hidden" id="file-upload" />
-                <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center gap-4">
+                <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center gap-6 relative z-10">
                   {importFile ? (
                     <>
-                      <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl shadow-sm"><FileSpreadsheet size={40} /></div>
+                      <div className="p-6 bg-white text-[#0487e2] rounded-[2rem] shadow-xl ring-8 ring-[#f0f6fa]"><FileSpreadsheet size={48} strokeWidth={1.5} /></div>
                       <div>
-                        <p className="font-bold text-slate-900">{importFile.name}</p>
-                        <p className="text-xs text-slate-500 mt-1">{(importFile.size / 1024).toFixed(2)} KB • Sẵn sàng xử lý</p>
+                        <p className="font-black text-xl text-slate-900 tracking-tight">{importFile.name}</p>
+                        <p className="text-sm text-emerald-600 font-bold mt-2 flex items-center justify-center gap-2">
+                          <CheckCircle size={16} /> {(importFile.size / 1024 / 1024).toFixed(2)} MB • Sẵn sàng đồng bộ
+                        </p>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="p-4 bg-slate-50 text-slate-400 group-hover:text-[#0487e2] rounded-2xl transition-all"><Upload size={40} /></div>
+                      <div className="p-6 bg-white text-slate-300 group-hover:text-[#0487e2] rounded-[2rem] shadow-lg transition-all group-hover:shadow-blue-100"><Upload size={48} strokeWidth={1.5} /></div>
                       <div>
-                        <p className="font-bold text-slate-900">Kéo thả file vào đây hoặc nhấp để chọn</p>
-                        <p className="text-xs text-slate-500 mt-1">Tối đa 10MB mỗi tệp tin</p>
+                        <p className="font-black text-xl text-slate-900 tracking-tight">Kéo thả hoặc chọn tệp tin</p>
+                        <p className="text-sm text-slate-400 font-medium mt-2">Dung lượng tối đa 10MB cho mỗi lượt tải</p>
+                      </div>
+                      <div className="mt-4 px-6 py-2 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-full group-hover:bg-[#0487e2] group-hover:text-white transition-all">
+                        Browse Files
                       </div>
                     </>
                   )}
@@ -735,20 +784,38 @@ export default function UserManagement() {
               </div>
 
               {importPreview.length > 0 && (
-                <div className="bg-[#f0f6fa] rounded-2xl p-5 border border-[#e0f2fe]">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 font-bold text-[#0463ca]">
-                      <CheckCircle size={18} /> <span>Dữ liệu hợp lệ ({importPreview.length})</span>
+                <div className="bg-slate-50/80 rounded-[2rem] p-6 border border-slate-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center shadow-inner">
+                        <CheckCircle size={20} />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-slate-900 tracking-tight uppercase text-xs">Phân tích dữ liệu</h4>
+                        <p className="text-xs text-slate-500 font-bold tracking-wider uppercase">Đã tìm thấy {importPreview.length} bản ghi hợp lệ</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="overflow-x-auto bg-white rounded-xl border border-slate-100 max-h-64">
-                    <table className="w-full text-xs">
-                      <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0">
-                        <tr><th className="px-4 py-3">Tên</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Vai trò</th></tr>
+                  <div className="overflow-x-auto bg-white rounded-2xl border border-slate-200 shadow-sm max-h-[300px] custom-scrollbar">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 text-slate-400 font-black text-[10px] uppercase tracking-widest sticky top-0 z-10">
+                        <tr>
+                          <th className="px-5 py-4">Họ và tên</th>
+                          <th className="px-5 py-4">Địa chỉ Email</th>
+                          <th className="px-5 py-4">Vai trò</th>
+                        </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
-                        {importPreview.slice(0, 10).map((row, i) => (
-                          <tr key={i}><td className="px-4 py-2 font-bold">{row.name}</td><td className="px-4 py-2">{row.email}</td><td className="px-4 py-2 font-semibold text-[#0487e2]">{row.role}</td></tr>
+                        {importPreview.slice(0, 50).map((row, i) => (
+                          <tr key={i} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-5 py-3.5 font-bold text-slate-800 text-sm">{row.name}</td>
+                            <td className="px-5 py-3.5 font-medium text-slate-500 text-sm italic">{row.email}</td>
+                            <td className="px-5 py-3.5">
+                              <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-[10px] font-black uppercase rounded-lg border border-blue-100 tracking-wider">
+                                {row.role}
+                              </span>
+                            </td>
+                          </tr>
                         ))}
                       </tbody>
                     </table>
@@ -757,10 +824,14 @@ export default function UserManagement() {
               )}
             </div>
 
-            <div className="p-6 bg-slate-50 flex justify-end gap-3 border-t border-slate-100">
-              <button onClick={() => setShowImportModal(false)} className="px-5 py-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-all">Hủy bỏ</button>
-              <button onClick={handleImportConfirm} disabled={importPreview.length === 0} className="px-6 py-2 bg-[#0487e2] text-white font-bold rounded-xl text-sm hover:bg-[#0463ca] shadow-md shadow-[#0487e2]/20 disabled:opacity-50 transition-all">
-                Xác nhận Nhập dữ liệu
+            <div className="p-8 bg-slate-50/50 flex justify-end gap-4 border-t border-slate-100">
+              <button onClick={() => setShowImportModal(false)} className="px-8 py-3 text-sm font-black text-slate-400 hover:text-slate-900 transition-all uppercase tracking-widest">Hủy bỏ</button>
+              <button
+                onClick={handleImportConfirm}
+                disabled={importPreview.length === 0}
+                className="px-10 py-3 bg-[#0487e2] text-white font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-[#0463ca] shadow-xl shadow-[#0487e2]/30 disabled:opacity-50 disabled:grayscale transition-all active:scale-95 flex items-center gap-2"
+              >
+                Xác nhận đồng bộ <ArrowUpDown size={16} strokeWidth={3} />
               </button>
             </div>
           </div>
@@ -769,80 +840,91 @@ export default function UserManagement() {
 
       {/* User Detail Modal */}
       {showDetailModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden scale-100 transition-all">
-            {/* Header */}
-            <div className="relative px-8 py-6 border-b border-slate-100 bg-slate-50/50">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-slate-800">Thông tin chi tiết</h2>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in zoom-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-lg w-full border border-white/20 overflow-hidden">
+            {/* Header with Background Pattern */}
+            <div className="relative px-8 pt-10 pb-20 bg-gradient-to-br from-[#0487e2] to-[#0463ca] text-white">
+              <div className="absolute top-0 right-0 p-8 opacity-10">
+                <Users size={120} />
+              </div>
+              <div className="relative z-10 flex flex-col items-center">
+                <h2 className="text-xl font-black uppercase tracking-[0.2em]">Thông tin Chi tiết</h2>
+                <div className="mt-6 w-24 h-24 bg-white/20 backdrop-blur-md rounded-[2rem] border-4 border-white/30 flex items-center justify-center shadow-2xl relative">
+                  {isLoadingDetail ? <Spin /> : (
+                    <span className="text-4xl font-black">{viewingUser?.fullName?.charAt(0) || viewingUser?.userName?.charAt(0) || 'U'}</span>
+                  )}
+                  <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 border-4 border-white rounded-full flex items-center justify-center shadow-lg">
+                    <Shield size={14} className="text-white" />
+                  </div>
+                </div>
               </div>
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 p-2 rounded-full transition-all"
+                className="absolute top-8 right-8 text-white/70 hover:text-white hover:bg-white/10 p-2 rounded-2xl transition-all"
               >
-                <X size={22} />
+                <X size={24} strokeWidth={2.5} />
               </button>
             </div>
 
-            <div className="p-8">
-              {isLoadingDetail ? (
-                <div className="flex flex-col items-center justify-center py-10">
-                  <Spin />
-                  <p className="mt-4 text-slate-500 text-sm">Đang tải thông tin...</p>
-                </div>
-              ) : viewingUser ? (
-                <div className="space-y-6">
-                  <div className="flex flex-col items-center pb-6 border-b border-slate-50">
-                    <div className="w-20 h-20 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-2xl font-bold mb-3 shadow-inner">
-                      {viewingUser.fullName?.charAt(0) || viewingUser.userName?.charAt(0) || 'U'}
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900">{viewingUser.fullName || viewingUser.userName}</h3>
-                    <p className="text-slate-500 text-sm">{viewingUser.email}</p>
-                    <span className={`mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${viewingUser.roleName === 'Quản trị viên' ? 'bg-purple-100 text-purple-700' :
-                      viewingUser.roleName === 'Quản lý' ? 'bg-orange-100 text-orange-700' :
-                        viewingUser.roleName === 'Giáo viên' ? 'bg-emerald-100 text-emerald-700' :
-                          'bg-blue-100 text-blue-700'
-                      }`}>
-                      {viewingUser.roleName}
-                    </span>
+            <div className="px-8 pb-10 -mt-10 relative z-20">
+              <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-8 space-y-8">
+                {isLoadingDetail ? (
+                  <div className="flex flex-col items-center justify-center py-10 opacity-50 italic">
+                    <p className="text-sm font-bold text-slate-400">Đang truy xuất thông tin...</p>
                   </div>
+                ) : viewingUser ? (
+                  <>
+                    <div className="text-center">
+                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">{viewingUser.fullName || viewingUser.userName}</h3>
+                      <p className="text-slate-400 font-bold text-sm mt-1">{viewingUser.email}</p>
 
-                  <div className="space-y-4 text-sm mt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-slate-400 font-medium mb-1 uppercase text-xs">ID Người dùng</p>
-                        <p className="font-semibold text-slate-700 truncate" title={viewingUser.id}>{viewingUser.id}</p>
+                      <div className="mt-4 inline-flex px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-50 text-slate-500 border border-slate-100">
+                        {viewingUser.roleName}
                       </div>
-                      <div>
-                        <p className="text-slate-400 font-medium mb-1 uppercase text-xs">Trạng thái</p>
-                        <span className={`inline-flex items-center gap-1.5 font-bold ${viewingUser.status === 'Hoạt động' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          <span className={`w-2 h-2 rounded-full ${viewingUser.status === 'Hoạt động' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mã nhân sự</p>
+                        <p className="text-sm font-bold text-slate-700 truncate">{viewingUser.id.toString().slice(0, 15)}...</p>
+                      </div>
+                      <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Trạng thái</p>
+                        <div className={`flex items-center gap-2 text-sm font-black uppercase tracking-wider ${viewingUser.status === 'Hoạt động' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          <div className={`w-2 h-2 rounded-full ${viewingUser.status === 'Hoạt động' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></div>
                           {viewingUser.status}
-                        </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-slate-400 font-medium mb-1 uppercase text-xs">Ngày tham gia</p>
-                        <p className="font-semibold text-slate-700">{viewingUser.joinDate}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-10 text-slate-500">
-                  Không có dữ liệu
-                </div>
-              )}
-            </div>
 
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="px-6 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl text-sm hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all"
-              >
-                Đóng
-              </button>
+                    <div className="flex items-center gap-3 p-4 bg-[#f0f6fa]/50 rounded-2xl border border-blue-50">
+                      <Mail size={18} className="text-[#0487e2]" />
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Email liên hệ</p>
+                        <p className="text-sm font-bold text-slate-700">{viewingUser.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 flex items-center justify-between text-xs text-slate-400 font-bold border-t border-slate-50">
+                      <span className="flex items-center gap-1"><Activity size={14} /> Gia nhập:</span>
+                      <span className="text-slate-900 italic uppercase">{viewingUser.joinDate}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-10 text-slate-300 font-black italic">
+                    DỮ LIỆU KHÔNG KHẢ DỤNG
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="px-12 py-3 bg-slate-900 text-white font-black rounded-2xl text-xs uppercase tracking-[0.2em] hover:bg-black shadow-xl shadow-slate-200 transition-all active:scale-95"
+                >
+                  Hoàn tất
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -850,97 +932,101 @@ export default function UserManagement() {
 
       {/* Create/Edit Modal */}
       {(showCreateModal || showEditModal) && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden scale-100 transition-all">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-lg w-full border border-white/20 overflow-hidden transform transition-all">
             {/* Header */}
-            <div className="relative px-8 py-6 border-b border-slate-100 bg-slate-50/50">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-slate-800">
-                  {showEditModal ? 'Cập nhật Thông tin' : 'Thêm Người dùng Mới'}
+            <div className="relative px-10 py-8 border-b border-slate-50 bg-[#f8fafc]/50">
+              <div className="flex flex-col items-center">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-inner ${showEditModal ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                  {showEditModal ? <Edit size={28} /> : <Plus size={28} />}
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                  {showEditModal ? 'Cập nhật thành viên' : 'Hồ sơ nhân sự mới'}
                 </h2>
-                <p className="text-sm text-slate-500 font-medium mt-1">
-                  {showEditModal ? 'Chỉnh sửa thông tin thành viên hiện tại' : 'Tạo hồ sơ thành viên mới vào hệ thống'}
+                <p className="text-sm text-slate-400 font-bold mt-1 uppercase tracking-wider">
+                  {showEditModal ? 'Mã định danh: ' + editingUser.id.toString().slice(0, 8) : 'Thiết lập tham số hệ thống'}
                 </p>
               </div>
               <button
                 onClick={() => { setShowCreateModal(false); setShowEditModal(false); }}
-                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 p-2 rounded-full transition-all"
+                className="absolute top-8 right-10 text-slate-300 hover:text-slate-600 hover:bg-white rounded-2xl p-2 transition-all shadow-sm"
               >
-                <X size={22} />
+                <X size={24} strokeWidth={2.5} />
               </button>
             </div>
 
             {/* Body */}
-            <div className="p-8 space-y-6">
-              <div className="space-y-4">
+            <div className="p-10 space-y-6">
+              <div className="space-y-5">
                 {/* Name Input */}
                 <div className="group">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider ml-1">Họ và tên</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-[0.1em] ml-4 transition-colors group-focus-within:text-[#0487e2]">Họ và tên hiển thị</label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#0487e2] transition-colors">
-                      <Users size={18} />
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-300 group-focus-within:text-[#0487e2] transition-all">
+                      <User size={20} strokeWidth={2.5} />
                     </div>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0487e2]/20 focus:border-[#0487e2] outline-none font-semibold text-slate-700 transition-all placeholder-slate-400"
-                      placeholder="Nhập tên hiển thị..."
+                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#0487e2]/5 focus:border-[#0487e2] outline-none font-black text-slate-800 transition-all placeholder-slate-200 text-sm"
+                      placeholder="NGUYỄN VĂN A"
                     />
                   </div>
                 </div>
 
                 {/* Email Input */}
                 <div className="group">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider ml-1">Email định danh</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-[0.1em] ml-4 transition-colors group-focus-within:text-[#0487e2]">Định danh Email</label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#0487e2] transition-colors">
-                      <Mail size={18} />
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-300 group-focus-within:text-[#0487e2] transition-all">
+                      <Mail size={20} strokeWidth={2.5} />
                     </div>
                     <input
                       type="email"
                       value={formData.email}
+                      disabled={showEditModal}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0487e2]/20 focus:border-[#0487e2] outline-none font-medium text-slate-700 transition-all placeholder-slate-400"
-                      placeholder="user@example.com"
+                      className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#0487e2]/5 focus:border-[#0487e2] outline-none font-bold text-slate-800 transition-all placeholder-slate-200 text-sm disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      placeholder="EXAMPLE@DOMAIN.COM"
                     />
                   </div>
                 </div>
 
                 {/* Row: Role & Status */}
-                <div className="grid grid-cols-2 gap-5">
+                <div className="grid grid-cols-2 gap-6">
                   <div className="group">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider ml-1">Vai trò</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-[0.1em] ml-4 transition-colors group-focus-within:text-[#0487e2]">Phân quyền</label>
                     <div className="relative">
                       <select
                         value={formData.role}
                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#0487e2]/20 focus:border-[#0487e2] appearance-none transition-all cursor-pointer hover:bg-white"
+                        className="w-full px-5 py-4 bg-slate-50/50 border-2 border-slate-100 rounded-2xl text-sm font-black text-slate-700 outline-none focus:ring-4 focus:ring-[#0487e2]/5 focus:border-[#0487e2] appearance-none transition-all cursor-pointer hover:bg-white uppercase tracking-wider"
                       >
                         <option value="Học sinh">Học sinh</option>
                         <option value="Giáo viên">Giáo viên</option>
                         <option value="Quản lý">Quản lý</option>
                         <option value="Quản trị viên">Quản trị viên</option>
                       </select>
-                      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 bg-transparent">
-                        <ArrowDown size={16} strokeWidth={2.5} />
+                      <div className="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#0487e2]">
+                        <ChevronDown size={20} strokeWidth={3} />
                       </div>
                     </div>
                   </div>
 
                   <div className="group">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider ml-1">Trạng thái</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-[0.1em] ml-4 transition-colors group-focus-within:text-[#0487e2]">Tình trạng</label>
                     <div className="relative">
                       <select
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#0487e2]/20 focus:border-[#0487e2] appearance-none transition-all cursor-pointer hover:bg-white"
+                        className="w-full px-5 py-4 bg-slate-50/50 border-2 border-slate-100 rounded-2xl text-sm font-black text-slate-700 outline-none focus:ring-4 focus:ring-[#0487e2]/5 focus:border-[#0487e2] appearance-none transition-all cursor-pointer hover:bg-white uppercase tracking-wider"
                       >
                         <option value="Hoạt động">Hoạt động</option>
                         <option value="Tạm khóa">Tạm khóa</option>
                       </select>
-                      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 bg-transparent">
-                        <ArrowDown size={16} strokeWidth={2.5} />
+                      <div className="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#0487e2]">
+                        <ChevronDown size={20} strokeWidth={3} />
                       </div>
                     </div>
                   </div>
@@ -949,19 +1035,20 @@ export default function UserManagement() {
             </div>
 
             {/* Footer */}
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+            <div className="p-10 bg-[#f8fafc]/50 border-t border-slate-50 flex justify-end gap-5">
               <button
                 onClick={() => { setShowCreateModal(false); setShowEditModal(false); }}
-                className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-200 rounded-xl transition-all"
+                className="px-8 py-3 text-xs font-black text-slate-400 hover:text-slate-900 transition-all uppercase tracking-[0.2em]"
               >
                 Hủy bỏ
               </button>
               <button
-                onClick={showEditModal ? handleUpdateUser : handleCreateUser}
-                className={`px-8 py-2.5 text-white font-bold rounded-xl text-sm shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2 transform active:scale-95 ${showEditModal ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#0487e2] hover:bg-[#0463ca]'}`}
+                disabled={isLoading}
+                onClick={showEditModal ? handleSaveEdit : handleCreateUser}
+                className={`px-12 py-3 text-white font-black rounded-2xl text-xs uppercase tracking-[0.2em] shadow-2xl transition-all flex items-center gap-3 transform active:scale-95 disabled:opacity-50 disabled:cursor-wait ${showEditModal ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' : 'bg-[#0487e2] hover:bg-[#0463ca] shadow-blue-200'}`}
               >
-                <Save size={18} />
-                <span>{showEditModal ? 'Lưu thay đổi' : 'Tạo tài khoản'}</span>
+                {isLoading ? <Spin size="small" /> : <Save size={18} strokeWidth={2.5} />}
+                <span>{isLoading ? 'Đang xử lý...' : (showEditModal ? 'Cập nhật' : 'Khởi tạo')}</span>
               </button>
             </div>
           </div>
@@ -969,39 +1056,43 @@ export default function UserManagement() {
       )}
       {/* Delete Confirmation Modal */}
       {showDeleteModal && deletingUser && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 overflow-hidden transform transition-all scale-100">
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertCircle size={32} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in zoom-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full border border-white/20 overflow-hidden transform transition-all scale-100">
+            <div className="relative px-8 pt-12 pb-8 text-center">
+              <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner ring-8 ring-rose-50/50">
+                <AlertCircle size={40} strokeWidth={2.5} />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Xác nhận xóa tài khoản?</h3>
-              <p className="text-slate-500 mb-6 text-sm">
-                Hành động này không thể hoàn tác. Để xác nhận, vui lòng nhập email của người dùng <span className="font-bold text-slate-700">{deletingUser.email}</span> vào ô bên dưới.
+              <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Xóa tài khoản vĩnh viễn?</h3>
+              <p className="text-slate-400 font-bold mb-8 text-xs uppercase tracking-widest leading-relaxed">
+                Hành động này <span className="text-rose-600">không thể hoàn tác</span>. Vui lòng xác nhận email bên dưới:
+                <br />
+                <span className="text-slate-900 text-sm lowercase mt-2 block tracking-normal">{deletingUser.email}</span>
               </p>
 
-              <input
-                type="text"
-                value={deleteConfirmationInput}
-                onChange={(e) => setDeleteConfirmationInput(e.target.value)}
-                placeholder="Nhập email xác nhận..."
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none font-medium text-slate-700 transition-all mb-6 text-center placeholder-slate-400"
-              />
+              <div className="relative mb-8 group">
+                <input
+                  type="text"
+                  value={deleteConfirmationInput}
+                  onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+                  placeholder="Nhập email để xác nhận..."
+                  className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none font-bold text-slate-800 transition-all text-center placeholder-slate-200 text-sm"
+                />
+              </div>
 
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={() => { setShowDeleteModal(false); setDeletingUser(null); }}
-                  className="px-5 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl text-sm hover:bg-slate-200 transition-all"
-                >
-                  Hủy bỏ
-                </button>
+              <div className="flex flex-col gap-3">
                 <button
                   onClick={handleConfirmDelete}
                   disabled={deleteConfirmationInput !== deletingUser.email}
-                  className="px-5 py-2.5 bg-rose-600 text-white font-bold rounded-xl text-sm hover:bg-rose-700 shadow-lg shadow-rose-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  className="w-full py-4 bg-rose-600 text-white font-black rounded-2xl text-xs uppercase tracking-[0.2em] hover:bg-rose-700 shadow-xl shadow-rose-200 disabled:opacity-50 disabled:grayscale transition-all flex items-center justify-center gap-3 active:scale-95"
                 >
-                  <Trash2 size={16} />
-                  Xóa người dùng
+                  <Trash2 size={18} strokeWidth={2.5} />
+                  Xác nhận xóa tài khoản
+                </button>
+                <button
+                  onClick={() => { setShowDeleteModal(false); setDeletingUser(null); }}
+                  className="w-full py-3 bg-white text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:text-slate-900 transition-all"
+                >
+                  Tôi muốn giữ lại tài khoản này
                 </button>
               </div>
             </div>
