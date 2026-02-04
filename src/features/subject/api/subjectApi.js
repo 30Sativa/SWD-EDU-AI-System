@@ -15,3 +15,4 @@ export const getSubjectById = (id) => {
 export const updateSubject = (id, data) => {
     return axiosClient.put(`/api/manager/subjects/${id}`, data);
 };
+

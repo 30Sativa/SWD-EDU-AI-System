@@ -59,3 +59,7 @@ export const getRoleName = (roleId) => {
     }
 };
 
+export const getCurrentUser = () => {
+    return axiosClient.get('/api/users/me');
+};
+
