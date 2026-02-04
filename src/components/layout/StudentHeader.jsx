@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, LogOut, Search, GraduationCap } from 'lucide-react';
 import { message } from 'antd';
+import { getCurrentUser } from '../../features/user/api/userApi';
 
 export default function StudentHeader() {
     const location = useLocation();
@@ -10,12 +11,31 @@ export default function StudentHeader() {
     const BASE_PATH = '/dashboard/student';
 
     React.useEffect(() => {
-        const storedName = localStorage.getItem('userName');
-        const storedRole = localStorage.getItem('userRole');
-        setUser({
-            name: storedName || 'User',
-            role: storedRole || 'Student'
-        });
+        const fetchUser = async () => {
+            try {
+                const response = await getCurrentUser();
+                const userData = response?.data || response;
+                if (userData) {
+                    setUser({
+                        name: userData.userName || 'User',
+                        role: userData.roleName || 'Student'
+                    });
+                    if (userData.userName) {
+                        localStorage.setItem('userName', userData.userName);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch user profile:', error);
+                // Fallback to localStorage
+                const storedName = localStorage.getItem('userName');
+                const storedRole = localStorage.getItem('userRole');
+                setUser({
+                    name: storedName || 'User',
+                    role: storedRole || 'Student'
+                });
+            }
+        };
+        fetchUser();
     }, []);
 
     const navItems = [
@@ -92,7 +112,7 @@ export default function StudentHeader() {
 
                     <div className="h-8 w-px bg-gray-200/60 mx-1"></div>
 
-                    <div className="flex items-center gap-3 cursor-pointer group">
+                    <Link to={`${BASE_PATH}/profile`} className="flex items-center gap-3 cursor-pointer group no-underline">
                         <div className="text-right hidden sm:block">
                             <p className="text-sm font-bold text-gray-800 leading-none group-hover:text-blue-600 transition-colors">{user.name}</p>
                             <p className="text-[11px] text-gray-500 mt-0.5 font-medium">{user.role}</p>
@@ -100,7 +120,7 @@ export default function StudentHeader() {
                         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-white group-hover:ring-blue-100 transition-all">
                             {getInitials(user.name)}
                         </div>
-                    </div>
+                    </Link>
 
                     <button
                         onClick={handleLogout}

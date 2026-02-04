@@ -102,7 +102,7 @@ export default function Sidebar({ userRole = 'teacher' }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <Header userRole={detectedRole} />
+        <Header userRole={detectedRole} basePath={BASE_PATH} />
         <main className="flex-1 overflow-auto bg-gray-50 p-6">
           <Outlet />
         </main>

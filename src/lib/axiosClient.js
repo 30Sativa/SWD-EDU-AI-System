@@ -33,6 +33,11 @@ axiosClient.interceptors.response.use(
     (error) => {
         if (error.response && error.response.status === 401) {
             console.log("Token hết hạn hoặc không hợp lệ");
+            localStorage.clear();
+            // Chỉ redirect nếu không phải đang ở trang login
+            if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+            }
         }
         throw error;
     }

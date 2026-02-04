@@ -9,13 +9,31 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { message } from 'antd';
+import { getCurrentUser } from '../../user/api/userApi';
 
-export default function Header({ userRole }) {
+export default function Header({ userRole, basePath }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
 
-  // Get user info from localStorage
-  const userName = localStorage.getItem('userName') || 'User';
+  // Get user info from API
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await getCurrentUser();
+        const userData = response?.data || response;
+        setCurrentUser(userData);
+        if (userData?.userName) {
+          localStorage.setItem('userName', userData.userName);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const userName = currentUser?.userName || localStorage.getItem('userName') || 'User';
 
   const getRoleLabel = (role) => {
     switch (role) {
@@ -28,7 +46,7 @@ export default function Header({ userRole }) {
   };
 
   const handleLogout = () => {
-    localStorage.clear(); // Clear all data to be safe
+    localStorage.clear();
     message.success('Đăng xuất thành công');
     navigate('/');
   };
@@ -77,7 +95,7 @@ export default function Header({ userRole }) {
                   <p className="text-sm font-semibold text-gray-900">{userName}</p>
                   <p className="text-xs text-gray-500">{getRoleLabel(userRole)}</p>
                 </div>
-                <Link to="/profile" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                <Link to={`${basePath}/profile`} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
                   <User size={16} /> Hồ sơ
                 </Link>
                 <Link to="/settings" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
