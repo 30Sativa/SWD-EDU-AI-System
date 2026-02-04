@@ -20,12 +20,14 @@ import QuestionList from "../features/question-bank/teacher/pages/QuestionList";
 import ManagerDashboard from "../features/dashboard/manager/pages/ManagerDashboard";
 import SubjectManagement from "../features/subject/manager/pages/SubjectManagement";
 import SubjectDetail from "../features/subject/manager/pages/SubjectDetail";
+import GradeManagement from "../features/grade/manager/pages/GradeManagement";
 import CourseDetail from "../features/course/student/pages/CourseDetail";
 import CoursesList from "../features/course/student/pages/CoursesList";
 import LessonDetail from "../features/lesson/student/pages/LessonDetail";
 import QuizList from "../features/quiz/student/pages/QuizList";
 import QuizDetail from "../features/quiz/student/pages/QuizDetail";
 import StudentProgress from "../features/progress/student/pages/StudentProgress";
+import Profile from "../features/user/pages/Profile";
 
 // Admin routes (using features/)
 import AdminDashboard from "../features/dashboard/admin/pages/AdminDashboard";
@@ -65,6 +67,7 @@ export default function RouteMap() {
             <Route path="classes" element={<ClassManagement />} />
             <Route path="question-bank" element={<QuestionBank />} />
             <Route path="question-bank/:folderId" element={<QuestionList />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Route>
 
@@ -78,6 +81,7 @@ export default function RouteMap() {
             <Route path="quizzes" element={<QuizList />} />
             <Route path="quizzes/:quizId" element={<QuizDetail />} />
             <Route path="progress" element={<StudentProgress />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Route>
 
@@ -87,6 +91,8 @@ export default function RouteMap() {
             <Route index element={<ManagerDashboard />} />
             <Route path="subjects" element={<SubjectManagement />} />
             <Route path="subjects/:id" element={<SubjectDetail />} />
+            <Route path="grades" element={<GradeManagement />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Route>
 
@@ -99,6 +105,7 @@ export default function RouteMap() {
             <Route path="notifications" element={<NotificationManagement />} />
             <Route path="audit-logs" element={<AuditLogManagement />} />
             <Route path="settings" element={<SystemSettings />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Route>
 
