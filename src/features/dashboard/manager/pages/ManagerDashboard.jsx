@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Plus,
   MoreVertical,
@@ -7,17 +7,16 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Minus,
-  Bot,
-  CheckSquare,
-  PenTool,
-  BarChart2,
-  ChevronRight
 } from 'lucide-react';
 import {
   AreaChart,
   Area,
   ResponsiveContainer,
 } from 'recharts';
+import { getSubjects } from '../../../subject/api/subjectApi';
+import { getClasses } from '../../../classes/api/classApi';
+import { getUsers } from '../../../user/api/userApi';
+import { getGradeLevels } from '../../../grade/api/gradeApi';
 
 // --- DATA ---
 const subjectGrowthData = [{ v: 40 }, { v: 55 }, { v: 45 }, { v: 60 }, { v: 75 }, { v: 65 }, { v: 85 }];
@@ -25,81 +24,18 @@ const courseCloneData = [{ v: 20 }, { v: 35 }, { v: 50 }, { v: 45 }, { v: 60 }, 
 const questionBankData = [{ v: 45 }, { v: 50 }, { v: 48 }, { v: 55 }, { v: 52 }, { v: 65 }, { v: 70 }];
 const teacherData = [{ v: 30 }, { v: 32 }, { v: 35 }, { v: 38 }, { v: 40 }, { v: 41 }, { v: 42 }];
 
-const stats = [
-  {
-    label: 'Tổng Môn học',
-    value: '124',
-    change: '12%',
-    trend: 'up',
-    data: subjectGrowthData,
-    color: '#0487e2', // Primary
-    bgBadge: 'bg-[#e0f2fe] text-[#09b1ec]'
-  },
-  {
-    label: 'Khóa học Đang hoạt động',
-    value: '3',
-    change: '0%',
-    trend: 'neutral',
-    data: courseCloneData,
-    color: '#10b981', // Emerald
-    bgBadge: 'bg-gray-100 text-gray-500'
-  },
-  {
-    label: 'Bài học Đã xuất bản',
-    value: '35',
-    change: '5%',
-    trend: 'up',
-    data: questionBankData,
-    color: '#6366f1', // Indigo
-    bgBadge: 'bg-green-50 text-green-600'
-  },
-  {
-    label: 'Giáo viên',
-    value: '42',
-    change: '2%',
-    trend: 'down',
-    data: teacherData,
-    color: '#f59e0b', // Amber
-    bgBadge: 'bg-red-50 text-red-600'
+const StatusBadge = ({ status, isActive }) => {
+  // Map simplified status or isActive boolean to display style
+  let displayStatus = 'Draft';
+
+  if (status) {
+    displayStatus = status;
+  } else if (isActive === true) {
+    displayStatus = 'Published';
+  } else if (isActive === false) {
+    displayStatus = 'Locked';
   }
-];
 
-const subjects = [
-  {
-    id: 'MAT10',
-    name: 'Toán học - Lớp 10',
-    grade: 'Khối 10',
-    modules: 12,
-    status: 'Published',
-    clones: 45
-  },
-  {
-    id: 'PHY12',
-    name: 'Vật lý - Lớp 12',
-    grade: 'Khối 12',
-    modules: 8,
-    status: 'Locked',
-    clones: 120
-  },
-  {
-    id: 'ENG11',
-    name: 'Tiếng Anh Giao tiếp',
-    grade: 'Khối 11',
-    modules: 15,
-    status: 'Draft',
-    clones: 0
-  },
-  {
-    id: 'CHE10',
-    name: 'Hóa học Cơ bản',
-    grade: 'Khối 10',
-    modules: 10,
-    status: 'Published',
-    clones: 32
-  },
-];
-
-const StatusBadge = ({ status }) => {
   const styles = {
     Published: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100',
     Draft: 'bg-slate-50 text-slate-600 ring-1 ring-slate-200',
@@ -112,16 +48,18 @@ const StatusBadge = ({ status }) => {
     Locked: 'Đã khóa'
   };
 
+  // Fallback if status string doesn't match keys
+  const statusKey = styles[displayStatus] ? displayStatus : (isActive ? 'Published' : 'Draft');
+
   return (
-    <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${styles[status]}`}>
-      {labels[status]}
+    <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${styles[statusKey]}`}>
+      {labels[statusKey] || displayStatus}
     </span>
   );
 };
 
-// --- COMPONENT STAT CARD (Đã fix lỗi màu đen bằng cách dùng index) ---
+// --- COMPONENT STAT CARD ---
 const StatCard = ({ label, value, trend, change, data, color, bgBadge, index }) => {
-  // Dùng index để tạo ID duy nhất, tránh lỗi font tiếng Việt làm hỏng gradient
   const gradientId = `gradient-chart-${index}`;
 
   return (
@@ -144,7 +82,7 @@ const StatCard = ({ label, value, trend, change, data, color, bgBadge, index }) 
         <h3 className="text-4xl font-extrabold text-slate-900 tracking-tight">{value}</h3>
       </div>
 
-      {/* Chart: Copy y chang style Teacher (opacity-30, h-16) */}
+      {/* Chart */}
       <div className="absolute bottom-0 left-0 right-0 h-16 opacity-30 group-hover:opacity-50 transition-opacity">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
@@ -170,6 +108,136 @@ const StatCard = ({ label, value, trend, change, data, color, bgBadge, index }) 
 };
 
 export default function ManagerDashboard() {
+  const [statsData, setStatsData] = useState({
+    totalSubjects: 0,
+    activeCourses: 0,
+    publishedLessons: 0,
+    teachers: 0
+  });
+  const [subjects, setSubjects] = useState([]);
+  const [grades, setGrades] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Execute calls in parallel
+        // Note: Role 3 is 'Teacher' / 'Giáo viên'
+        const [subjectsRes, classesRes, teachersRes, gradesRes] = await Promise.all([
+          getSubjects(),
+          getClasses(),
+          getUsers({ RoleFilter: 3, PageSize: 100 }),
+          getGradeLevels()
+        ]);
+
+        console.log('Dashboard Data Loaded:', { subjectsRes, classesRes, teachersRes, gradesRes });
+
+        // Helpers to normalize data structure
+        // Many APIs wrap arrays in { data: items } or { items: [] } or just return the array
+        const extractList = (res) => {
+          if (!res) return [];
+          if (Array.isArray(res)) return res;
+          if (Array.isArray(res.items)) return res.items;
+          if (res.data && Array.isArray(res.data.items)) return res.data.items;
+          if (res.data && Array.isArray(res.data)) return res.data;
+          // Fallback checks
+          if (res.result && Array.isArray(res.result)) return res.result;
+          return [];
+        };
+
+        const rawSubjects = extractList(subjectsRes);
+        const rawClasses = extractList(classesRes);
+        const rawTeachers = extractList(teachersRes);
+        const rawGrades = extractList(gradesRes);
+
+        console.log('Extracted Arrays:', { rawSubjects, rawClasses, rawTeachers, rawGrades });
+
+        // Grade Map: ID -> Name
+        const gradeMap = {};
+        rawGrades.forEach(g => {
+          gradeMap[g.id] = g.name;
+        });
+        setGrades(gradeMap);
+
+        // Calculate Stats
+        const totalSubjects = rawSubjects.length;
+
+        // Count active classes
+        const activeCourses = rawClasses.filter(c => c.isActive !== false).length;
+
+        // Approximate lessons/modules count
+        // Check for common property names: modules, chaptersCount, lessonCount
+        const publishedLessons = rawSubjects.reduce((acc, sub) => {
+          const count = sub.modules || sub.chaptersCount || sub.lessonCount || 0;
+          return acc + count;
+        }, 0);
+
+        // Teacher count
+        // For getUsers, sometimes total is in the meta object, otherwise use array length
+        let teacherCount = rawTeachers.length;
+        if (teachersRes?.data?.total !== undefined) teacherCount = teachersRes.data.total;
+        else if (teachersRes?.total !== undefined) teacherCount = teachersRes.total;
+
+        setStatsData({
+          totalSubjects,
+          activeCourses,
+          publishedLessons,
+          teachers: teacherCount
+        });
+
+        // Update Subjects List (take top 5-10 for dashboard if needed, or all)
+        setSubjects(rawSubjects.slice(0, 10));
+
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const stats = [
+    {
+      label: 'Tổng Môn học',
+      value: loading ? '...' : statsData.totalSubjects,
+      change: '12%',
+      trend: 'up',
+      data: subjectGrowthData,
+      color: '#0487e2', // Primary
+      bgBadge: 'bg-[#e0f2fe] text-[#09b1ec]'
+    },
+    {
+      label: 'Khóa học Đang hoạt động',
+      value: loading ? '...' : statsData.activeCourses,
+      change: '0%',
+      trend: 'neutral',
+      data: courseCloneData,
+      color: '#10b981', // Emerald
+      bgBadge: 'bg-gray-100 text-gray-500'
+    },
+    {
+      label: 'Bài học Đã xuất bản',
+      value: loading ? '...' : statsData.publishedLessons,
+      change: '5%',
+      trend: 'up',
+      data: questionBankData,
+      color: '#6366f1', // Indigo
+      bgBadge: 'bg-green-50 text-green-600'
+    },
+    {
+      label: 'Giáo viên',
+      value: loading ? '...' : statsData.teachers,
+      change: '2%',
+      trend: 'down',
+      data: teacherData,
+      color: '#f59e0b', // Amber
+      bgBadge: 'bg-red-50 text-red-600'
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-800">
 
@@ -189,7 +257,6 @@ export default function ManagerDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => (
-          // Truyền index vào để fix lỗi ID gradient
           <StatCard key={index} index={index} {...stat} />
         ))}
       </div>
@@ -224,26 +291,44 @@ export default function ManagerDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {subjects.map((sub, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-slate-900 text-sm">{sub.name}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{sub.modules} chương mục</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-700">{sub.grade}</td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-700">
-                        {sub.clones} lớp
-                      </td>
-                      <td className="px-6 py-4">
-                        <StatusBadge status={sub.status} />
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button className="p-2 text-slate-400 hover:text-slate-900 rounded-full hover:bg-slate-100">
-                          <MoreVertical size={16} />
-                        </button>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="5" className="px-6 py-10 text-center text-slate-400">
+                        Đang tải dữ liệu...
                       </td>
                     </tr>
-                  ))}
+                  ) : subjects.length > 0 ? (
+                    subjects.map((sub, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-slate-900 text-sm">{sub.name}</div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {sub.modules || sub.chaptersCount || 0} chương mục
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium text-slate-700">
+                          {grades[sub.gradeId] || grades[sub.gradeLevelId] || `Khối ${sub.gradeId || '?'}`}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium text-slate-700">
+                          {sub.usageCount || 0} lớp
+                        </td>
+                        <td className="px-6 py-4">
+                          <StatusBadge status={sub.status} isActive={sub.isActive} />
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button className="p-2 text-slate-400 hover:text-slate-900 rounded-full hover:bg-slate-100">
+                            <MoreVertical size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="px-6 py-8 text-center text-slate-500">
+                        Chưa có môn học nào.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

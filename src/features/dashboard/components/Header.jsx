@@ -23,7 +23,10 @@ export default function Header({ userRole, basePath }) {
         const response = await getCurrentUser();
         const userData = response?.data || response;
         setCurrentUser(userData);
-        userData?.userName && localStorage.setItem('userName', userData.userName);
+
+        // Prioritize full name for display
+        const nameToStore = userData?.fullName || userData?.profile?.fullName || userData?.userName;
+        if (nameToStore) localStorage.setItem('userName', nameToStore);
       } catch (error) {
         console.error('Failed to fetch user:', error);
       }
@@ -31,7 +34,8 @@ export default function Header({ userRole, basePath }) {
     fetchUser();
   }, []);
 
-  const userName = currentUser?.userName || localStorage.getItem('userName') || 'User';
+  // Determine display name: State > LocalStorage > Default
+  const userName = currentUser?.fullName || currentUser?.profile?.fullName || currentUser?.userName || localStorage.getItem('userName') || 'User';
 
   const getRoleLabel = (role) => {
     const labels = {

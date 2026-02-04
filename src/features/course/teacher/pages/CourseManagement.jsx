@@ -1,62 +1,41 @@
 import { Search, Plus, Filter, LayoutGrid, List, Users, BookOpen, Clock, ArrowRight, MoreVertical, GraduationCap } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getMyCourses } from '../../api/courseApi';
+import { Spin, Empty } from 'antd';
 
 const CourseList = () => {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('grid');
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const courses = [
-    {
-      id: 1,
-      title: 'Đại số Tuyến tính Nâng cao & Ứng dụng trong AI',
-      category: 'Toán học',
-      students: 128,
-      lessons: 24,
-      duration: '32h',
-      status: 'published',
-      lastUpdated: '2 giờ trước',
-    },
-    {
-      id: 2,
-      title: 'Master Python: Từ Zero đến Kỹ sư Phần mềm',
-      category: 'CNTT',
-      students: 450,
-      lessons: 112,
-      duration: '45h',
-      status: 'published',
-      lastUpdated: '1 ngày trước',
-    },
-    {
-      id: 3,
-      title: 'Văn học Anh: Phân tích tác phẩm Shakespeare',
-      category: 'Văn học',
-      students: 0,
-      lessons: 5,
-      duration: '8h',
-      status: 'draft',
-      lastUpdated: '5 phút trước',
-    },
-    {
-      id: 4,
-      title: 'Nguyên lý Kế toán Doanh nghiệp (GAAP)',
-      category: 'Kinh tế',
-      students: 85,
-      lessons: 30,
-      duration: '21h',
-      status: 'archived',
-      lastUpdated: '1 tháng trước',
-    },
-    {
-      id: 5,
-      title: 'Adobe Photoshop CC 2024 Masterclass',
-      category: 'Thiết kế',
-      students: 210,
-      lessons: 18,
-      duration: '15h',
-      status: 'published',
-      lastUpdated: '3 ngày trước',
-    },
-  ];
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        const res = await getMyCourses();
+        const data = res?.data?.items || res?.data || res?.items || res || [];
+        setCourses(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Lỗi khi tải danh sách khóa học:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center space-y-4">
+          <Spin size="large" />
+          <p className="text-gray-500 font-medium animate-pulse">Đang tải danh sách khóa học của bạn...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto min-h-screen animate-fade-in font-sans text-gray-900">
@@ -68,16 +47,19 @@ const CourseList = () => {
             <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Quản Lý Khóa Học</h1>
             <p className="text-gray-500 font-medium text-lg">Quản lý nội dung đào tạo và theo dõi hiệu suất.</p>
           </div>
-          <button className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 shadow-lg hover:shadow-blue-500/30 transition-all active:scale-95">
+          <button
+            onClick={() => navigate('/dashboard/teacher/courses/create')}
+            className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 shadow-lg hover:shadow-blue-500/30 transition-all active:scale-95"
+          >
             <Plus size={20} />
             Tạo khóa học mới
           </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-          <StatCard label="Tổng khóa học" value="12" subtext="2 bản nháp đang chờ" icon={BookOpen} color="blue" />
-          <StatCard label="Tổng học viên" value="873" subtext="+24% so với tháng trước" icon={Users} color="emerald" />
-          <StatCard label="Thời lượng nội dung" value="156h" subtext="Trung bình 13h/khóa" icon={Clock} color="purple" />
+          <StatCard label="Tổng khóa học" value={courses.length} subtext="Khóa học đang quản lý" icon={BookOpen} color="blue" />
+          <StatCard label="Tổng học viên" value={courses.reduce((acc, c) => acc + (c.enrollmentCount || 0), 0)} subtext="Trên tất cả khóa học" icon={Users} color="emerald" />
+          <StatCard label="Tổng bài học" value={courses.reduce((acc, c) => acc + (c.totalLessons || 0), 0)} subtext="Tổng nội dung" icon={Clock} color="purple" />
         </div>
       </div>
 
@@ -117,13 +99,29 @@ const CourseList = () => {
 
       {/* Grid */}
       <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-        {courses.map((course) => (
-          <CourseCard key={course.id} course={course} viewMode={viewMode} />
-        ))}
+        {courses.length > 0 ? (
+          courses.map((course) => (
+            <CourseCard key={course.id} course={course} viewMode={viewMode} />
+          ))
+        ) : (
+          <div className="col-span-full py-20 bg-white rounded-3xl border border-dashed border-gray-200 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">
+              <BookOpen size={32} className="text-gray-300" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">Chưa có khóa học nào</h3>
+            <p className="text-gray-500 max-w-xs mx-auto mt-1">Bắt đầu bằng cách tạo khóa học đầu tiên của bạn để chia sẻ kiến thức.</p>
+            <button
+              onClick={() => navigate('/dashboard/teacher/courses/create')}
+              className="mt-6 flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md"
+            >
+              <Plus size={18} /> Tạo ngay
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="mt-12 text-center text-sm text-gray-500 font-medium">
-        Hiển thị 5 trên 12 khóa học
+        Hiển thị {courses.length} khóa học
       </div>
 
     </div>
@@ -157,21 +155,25 @@ const CourseCard = ({ course, viewMode }) => {
   const isGrid = viewMode === 'grid';
   const navigate = useNavigate();
 
+  // Normalize status for UI
+  const status = course.status?.toLowerCase() || 'draft';
+  const displayStatus = status === 'active' || status === 'published' ? 'published' : status;
+
   return (
     <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden
       ${isGrid ? 'flex flex-col p-6' : 'flex items-center p-5 gap-6'}`
     }>
 
       {/* Accent Bar */}
-      <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${course.status === 'published' ? 'from-blue-500 to-blue-400' :
-        course.status === 'draft' ? 'from-amber-400 to-yellow-400' : 'from-gray-300 to-gray-200'
+      <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${displayStatus === 'published' ? 'from-blue-500 to-blue-400' :
+        displayStatus === 'draft' ? 'from-amber-400 to-yellow-400' : 'from-gray-300 to-gray-200'
         }`}></div>
 
       {isGrid && (
         <>
           <div className="flex justify-between items-start mb-5 mt-2">
             <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full uppercase tracking-wider">
-              {course.category}
+              {course.subject?.name || course.category || 'Khóa học'}
             </span>
             <button className="text-gray-400 hover:text-gray-700 transition-colors p-1 hover:bg-gray-100 rounded-full">
               <MoreVertical size={20} />
@@ -185,23 +187,23 @@ const CourseCard = ({ course, viewMode }) => {
             <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-500">
               <div className="flex items-center gap-1.5">
                 <Users size={16} className="text-gray-400" />
-                <span>{course.students}</span>
+                <span>{course.enrollmentCount || 0}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <BookOpen size={16} className="text-gray-400" />
-                <span>{course.lessons} bài</span>
+                <span>{course.totalLessons || 0} bài</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock size={16} className="text-gray-400" />
-                <span>{course.duration}</span>
+                <span>{course.totalDuration || 0}m</span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center justify-between pt-5 border-t border-gray-50">
             <div>
-              <StatusBadge status={course.status} />
-              <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wide">Cập nhật {course.lastUpdated}</p>
+              <StatusBadge status={displayStatus} />
+              <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wide">Mã: {course.code}</p>
             </div>
 
             <button
@@ -217,15 +219,15 @@ const CourseCard = ({ course, viewMode }) => {
 
       {!isGrid && (
         <>
-          <div className={`w-1.5 self-stretch rounded-full mr-2 ${course.status === 'published' ? 'bg-blue-500' :
-            course.status === 'draft' ? 'bg-amber-400' : 'bg-gray-300'
+          <div className={`w-1.5 self-stretch rounded-full mr-2 ${displayStatus === 'published' ? 'bg-blue-500' :
+            displayStatus === 'draft' ? 'bg-amber-400' : 'bg-gray-300'
             }`}></div>
 
           <div className="flex-1 min-w-0 grid grid-cols-12 gap-6 items-center">
             <div className="col-span-5 pr-4">
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{course.category}</span>
-                <StatusBadge status={course.status} small />
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{course.subject?.name || course.category || 'Khóa học'}</span>
+                <StatusBadge status={displayStatus} small />
               </div>
               <h3 className="font-bold text-lg text-gray-900 truncate group-hover:text-blue-600 transition-colors">{course.title}</h3>
             </div>
@@ -233,20 +235,20 @@ const CourseCard = ({ course, viewMode }) => {
             <div className="col-span-5 flex items-center gap-8 text-sm font-medium text-gray-600">
               <div className="flex flex-col gap-0.5">
                 <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">Học viên</span>
-                <div className="flex items-center gap-1.5"><Users size={16} className="text-gray-400" /> {course.students}</div>
+                <div className="flex items-center gap-1.5"><Users size={16} className="text-gray-400" /> {course.enrollmentCount || 0}</div>
               </div>
               <div className="flex flex-col gap-0.5">
                 <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">Bài học</span>
-                <div className="flex items-center gap-1.5"><BookOpen size={16} className="text-gray-400" /> {course.lessons}</div>
+                <div className="flex items-center gap-1.5"><BookOpen size={16} className="text-gray-400" /> {course.totalLessons || 0}</div>
               </div>
               <div className="flex flex-col gap-0.5">
                 <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">Thời lượng</span>
-                <div className="flex items-center gap-1.5"><Clock size={16} className="text-gray-400" /> {course.duration}</div>
+                <div className="flex items-center gap-1.5"><Clock size={16} className="text-gray-400" /> {course.totalDuration || 0}m</div>
               </div>
             </div>
 
             <div className="col-span-2 text-right">
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">{course.lastUpdated}</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Mã: {course.code}</p>
             </div>
           </div>
 
