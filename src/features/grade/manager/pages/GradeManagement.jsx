@@ -1,44 +1,87 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit, Hash, Settings } from 'lucide-react';
-import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, Switch } from 'antd';
+import { Plus, Search, Edit, Layers, BookOpen, Filter, School, Trash2, X } from 'lucide-react';
+import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, Switch, Select, Tabs } from 'antd';
 import {
     getGradeLevels,
     createGradeLevel,
     updateGradeLevel,
     changeGradeLevelStatus
 } from '../../api/gradeApi';
+import {
+    getClasses,
+    createClass
+} from '../../../classes/api/classApi';
+import { Users, Calendar } from 'lucide-react';
+import { getUsers, ROLE_ENUM } from '../../../user/api/userApi';
+import axiosClient from '../../../../lib/axiosClient';
 
 export default function GradeManagement() {
-    const [grades, setGrades] = useState([]);
+    const [activeTab, setActiveTab] = useState('1'); // '1': Grades, '2': Classes
+
+    // Common State
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Data State
+    const [grades, setGrades] = useState([]);
+    const [teachers, setTeachers] = useState([]);
+    const [terms, setTerms] = useState([]);
+
+    const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
     const [editingGrade, setEditingGrade] = useState(null);
-    const [submitting, setSubmitting] = useState(false);
+    const [gradeSubmitting, setGradeSubmitting] = useState(false);
+
+    // Class State
+    const [classes, setClasses] = useState([]);
+    const [isClassModalOpen, setIsClassModalOpen] = useState(false);
+    const [classSubmitting, setClassSubmitting] = useState(false);
+    const [filterGradeId, setFilterGradeId] = useState('All');
+
     const [statusUpdating, setStatusUpdating] = useState(null);
     const [form] = Form.useForm();
+    const [classForm] = Form.useForm();
 
-    const fetchGrades = useCallback(async () => {
+    // Fetch Data
+    const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await getGradeLevels();
-            const data = response?.data?.items || response?.items || response?.data || response || [];
-            setGrades(Array.isArray(data) ? data : []);
+            const [gradeRes, classRes, teacherRes, termRes] = await Promise.all([
+                getGradeLevels(),
+                getClasses(),
+                getUsers({ RoleFilter: ROLE_ENUM.TEACHER, PageSize: 100 }),
+                axiosClient.get('/api/semesters') // Assuming API endpoint for terms/semesters
+                    .catch(() => ({ data: [] })) // Fail gracefully
+            ]);
+
+            const gradeData = gradeRes?.data?.items || gradeRes?.items || gradeRes?.data || gradeRes || [];
+            const classData = classRes?.data?.items || classRes?.items || classRes?.data || classRes || [];
+
+            // Handle Teachers
+            const teacherItems = teacherRes?.data?.items || teacherRes?.items || teacherRes?.data || teacherRes || [];
+            setTeachers(Array.isArray(teacherItems) ? teacherItems : []);
+
+            // Handle Terms
+            const termItems = termRes?.data?.items || termRes?.items || termRes?.data || termRes || [];
+            setTerms(Array.isArray(termItems) ? termItems : []);
+
+            setGrades(Array.isArray(gradeData) ? gradeData : []);
+            setClasses(Array.isArray(classData) ? classData : []);
         } catch (error) {
-            console.error('Lỗi khi tải danh sách khối lớp:', error);
-            message.error('Không thể kết nối máy chủ để tải danh sách khối lớp');
+            console.error('Lỗi khi tải dữ liệu:', error);
+            message.error('Không thể kết nối máy chủ để tải dữ liệu');
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchGrades();
-    }, [fetchGrades]);
+        fetchData();
+    }, [fetchData]);
 
-    const handleOpenModal = (grade = null) => {
+    // --- HANDLERS ---
+    const handleOpenGradeModal = (grade = null) => {
+        setEditingGrade(grade);
         if (grade) {
-            setEditingGrade(grade);
             form.setFieldsValue({
                 code: grade.code,
                 name: grade.name,
@@ -46,39 +89,15 @@ export default function GradeManagement() {
                 sortOrder: grade.sortOrder
             });
         } else {
-            setEditingGrade(null);
             form.resetFields();
             form.setFieldsValue({ sortOrder: 0 });
         }
-        setIsModalOpen(true);
+        setIsGradeModalOpen(true);
     };
 
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setEditingGrade(null);
-        form.resetFields();
-    };
-
-    const handleToggleStatus = async (id) => {
+    const handleGradeSubmit = async (values) => {
         try {
-            setStatusUpdating(id);
-            await changeGradeLevelStatus(id);
-            message.success('Đã cập nhật trạng thái khối lớp');
-
-            // Optimistic update
-            setGrades(prev => prev.map(g =>
-                g.id === id ? { ...g, isActive: !g.isActive } : g
-            ));
-        } catch (error) {
-            message.error(error.response?.data?.message || 'Không thể đổi trạng thái');
-        } finally {
-            setStatusUpdating(null);
-        }
-    };
-
-    const handleSubmit = async (values) => {
-        try {
-            setSubmitting(true);
+            setGradeSubmitting(true);
             if (editingGrade) {
                 await updateGradeLevel(editingGrade.id, values);
                 message.success('Cập nhật khối lớp thành công!');
@@ -86,219 +105,464 @@ export default function GradeManagement() {
                 await createGradeLevel(values);
                 message.success('Thêm khối lớp mới thành công!');
             }
-            handleCloseModal();
-            fetchGrades();
+            setIsGradeModalOpen(false);
+            fetchData();
         } catch (error) {
-            console.error('Lỗi lưu khối lớp:', error);
-            message.error(error.response?.data?.message || 'Có lỗi xảy ra trong quá trình xử lý');
+            message.error(error.response?.data?.message || 'Có lỗi xảy ra');
         } finally {
-            setSubmitting(false);
+            setGradeSubmitting(false);
         }
     };
 
+    const handleToggleGradeStatus = async (id) => {
+        try {
+            setStatusUpdating(id);
+            await changeGradeLevelStatus(id);
+            message.success('Cập nhật trạng thái khối thành công');
+            setGrades(prev => prev.map(g => g.id === id ? { ...g, isActive: !g.isActive } : g));
+        } catch (error) {
+            message.error('Không thể đổi trạng thái');
+        } finally {
+            setStatusUpdating(null);
+        }
+    };
+
+    const handleOpenClassModal = () => {
+        classForm.resetFields();
+        classForm.setFieldsValue({ maxStudents: 40 });
+        setIsClassModalOpen(true);
+    };
+
+    const handleClassSubmit = async (values) => {
+        try {
+            setClassSubmitting(true);
+            // Payload transformation if necessary
+            const payload = {
+                ...values,
+                maxStudents: parseInt(values.maxStudents)
+            };
+            await createClass(payload);
+            message.success('Tạo lớp học mới thành công!');
+            setIsClassModalOpen(false);
+            fetchData();
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Có lỗi xảy ra');
+        } finally {
+            setClassSubmitting(false);
+        }
+    };
+
+    // --- FILTERS ---
     const filteredGrades = grades.filter(item =>
         item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.code?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const columns = [
+    const filteredClasses = classes.filter(item => {
+        const matchesSearch = item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.code?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesGrade = filterGradeId === 'All' || item.gradeLevelId === filterGradeId || item.gradeId === filterGradeId;
+        return matchesSearch && matchesGrade;
+    });
+
+    // --- COLUMNS ---
+    const gradeColumns = [
         {
-            title: 'Tên Khối/Lớp',
+            title: 'THÔNG TIN KHỐI',
             dataIndex: 'name',
             key: 'name',
-            render: (text) => (
-                <span className="font-bold text-slate-700">{text}</span>
+            render: (text, record) => (
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0487e2] flex items-center justify-center font-bold shadow-sm">
+                        {record.code?.replace(/[^0-9]/g, '') || 'K'}
+                    </div>
+                    <div>
+                        <div className="font-bold text-slate-700 text-[15px]">{text}</div>
+                        <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{record.code}</div>
+                    </div>
+                </div>
             )
         },
         {
-            title: 'Mã định danh',
-            dataIndex: 'code',
-            key: 'code',
-            render: (code) => (
-                <Tag className="rounded-md font-mono font-bold border-none bg-slate-100 text-slate-500 uppercase px-2 py-0.5">
-                    {code}
-                </Tag>
-            )
+            title: 'LỚP TRỰC THUỘC',
+            key: 'classes',
+            render: (_, record) => {
+                const gradeClasses = classes.filter(c => c.gradeLevelId === record.id || c.gradeId === record.id);
+                return (
+                    <div className="flex items-center gap-2">
+                        <Tag color={gradeClasses.length > 0 ? "blue" : "default"} className="font-semibold border-0 m-0">
+                            {gradeClasses.length} Lớp
+                        </Tag>
+                        {gradeClasses.length > 0 && (
+                            <span className="text-xs text-slate-400 font-medium">
+                                ({gradeClasses.filter(c => c.isActive).length} hoạt động)
+                            </span>
+                        )}
+                    </div>
+                );
+            }
         },
         {
-            title: 'Mô tả',
-            dataIndex: 'description',
-            key: 'description',
-            render: (desc) => <span className="text-slate-500 text-sm italic">{desc || 'Chưa có mô tả'}</span>
-        },
-        {
-            title: 'Thứ tự',
+            title: 'ƯU TIÊN',
             dataIndex: 'sortOrder',
-            key: 'sortOrder',
             align: 'center',
-            render: (order) => <span className="font-medium text-slate-500">{order || 0}</span>
+            render: (v) => <div className="w-8 h-8 mx-auto rounded-full bg-slate-50 flex items-center justify-center text-slate-500 font-bold text-xs">{v}</div>
         },
         {
-            title: 'Trạng thái',
+            title: 'TRẠNG THÁI',
             dataIndex: 'isActive',
-            key: 'isActive',
             align: 'center',
             render: (isActive, record) => (
-                <Switch
-                    size="small"
-                    checked={isActive}
-                    loading={statusUpdating === record.id}
-                    onChange={() => handleToggleStatus(record.id)}
-                    className={isActive ? 'bg-[#0487e2]' : ''}
-                />
+                <div onClick={(e) => e.stopPropagation()}>
+                    <Switch
+                        size="small"
+                        checked={isActive}
+                        loading={statusUpdating === record.id}
+                        onChange={() => handleToggleGradeStatus(record.id)}
+                        className={isActive ? 'bg-[#0487e2]' : 'bg-slate-300'}
+                    />
+                </div>
             )
         },
         {
-            title: 'Thao tác',
+            title: 'TÁC VỤ',
             key: 'action',
             align: 'right',
             render: (_, record) => (
-                <div className="flex items-center justify-end gap-1">
-                    <Tooltip title="Chỉnh sửa">
-                        <Button
-                            type="text"
-                            icon={<Edit size={16} />}
-                            className="text-slate-400 hover:text-[#0487e2]"
-                            onClick={() => handleOpenModal(record)}
-                        />
-                    </Tooltip>
+                <Tooltip title="Chỉnh sửa">
+                    <Button
+                        type="text"
+                        shape="circle"
+                        icon={<Edit size={16} />}
+                        className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 transition-colors"
+                        onClick={() => handleOpenGradeModal(record)}
+                    />
+                </Tooltip>
+            )
+        }
+    ];
+
+    const classColumns = [
+        {
+            title: 'THÔNG TIN LỚP',
+            dataIndex: 'name',
+            key: 'name',
+            render: (text, record) => (
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-sm">
+                        {record.code?.replace(/[^0-9]/g, '') || 'K'}
+                    </div>
+                    <div>
+                        <div className="font-bold text-slate-700 text-[15px]">{text}</div>
+                        <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{record.code}</div>
+                    </div>
                 </div>
+            )
+        },
+        {
+            title: 'THUỘC KHỐI',
+            key: 'grade',
+            render: (_, record) => {
+                const grade = grades.find(g => g.id === record.gradeLevelId || g.id === record.gradeId);
+                return grade ? (
+                    <Tag color="cyan" className="font-semibold border-0 m-0">
+                        {grade.name}
+                    </Tag>
+                ) : <span className="text-slate-400 text-xs italic">-- Chưa phân khối --</span>;
+            }
+        },
+        {
+            title: 'HỌC KỲ',
+            key: 'term',
+            render: (_, record) => {
+                const term = terms.find(t => t.id === record.termId);
+                return term ? (
+                    <div className="flex items-center gap-2 text-slate-600 font-bold text-xs uppercase bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
+                        <Calendar size={14} className="text-slate-400" />
+                        {term.code || term.name}
+                    </div>
+                ) : <span className="text-slate-400 text-xs italic">--</span>;
+            }
+        },
+        {
+            title: 'GIÁO VIÊN',
+            key: 'teacher',
+            render: (_, record) => {
+                // Try to find teacher name from the record or look it up in the teachers list if we have IDs
+                const teacherName = record.homeroomTeacherName ||
+                    record.teacherName ||
+                    teachers.find(t => t.id === record.teacherId)?.fullName;
+
+                return (
+                    <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                            <Users size={14} />
+                        </div>
+                        <span className="font-medium text-slate-600 text-sm">
+                            {teacherName || <span className="text-slate-400 italic font-normal">Chưa phân công</span>}
+                        </span>
+                    </div>
+                );
+            }
+        },
+        {
+            title: 'SĨ SỐ',
+            dataIndex: 'studentCount',
+            key: 'students',
+            render: (count, record) => {
+                const current = count || 0;
+                const max = record.maxStudents || record.maxStudent || 40;
+                return (
+                    <div className="text-sm font-medium text-slate-600">
+                        {current} / {max}
+                    </div>
+                )
+            }
+        },
+        {
+            title: 'TRẠNG THÁI',
+            dataIndex: 'isActive',
+            align: 'center',
+            render: (isActive) => (
+                <Tag color={isActive ? "success" : "default"} className="border-0 m-0">
+                    {isActive ? "Đang hoạt động" : "Ngừng hoạt động"}
+                </Tag>
             )
         }
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-800">
-            <div className="max-w-6xl mx-auto space-y-8">
-                {/* Header Section */}
-                <header className="flex flex-row justify-between items-center mb-10">
+        <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
+            <div className="max-w-6xl mx-auto space-y-6">
+
+                {/* Header */}
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Quản lý Khối lớp</h1>
-                        <p className="text-slate-500 text-sm mt-1">Thiết lập các cấp độ học tập cho hệ thống.</p>
+                        <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Quản lý Khối & Lớp</h1>
+                        <p className="text-slate-500 text-sm mt-1 font-medium">Cấu trúc tổ chức lớp học và phân cấp trong nhà trường.</p>
                     </div>
                     <Button
                         type="primary"
-                        size="large"
                         icon={<Plus size={18} />}
-                        onClick={() => handleOpenModal()}
-                        className="bg-[#0487e2] hover:bg-[#0463ca] h-11 px-6 rounded-lg font-semibold shadow-md border-none flex items-center"
+                        onClick={() => activeTab === '1' ? handleOpenGradeModal() : handleOpenClassModal()}
+                        className="bg-[#0487e2] hover:bg-[#0374c4] h-11 px-6 rounded-lg font-bold shadow-md border-none flex items-center"
                     >
-                        Thêm Khối lớp
+                        {activeTab === '1' ? 'Thêm Khối mới' : 'Thêm Lớp mới'}
                     </Button>
                 </header>
 
-                {/* Filters Section */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] p-4">
-                    <div className="flex flex-col md:flex-row gap-4">
-                        <Input
-                            placeholder="Tìm kiếm khối lớp theo mã hoặc tên..."
-                            prefix={<Search size={18} className="text-slate-400" />}
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            className="flex-1 h-11 rounded-lg border-slate-200 focus:border-[#0487e2] shadow-none"
-                            allowClear
+                {/* Main Content with Tabs */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="px-4 pt-2">
+                        <Tabs
+                            activeKey={activeTab}
+                            onChange={setActiveTab}
+                            items={[
+                                {
+                                    key: '1',
+                                    label: (
+                                        <span className="flex items-center gap-2 px-1">
+                                            <Layers size={16} />
+                                            Danh sách Khối
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    key: '2',
+                                    label: (
+                                        <span className="flex items-center gap-2 px-1">
+                                            <BookOpen size={16} />
+                                            Danh sách Lớp học
+                                        </span>
+                                    ),
+                                }
+                            ]}
                         />
                     </div>
-                </div>
 
-                {/* Table Content */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] overflow-hidden">
+                    {/* Toolbar inside the card, below tabs */}
+                    <div className="px-4 py-3 bg-slate-50/50 border-t border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center">
+                        <div className="text-sm font-medium text-slate-500 pl-2">
+                            Hiển thị {activeTab === '1' ? filteredGrades.length : filteredClasses.length} kết quả
+                        </div>
+                        <div className="flex gap-3 w-full md:w-auto">
+                            <Input
+                                placeholder={activeTab === '1' ? "Tìm kiếm khối..." : "Tìm kiếm lớp..."}
+                                prefix={<Search size={16} className="text-slate-400" />}
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="h-9 w-full md:w-64 rounded-lg border-slate-200"
+                            />
+                            {activeTab === '2' && (
+                                <Select
+                                    value={filterGradeId}
+                                    onChange={setFilterGradeId}
+                                    className="w-40 h-9"
+                                    options={[
+                                        { value: 'All', label: 'Tất cả Khối' },
+                                        ...grades.map(g => ({ value: g.id, label: g.name }))
+                                    ]}
+                                />
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Data Table */}
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-24">
                             <Spin size="large" />
-                            <p className="mt-4 text-slate-500 font-medium">Đang tải dữ liệu khối lớp...</p>
-                        </div>
-                    ) : filteredGrades.length === 0 ? (
-                        <div className="py-20 text-center">
-                            <Empty description={<span className="text-slate-400">Chưa có dữ liệu khối lớp nào</span>} />
+                            <p className="mt-4 text-slate-500 font-medium">Đang tải dữ liệu...</p>
                         </div>
                     ) : (
                         <Table
-                            columns={columns}
-                            dataSource={filteredGrades}
+                            columns={activeTab === '1' ? gradeColumns : classColumns}
+                            dataSource={activeTab === '1' ? filteredGrades : filteredClasses}
                             rowKey="id"
                             pagination={{ pageSize: 12, showSizeChanger: false }}
                             className="custom-table"
+                            locale={{
+                                emptyText: <Empty description="Chưa có dữ liệu" />
+                            }}
                         />
                     )}
                 </div>
             </div>
 
-            {/* Modal Setup */}
+            {/* Modal: Grade */}
             <Modal
-                title={
-                    <div className="flex items-center gap-2 text-[#0463ca] uppercase text-xs font-black tracking-widest pt-2">
-                        {editingGrade ? <Settings size={16} /> : <Plus size={16} />}
-                        {editingGrade ? 'Cập nhật thông tin khối lớp' : 'Thêm cấu hình khối lớp mới'}
-                    </div>
-                }
-                open={isModalOpen}
-                onCancel={handleCloseModal}
+                title={null}
+                open={isGradeModalOpen}
+                onCancel={() => setIsGradeModalOpen(false)}
                 footer={null}
                 centered
-                width={500}
+                width={480}
+                closeIcon={<div className="p-1.5 bg-slate-100 rounded-full text-slate-500 hover:bg-rose-50 hover:text-rose-500 transition-colors"><X size={18} /></div>}
                 className="custom-modal"
             >
-                <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={handleSubmit}
-                    className="pt-6"
-                >
-                    <div className="grid grid-cols-2 gap-4">
-                        <Form.Item
-                            label={<span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Mã khối lớp</span>}
-                            name="code"
-                            rules={[{ required: true, message: 'Vui lòng nhập mã' }]}
-                        >
-                            <Input
-                                disabled={!!editingGrade}
-                                placeholder="VD: G10"
-                                className="h-11 rounded-lg font-bold uppercase disabled:bg-slate-50"
-                                prefix={<Hash size={16} className="text-slate-400" />}
-                            />
-                        </Form.Item>
-
-                        <Form.Item
-                            label={<span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Thứ tự ưu tiên</span>}
-                            name="sortOrder"
-                        >
-                            <Input type="number" placeholder="0" className="h-11 rounded-lg" />
-                        </Form.Item>
+                <div className="pt-6 px-2">
+                    <div className="mb-6 text-center">
+                        <div className="w-12 h-12 bg-blue-50 text-[#0487e2] rounded-2xl flex items-center justify-center mx-auto mb-3">
+                            <Layers size={24} />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800">
+                            {editingGrade ? "Cập nhật Khối lớp" : "Thêm Khối lớp mới"}
+                        </h3>
+                        <p className="text-slate-500 text-sm mt-1">Điền thông tin khối lớp bên dưới</p>
                     </div>
 
-                    <Form.Item
-                        label={<span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Tên Khối/Lớp (Việt hóa)</span>}
-                        name="name"
-                        rules={[{ required: true, message: 'Vui lòng nhập tên' }]}
-                    >
-                        <Input placeholder="VD: Khối lớp 10" className="h-11 rounded-lg font-bold" />
-                    </Form.Item>
+                    <Form form={form} layout="vertical" onFinish={handleGradeSubmit} className="space-y-4">
+                        <Form.Item label="Mã Khối" name="code" rules={[{ required: true, message: 'Nhập mã khối' }]}>
+                            <Input className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" placeholder="VD: G10" />
+                        </Form.Item>
+                        <Form.Item label="Tên Khối" name="name" rules={[{ required: true, message: 'Nhập tên khối' }]}>
+                            <Input className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" placeholder="VD: Khối 10" />
+                        </Form.Item>
+                        <div className="grid grid-cols-2 gap-4">
+                            <Form.Item label="Thứ tự" name="sortOrder">
+                                <Input type="number" className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" />
+                            </Form.Item>
+                            <Form.Item label="Mô tả" name="description">
+                                <Input className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" />
+                            </Form.Item>
+                        </div>
 
-                    <Form.Item
-                        label={<span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Thông tin mô tả</span>}
-                        name="description"
-                    >
-                        <Input.TextArea rows={3} placeholder="Mô tả tóm tắt về khối lớp này..." className="rounded-lg" />
-                    </Form.Item>
+                        <div className="flex gap-3 pt-2">
+                            <Button className="flex-1 h-11 rounded-xl font-semibold border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => setIsGradeModalOpen(false)}>Hủy bỏ</Button>
+                            <Button type="primary" htmlType="submit" loading={gradeSubmitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold shadow-lg shadow-blue-200 border-none">Lưu Thay Đổi</Button>
+                        </div>
+                    </Form>
+                </div>
+            </Modal>
 
-                    <div className="flex gap-3 pt-4">
-                        <Button
-                            onClick={handleCloseModal}
-                            className="flex-1 rounded-lg h-11 font-bold text-slate-400 border-none bg-slate-100 hover:bg-slate-200"
-                        >
-                            Hủy bỏ
-                        </Button>
-                        <Button
-                            type="primary"
-                            htmlType="submit"
-                            loading={submitting}
-                            className="flex-1 bg-[#0487e2] h-11 rounded-lg font-bold uppercase text-xs tracking-widest shadow-md shadow-[#0487e2]/20 border-none"
-                        >
-                            {editingGrade ? 'Lưu cập nhật' : 'Xác nhận tạo'}
-                        </Button>
+            {/* Modal: Class */}
+            <Modal
+                title={null}
+                open={isClassModalOpen}
+                onCancel={() => setIsClassModalOpen(false)}
+                footer={null}
+                centered
+                width={550}
+                closeIcon={<div className="p-1.5 bg-slate-100 rounded-full text-slate-500 hover:bg-rose-50 hover:text-rose-500 transition-colors"><X size={18} /></div>}
+            >
+                <div className="pt-6 px-2">
+                    <div className="mb-6 text-center">
+                        <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                            <School size={24} />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800">Thêm Lớp học mới</h3>
+                        <p className="text-slate-500 text-sm mt-1">Tạo lớp học mới cho năm học hiện tại</p>
                     </div>
-                </Form>
+
+                    <Form form={classForm} layout="vertical" onFinish={handleClassSubmit} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <Form.Item label="Mã Lớp" name="code" rules={[{ required: true, message: 'Nhập mã lớp' }]}>
+                                <Input className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" placeholder="VD: 10A1" />
+                            </Form.Item>
+                            <Form.Item label="Sĩ số tối đa" name="maxStudents">
+                                <Input type="number" className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" placeholder="40" />
+                            </Form.Item>
+                        </div>
+
+                        <Form.Item label="Thuộc Học Kỳ" name="termId" rules={[{ required: true, message: 'Vui lòng chọn học kỳ' }]}>
+                            <Select
+                                placeholder="Chọn học kỳ"
+                                className="h-11 [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent [&>.ant-select-selector]:!h-11 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
+                            >
+                                {terms.length > 0 ? terms.map(t => (
+                                    <Select.Option key={t.id} value={t.id}>{t.name} ({t.code})</Select.Option>
+                                )) : (
+                                    // Fallback if no terms found, maybe offer a manual input or dummy
+                                    <>
+                                        <Select.Option value="term_1">Học kỳ 1 (2025-2026)</Select.Option>
+                                        <Select.Option value="term_2">Học kỳ 2 (2025-2026)</Select.Option>
+                                    </>
+                                )}
+                            </Select>
+                        </Form.Item>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Form.Item label="Giáo viên chủ nhiệm" name="teacherId" rules={[{ required: true, message: 'Vui lòng chọn giáo viên' }]}>
+                                <Select
+                                    placeholder="Chọn giáo viên"
+                                    showSearch
+                                    optionFilterProp="children"
+                                    className="h-11 [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent [&>.ant-select-selector]:!h-11 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
+                                >
+                                    {teachers.map(t => (
+                                        <Select.Option key={t.id} value={t.id}>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-[10px] font-bold">
+                                                    {t.fullName?.charAt(0)}
+                                                </div>
+                                                {t.fullName}
+                                            </div>
+                                        </Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+
+                            <Form.Item label="Thuộc Khối" name="gradeLevelId" rules={[{ required: true, message: 'Vui lòng chọn khối' }]}>
+                                <Select
+                                    placeholder="Chọn khối lớp"
+                                    className="h-11 [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent [&>.ant-select-selector]:!h-11 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
+                                >
+                                    {grades.map(g => (
+                                        <Select.Option key={g.id} value={g.id}>{g.name} ({g.code})</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </div>
+
+                        <Form.Item label="Mô tả" name="description">
+                            <Input.TextArea rows={3} className="rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" />
+                        </Form.Item>
+
+                        <div className="flex gap-3 pt-2">
+                            <Button className="flex-1 h-11 rounded-xl font-semibold border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => setIsClassModalOpen(false)}>Hủy bỏ</Button>
+                            <Button type="primary" htmlType="submit" loading={classSubmitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold shadow-lg shadow-blue-200 border-none">Tạo Lớp Mới</Button>
+                        </div>
+                    </Form>
+                </div>
             </Modal>
         </div>
     );
