@@ -1,10 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  Users, Search, Plus, Edit, Trash2, Download, Upload,
-  FileSpreadsheet, FileText, X, AlertCircle,
-  ArrowUp, ArrowDown, Power, PowerOff,
-  Mail, Shield, Activity, Eye, Phone, MapPin
-} from 'lucide-react';
+import { Users, Search, Plus, Edit, Trash2, Filter, Download, Upload, FileSpreadsheet, FileText, X, CheckCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Save, Power, PowerOff, MoreVertical, Mail, Shield, Activity, Eye, ChevronDown, User, Phone, MapPin } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { message, Spin, Button, Input, Modal, Form, Select, Tooltip, Empty, Tag } from 'antd';
 // Đảm bảo đường dẫn import API này đúng với cấu trúc dự án của bạn
@@ -36,7 +31,9 @@ export default function UserManagement() {
   // Import states
   const [importFile, setImportFile] = useState(null);
   const [importPreview, setImportPreview] = useState([]);
+  const [importErrors, setImportErrors] = useState([]);
   const [isImporting, setIsImporting] = useState(false);
+  const [showAllPreview, setShowAllPreview] = useState(false);
   const fileInputRef = useRef(null);
 
   // Delete confirm input
