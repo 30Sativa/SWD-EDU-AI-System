@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Search,
     Plus,
@@ -12,65 +12,76 @@ import {
     Users,
     Clock,
     CheckCircle2,
-    ArrowLeft,
-    MoreVertical
+    ArrowLeft
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { getClassDetail } from '../../api/classApi';
+import { Spin } from 'antd';
+
+// Lấy danh sách học sinh từ chi tiết lớp (BE có thể trả students / enrollments / members)
+function extractStudents(classDetail) {
+    if (!classDetail) return [];
+    const raw = classDetail.students ?? classDetail.enrollments ?? classDetail.members ?? classDetail.studentList ?? [];
+    return Array.isArray(raw) ? raw : [];
+}
+
+// Avatar initials + màu nhất quán theo id
+function getAvatarStyle(id) {
+    const palettes = [
+        'bg-gradient-to-tr from-indigo-200 to-indigo-100 text-indigo-700',
+        'bg-gradient-to-tr from-emerald-200 to-emerald-100 text-emerald-700',
+        'bg-gradient-to-tr from-violet-200 to-violet-100 text-violet-700',
+        'bg-gradient-to-tr from-amber-200 to-amber-100 text-amber-700',
+        'bg-gradient-to-tr from-rose-200 to-rose-100 text-rose-700',
+    ];
+    return palettes[Math.abs(String(id).split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % palettes.length];
+}
 
 export default function ClassStudentList() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedClass, setSelectedClass] = useState('All Classes');
+    const [classDetail, setClassDetail] = useState(null);
+    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const { classId } = useParams();
 
-    // Mock data - Đã thêm gradient cho avatar để đẹp hơn
-    const students = [
-        {
-            id: 1,
-            name: 'Alice Brown',
-            email: 'alice@email.com',
-            avatar: 'AB',
-            // Sử dụng gradient thay vì màu bệt
-            avatarBg: 'bg-gradient-to-tr from-indigo-200 to-indigo-100 text-indigo-700',
-            class: 'Morning Session',
-            progress: 85,
-            lastActive: '2 giờ trước',
-            status: 'Active'
-        },
-        {
-            id: 2,
-            name: 'John Davis',
-            email: 'john@email.com',
-            avatar: 'JD',
-            avatarBg: 'bg-gradient-to-tr from-emerald-200 to-emerald-100 text-emerald-700',
-            class: 'Morning Session',
-            progress: 92,
-            lastActive: '1 ngày trước',
-            status: 'Active'
-        },
-        {
-            id: 3,
-            name: 'Sarah Roberts',
-            email: 'sarah@email.com',
-            avatar: 'SR',
-            avatarBg: 'bg-gradient-to-tr from-violet-200 to-violet-100 text-violet-700',
-            class: 'Afternoon Session',
-            progress: 78,
-            lastActive: '3 ngày trước',
-            status: 'Active'
-        },
-        {
-            id: 4,
-            name: 'Mike Thompson',
-            email: 'mike@email.com',
-            avatar: 'MT',
-            avatarBg: 'bg-gradient-to-tr from-amber-200 to-amber-100 text-amber-700',
-            class: 'Weekend Workshop',
-            progress: 45,
-            lastActive: '5 ngày trước',
-            status: 'Inactive'
+    // Flow 26: GET /api/manager/classes/{id} — chi tiết lớp (có thể kèm danh sách HS)
+    useEffect(() => {
+        if (!classId) {
+            setLoading(false);
+            return;
         }
-    ];
+        const fetchClass = async () => {
+            try {
+                setLoading(true);
+                const res = await getClassDetail(classId);
+                const data = res?.data ?? res;
+                setClassDetail(data);
+            } catch (err) {
+                console.error('Lỗi tải chi tiết lớp:', err);
+                setClassDetail(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchClass();
+    }, [classId]);
+
+    const rawStudents = extractStudents(classDetail);
+    const students = rawStudents.map(s => ({
+        id: s.id ?? s.userId ?? s.studentId,
+        name: s.fullName ?? s.name ?? s.userName ?? s.email ?? '—',
+        email: s.email ?? '',
+        avatar: (s.fullName ?? s.name ?? s.userName ?? s.email ?? '?').slice(0, 2).toUpperCase(),
+        avatarBg: getAvatarStyle(s.id ?? s.userId ?? s.studentId ?? 0),
+        class: s.className ?? classDetail?.name ?? '—',
+        progress: s.progress ?? s.completionRate ?? 0,
+        lastActive: s.lastActiveAt ?? s.lastActive ?? '—',
+        status: (s.isActive !== false && s.status !== 'Inactive') ? 'Active' : 'Inactive',
+    })).filter(s => s.id);
+    const filteredStudents = searchTerm.trim()
+        ? students.filter(s => [s.name, s.email].some(v => String(v).toLowerCase().includes(searchTerm.toLowerCase())))
+        : students;
 
     // Hàm lấy style cho progress bar (màu + hiệu ứng glow)
     const getProgressStyles = (value) => {
@@ -107,7 +118,7 @@ export default function ClassStudentList() {
                                 <span>Quản lý lớp học</span>
                                 <span className="w-1 h-1 rounded-full bg-slate-300" />
                                 <span className="text-indigo-600 px-2 py-0.5 bg-indigo-50 rounded-md border border-indigo-100">
-                                    Lớp #{classId || 'DEMO'}
+                                    {classDetail?.name ?? classDetail?.title ?? `Lớp #${classId || '—'}`}
                                 </span>
                             </div>
                         </div>
@@ -124,12 +135,12 @@ export default function ClassStudentList() {
                     </div>
                 </div>
 
-                {/* Quick Stats Row - Style mới */}
+                {/* Quick Stats - từ GET /api/manager/classes/{id} */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     {[
-                        { label: 'Tổng học sinh', value: '32', change: '+12%', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-                        { label: 'Hoạt động hôm nay', value: '28', change: '+5%', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
-                        { label: 'Thời gian học TB', value: '45m', change: '-2%', icon: Clock, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
+                        { label: 'Tổng học sinh', value: String(students.length), change: '—', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
+                        { label: 'Đang hoạt động', value: String(students.filter(s => s.status === 'Active').length), change: '—', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
+                        { label: 'Tiến độ TB', value: students.length ? `${Math.round(students.reduce((a, s) => a + s.progress, 0) / students.length)}%` : '—', change: '—', icon: Clock, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
                     ].map((stat, index) => (
                         <div key={index} className={`bg-white p-6 rounded-2xl border ${stat.border} shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_-4px_rgba(0,0,0,0.1)] transition-all group`}>
                             <div className="flex justify-between items-start">
@@ -141,19 +152,26 @@ export default function ClassStudentList() {
                                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
                                 </div>
                             </div>
-                            <div className="mt-4 flex items-center text-sm font-medium">
-                                <span className={`flex items-center ${stat.change.startsWith('+') ? 'text-emerald-600' : 'text-rose-600'} bg-slate-50 px-2 py-0.5 rounded-full`}>
-                                    {stat.change} <ArrowUpRight size={14} className={`ml-0.5 ${stat.change.startsWith('-') ? 'rotate-90' : ''}`} />
-                                </span>
-                                <span className="text-slate-400 ml-2">so với tháng trước</span>
-                            </div>
+                            {stat.change !== '—' && (
+                                <div className="mt-4 flex items-center text-sm font-medium">
+                                    <span className={`flex items-center ${stat.change.startsWith('+') ? 'text-emerald-600' : 'text-rose-600'} bg-slate-50 px-2 py-0.5 rounded-full`}>
+                                        {stat.change} <ArrowUpRight size={14} className={`ml-0.5 ${stat.change.startsWith('-') ? 'rotate-90' : ''}`} />
+                                    </span>
+                                    <span className="text-slate-400 ml-2">so với tháng trước</span>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
 
                 {/* Main Content Area */}
+                {loading ? (
+                    <div className="flex justify-center py-16">
+                        <Spin size="large" />
+                    </div>
+                ) : (
                 <div className="space-y-4">
-                    {/* Toolbar / Filters - Tách rời khỏi bảng để thoáng hơn */}
+                    {/* Toolbar / Filters */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/60 backdrop-blur-sm p-2 rounded-2xl border border-white/20">
                         <div className="relative flex-1 max-w-md group">
                             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -201,7 +219,7 @@ export default function ClassStudentList() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {students.map((student) => {
+                                {filteredStudents.map((student) => {
                                     const progressStyle = getProgressStyles(student.progress);
                                     return (
                                         <tr
@@ -269,22 +287,21 @@ export default function ClassStudentList() {
                             </tbody>
                         </table>
                     </div>
-
-                    {/* Pagination - Simple & Clean */}
+                    {filteredStudents.length === 0 && (
+                        <div className="text-center py-12 text-slate-500 bg-white rounded-2xl border border-slate-100">
+                            {students.length === 0
+                                ? (classDetail ? 'Lớp chưa có học sinh. Dùng "Thêm học sinh" khi BE hỗ trợ API.' : 'Không tải được thông tin lớp.')
+                                : 'Không có kết quả tìm kiếm.'}
+                        </div>
+                    )}
+                    {/* Pagination */}
                     <div className="flex items-center justify-between px-2 pt-2">
                         <p className="text-sm text-slate-500">
-                            Hiển thị <span className="font-bold text-slate-900">4</span> / <span className="font-bold text-slate-900">32</span> kết quả
+                            Hiển thị <span className="font-bold text-slate-900">{filteredStudents.length}</span> / <span className="font-bold text-slate-900">{students.length}</span> kết quả
                         </p>
-                        <div className="flex gap-2">
-                            <button className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm" disabled>
-                                Trước
-                            </button>
-                            <button className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm">
-                                Sau
-                            </button>
-                        </div>
                     </div>
                 </div>
+                )}
             </div>
         </div>
     );

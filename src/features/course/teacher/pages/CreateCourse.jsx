@@ -90,24 +90,25 @@ export default function CreateCourse() {
             const allValues = form.getFieldsValue(true);
             const timestamp = Date.now().toString().slice(-4);
 
+            // Flow 20: POST /api/courses — body theo contract backend
             const coursePayload = {
-                code: ((allValues.code || values.code)?.toUpperCase() || "C") + "_" + timestamp,
-                title: allValues.title || values.title,
-                description: allValues.description || "",
-                thumbnail: allValues.thumbnail || "",
+                code: (allValues.code || values.code)?.trim()?.toUpperCase() || "C_" + timestamp,
+                title: (allValues.title || values.title)?.trim() || "",
+                description: (allValues.description || values.description)?.trim() ?? "",
+                thumbnail: (allValues.thumbnail || values.thumbnail)?.trim() ?? "",
                 subjectId: allValues.subjectId,
-                gradeLevelId: (allValues.gradeLevelId && allValues.gradeLevelId !== "3fa85f64-5717-4562-b3fc-2c963f66afa6") ? allValues.gradeLevelId : null,
-                categoryId: (allValues.categoryId && allValues.categoryId !== "3fa85f64-5717-4562-b3fc-2c963f66afa6") ? allValues.categoryId : null,
-                level: allValues.level || "Beginner",
-                language: "vi-VN",
-                price: 0,
-                discountPrice: 0,
-                totallessons: Number(allValues.totalLessons || 0),
-                totalDuration: Number(allValues.totalDuration || 0)
+                gradeLevelId: allValues.gradeLevelId || undefined,
+                categoryId: (allValues.categoryId && allValues.categoryId !== "3fa85f64-5717-4562-b3fc-2c963f66afa6") ? allValues.categoryId : undefined,
+                level: (allValues.level || values.level) || "Beginner",
+                language: (allValues.language || values.language) || "vi-VN",
+                price: Number(allValues.price) || 0,
+                discountPrice: Number(allValues.discountPrice) || 0,
+                totalLessons: Number(allValues.totalLessons ?? values.totalLessons ?? 0),
+                totalDuration: Number(allValues.totalDuration ?? values.totalDuration ?? 0)
             };
 
             const courseRes = await createCourse(coursePayload);
-            const courseId = courseRes?.data?.id || courseRes?.id;
+            const courseId = courseRes?.data?.data?.id ?? courseRes?.data?.id ?? courseRes?.id;
 
             if (!courseId) throw new Error('Không lấy được ID khóa học sau khi khởi tạo');
 
