@@ -109,6 +109,70 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             };
         }
 
+        public async Task<PagedResult<CourseDomain>> GetCoursesPagedAsync(
+            int page,
+            int pageSize,
+            string? searchTerm,
+            string? statusFilter,
+            Guid? subjectId,
+            bool? isDeletedFilter,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _context.Courses
+                .AsNoTracking()
+                .Include(c => c.Subject)
+                .AsQueryable();
+
+            // Lọc theo trạng thái đã xóa / chưa xóa
+            if (isDeletedFilter.HasValue && isDeletedFilter.Value)
+            {
+                query = query.Where(c => c.DeletedAt != null);
+            }
+            else
+            {
+                // Mặc định (hoặc isDeletedFilter == false): chỉ lấy bản ghi chưa bị xóa
+                query = query.Where(c => c.DeletedAt == null);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim();
+                query = query.Where(c =>
+                    c.Title.Contains(term) ||
+                    c.Code.Contains(term) ||
+                    (c.Description != null && c.Description.Contains(term)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(statusFilter))
+            {
+                query = query.Where(c => c.Status == statusFilter);
+            }
+
+            if (subjectId.HasValue)
+            {
+                query = query.Where(c => c.SubjectId == subjectId.Value);
+            }
+
+            query = query.OrderByDescending(c => c.CreatedAt);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var entities = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var items = entities.Select(MapToDomain).ToList();
+
+            return new PagedResult<CourseDomain>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
         public async Task UpdateAsync(CourseDomain course, CancellationToken cancellationToken = default)
         {
             var entity = await _context.Courses

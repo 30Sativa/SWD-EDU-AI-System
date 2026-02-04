@@ -157,6 +157,9 @@ namespace EduAISystem.Domain.Entities
             if (Status == CourseStatusDomain.Archived)
                 throw new InvalidOperationException("Không thể publish khóa học đã bị lưu trữ (archived).");
 
+            if (!IsReadyForPublish())
+                throw new InvalidOperationException("Khóa học chưa đủ thông tin tối thiểu để publish.");
+
             Status = CourseStatusDomain.Published;
             IsActive = true;
             UpdatedAt = DateTime.UtcNow;
@@ -167,6 +170,26 @@ namespace EduAISystem.Domain.Entities
             Status = CourseStatusDomain.Archived;
             IsActive = false;
             UpdatedAt = DateTime.UtcNow;
+        }
+
+        public bool IsReadyForPublish()
+        {
+            // Điều kiện tối thiểu để publish:
+            // - Có tiêu đề
+            // - Có mô tả
+            // - Có ảnh thumbnail
+            // (có thể mở rộng thêm các rule khác sau này)
+            return !string.IsNullOrWhiteSpace(Title)
+                   && !string.IsNullOrWhiteSpace(Description)
+                   && !string.IsNullOrWhiteSpace(Thumbnail);
+        }
+
+        public void SoftDelete()
+        {
+            if (Status != CourseStatusDomain.Draft)
+                throw new InvalidOperationException("Chỉ có thể xóa mềm khóa học ở trạng thái Draft.");
+
+            DeletedAt = DateTime.UtcNow;
         }
 
         public void UpdateBasicInfo(

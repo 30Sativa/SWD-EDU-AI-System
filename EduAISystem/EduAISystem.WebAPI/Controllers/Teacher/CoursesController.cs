@@ -22,6 +22,36 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             _mediator = mediator;
         }
 
+        [HttpGet]
+        [SwaggerOperation(
+            Summary = "Danh sách khóa học",
+            Description = "Lấy danh sách tất cả khóa học có phân trang và filter, có thể lọc theo trạng thái đã xóa/chưa xóa"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<CourseListItemResponseDto>>))]
+        public async Task<IActionResult> GetCourses([FromQuery] GetCoursesQuery query, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<CourseListItemResponseDto>>.Ok(result, "Lấy danh sách khóa học có phân trang"));
+        }
+
+        [HttpDelete("{id:guid}")]
+        [SwaggerOperation(
+            Summary = "Xóa mềm khóa học",
+            Description = "Chỉ cho phép xóa mềm khóa học đang ở trạng thái Draft"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
+        public async Task<IActionResult> SoftDeleteCourse(Guid id, CancellationToken cancellationToken)
+        {
+            var deleted = await _mediator.Send(new SoftDeleteCourseCommand { Id = id }, cancellationToken);
+            if (!deleted)
+            {
+                return NotFound(ApiResponse<object>.Fail("Không tìm thấy khóa học hoặc không thể xóa khóa học không ở trạng thái Draft"));
+            }
+
+            return Ok(ApiResponse<object>.Ok(null, "Đã xóa mềm khóa học"));
+        }
+
         [HttpPost]
         [SwaggerOperation(
             Summary = "Tạo khóa học",
@@ -107,10 +137,9 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
                 CourseId = id,
                 TeacherId = teacherId.Value
             }, cancellationToken);
-
             if (!success)
             {
-                return NotFound(ApiResponse<object>.Fail("Không tìm thấy khóa học hoặc bạn không có quyền publish"));
+                return NotFound(ApiResponse<object>.Fail("Không tìm thấy khóa học, bạn không có quyền hoặc khóa học chưa đủ thông tin tối thiểu để publish"));
             }
 
             return Ok(ApiResponse<object>.Ok(null, "Publish khóa học thành công"));
