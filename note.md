@@ -83,6 +83,17 @@ Dự án áp dụng kiến trúc **Feature-based** hybrid (kết hợp global & 
   - **Import**: Hỗ trợ CSV/Excel, validate dữ liệu trước khi thêm.
   - **Export**: Xuất danh sách user ra file CSV/Excel.
 - **CRUD UI**: Modal Tạo mới/Chỉnh sửa user đẹp mắt (sử dụng Backdrop blur).
+- **Logic cập nhật**:
+  - **Soft Delete**: Xóa user chuyển trạng thái sang "Tạm khóa" (Inactive) thay vì xóa vĩnh viễn.
+  - **Bug Fixes**: Sửa lỗi tạo user (Role/Password).
+
+### D. Notification & Audit Log Management (Admin)
+- **UI Upgrade**: Đồng bộ thiết kế "Enterprise" cho trang Notification và Audit Log.
+- **Data**: Sử dụng Mock Data cho giao diện, sẵn sàng tích hợp API.
+
+### E. Course & Subject Management
+- **Fixes**: Sửa lỗi `ReferenceError` trong Course Management.
+- **Logic**: Cập nhật logic lưu Subject Detail, Cascade Deactivate cho Grade/Class.
 
 ## 4. Quy ước Code (Conventions)
 
@@ -95,7 +106,91 @@ Dự án áp dụng kiến trúc **Feature-based** hybrid (kết hợp global & 
   import { getUsers } from "../../api/userApi";
   ```
 
-## 5. Kế hoạch tiếp theo (Next Steps)
+## 5. Hướng dẫn tích hợp API (API Integration Guide)
+
+### Thư viện sử dụng
+- **Axios**: Library chính để gửi HTTP/HTTPS requests.
+- **Config**: Được cấu hình tập trung tại `src/lib/axiosClient.js`.
+
+### 1. Cấu hình Axios Client (`src/lib/axiosClient.js`)
+File này chịu trách nhiệm:
+- Gán `BaseURL` (hoặc để trống nếu dùng Proxy).
+- Tự động gắn Token vào Header (`Authorization: Bearer ...`).
+- Xử lý Response trả về (lấy `response.data`) và Global Error Handling (401 Logout).
+
+```javascript
+import axios from 'axios';
+
+const axiosClient = axios.create({
+    baseURL: '',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+axiosClient.interceptors.request.use((config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) config.headers['Authorization'] = `Bearer ${token}`;
+    return config;
+});
+
+export default axiosClient;
+```
+
+### 2. Định nghĩa API (`src/features/.../api/myApi.js`)
+Luôn sử dụng **Named Exports** để dễ tree-shaking và import rõ ràng.
+
+```javascript
+import axiosClient from "../../../lib/axiosClient";
+
+export const getUsers = (params) => {
+    return axiosClient.get('/api/admin/users', { params });
+};
+
+export const createUser = (data) => {
+    return axiosClient.post('/api/admin/users', data);
+};
+```
+
+### 3. Sử dụng trong Component
+Sử dụng `useEffect` để fetch data khi component mount.
+
+```javascript
+import { useEffect, useState } from 'react';
+import { getUsers } from '../../api/userApi';
+
+const UserManagement = () => {
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            setLoading(true);
+            try {
+                const response = await getUsers({ page: 1, size: 10 });
+                
+                console.log("API Response:", response);
+                
+                setUsers(response.items || []); 
+            } catch (error) {
+                console.error("Failed to fetch users:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUsers();
+    }, []);
+
+    return (
+        <div>
+            {loading ? "Loading..." : users.length + " users found"}
+        </div>
+    );
+};
+```
+
+## 6. Kế hoạch tiếp theo (Next Steps)
 
 1.  **Course Management**:
     - Xây dựng API `courseApi.js`.
@@ -109,4 +204,4 @@ Dự án áp dụng kiến trúc **Feature-based** hybrid (kết hợp global & 
     - Chuyển đổi các mock data còn lại sang API call thực tế khi Backend sẵn sàng.
 
 ---
-*Last Updated: 2026-02-03*
+*Last Updated: 2026-02-05*
