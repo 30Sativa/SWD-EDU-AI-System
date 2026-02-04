@@ -4,8 +4,10 @@ using EduAISystem.Application.Features.Courses.DTOs.Request;
 using EduAISystem.Application.Features.Courses.DTOs.Response;
 using EduAISystem.Application.Features.Courses.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace EduAISystem.WebAPI.Controllers.Teacher
 {
@@ -21,6 +23,13 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         }
 
         [HttpPost]
+        [SwaggerOperation(
+            Summary = "Tạo khóa học",
+            Description = "Giáo viên tạo khóa học mới gắn với tài khoản hiện tại"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<CourseDetailResponseDto>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> CreateCourse([FromBody] CreateCourseRequestDto dto, CancellationToken cancellationToken)
         {
             var teacherId = GetCurrentUserId();
@@ -39,6 +48,12 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         }
 
         [HttpGet("{id:guid}")]
+        [SwaggerOperation(
+            Summary = "Chi tiết khóa học",
+            Description = "Lấy thông tin khóa học theo Id"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<CourseDetailResponseDto>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<CourseDetailResponseDto?>))]
         public async Task<IActionResult> GetCourseById(Guid id, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(new GetCourseByIdQuery { Id = id }, cancellationToken);
@@ -51,6 +66,12 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         }
 
         [HttpGet("my")]
+        [SwaggerOperation(
+            Summary = "Khóa học của tôi",
+            Description = "Lấy danh sách khóa học thuộc giáo viên hiện tại"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<CourseListItemResponseDto>>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> GetMyCourses([FromQuery] GetMyCoursesQuery query, CancellationToken cancellationToken)
         {
             var teacherId = GetCurrentUserId();
@@ -66,6 +87,13 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         }
 
         [HttpPost("{id:guid}/publish")]
+        [SwaggerOperation(
+            Summary = "Publish khóa học",
+            Description = "Xuất bản khóa học sau khi đã soạn nội dung"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> PublishCourse(Guid id, CancellationToken cancellationToken)
         {
             var teacherId = GetCurrentUserId();

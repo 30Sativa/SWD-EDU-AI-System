@@ -4,6 +4,7 @@ using EduAISystem.Infrastructure.Persistence.Seed;
 using EduAISystem.WebAPI.Middlewares;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 using System.Text;
 
@@ -37,6 +38,9 @@ builder.Services.AddSwaggerGen(c =>
         Title = "EduAISystem.WebAPI",
         Version = "v1"
     });
+
+    // Bật annotation 
+    c.EnableAnnotations();
 
     // 🔐 Bearer JWT
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace EduAISystem.WebAPI.Controllers
 {
@@ -19,6 +20,12 @@ namespace EduAISystem.WebAPI.Controllers
 
 
         [HttpGet("me")]
+        [SwaggerOperation(
+            Summary = "Lấy thông tin người dùng hiện tại",
+            Description = "Đọc userId từ JWT và trả về thông tin cá nhân"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> Me()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

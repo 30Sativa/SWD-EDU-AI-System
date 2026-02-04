@@ -4,7 +4,9 @@ using EduAISystem.Application.Features.CourseCategories.DTOs.Request;
 using EduAISystem.Application.Features.CourseCategories.DTOs.Response;
 using EduAISystem.Application.Features.CourseCategories.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace EduAISystem.WebAPI.Controllers.Manager
 {
@@ -20,6 +22,11 @@ namespace EduAISystem.WebAPI.Controllers.Manager
         }
 
         [HttpGet]
+        [SwaggerOperation(
+            Summary = "Danh sách danh mục khóa học",
+            Description = "Lấy danh sách danh mục kèm phân trang và bộ lọc"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<CourseCategoryListResponseDto>>))]
         public async Task<IActionResult> GetCourseCategories([FromQuery] GetCourseCategoriesQuery query, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(query, cancellationToken);
@@ -27,6 +34,12 @@ namespace EduAISystem.WebAPI.Controllers.Manager
         }
 
         [HttpGet("{id:guid}")]
+        [SwaggerOperation(
+            Summary = "Chi tiết danh mục",
+            Description = "Lấy thông tin danh mục khóa học theo Id"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<CourseCategoryDetailResponseDto>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<CourseCategoryDetailResponseDto?>))]
         public async Task<IActionResult> GetCourseCategoryById(Guid id, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(new GetCourseCategoryByIdQuery { Id = id }, cancellationToken);
@@ -37,6 +50,12 @@ namespace EduAISystem.WebAPI.Controllers.Manager
         }
 
         [HttpPost]
+        [SwaggerOperation(
+            Summary = "Tạo danh mục khóa học",
+            Description = "Thêm mới danh mục khóa học với tên và trạng thái"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<CourseCategoryDetailResponseDto>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> CreateCourseCategory([FromBody] CreateCourseCategoryRequestDto dto, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(new CreateCourseCategoryCommand { Request = dto }, cancellationToken);
@@ -44,6 +63,12 @@ namespace EduAISystem.WebAPI.Controllers.Manager
         }
 
         [HttpPut("{id:guid}")]
+        [SwaggerOperation(
+            Summary = "Cập nhật danh mục",
+            Description = "Cập nhật tên/trạng thái danh mục khóa học"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<CourseCategoryDetailResponseDto>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<CourseCategoryDetailResponseDto?>))]
         public async Task<IActionResult> UpdateCourseCategory(Guid id, [FromBody] UpdateCourseCategoryRequestDto dto, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(new UpdateCourseCategoryCommand { Id = id, Request = dto }, cancellationToken);
@@ -54,6 +79,12 @@ namespace EduAISystem.WebAPI.Controllers.Manager
         }
 
         [HttpPatch("{id:guid}/status")]
+        [SwaggerOperation(
+            Summary = "Đổi trạng thái danh mục",
+            Description = "Kích hoạt/Vô hiệu hóa danh mục khóa học"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> SetCourseCategoryStatus(Guid id, [FromBody] SetCourseCategoryStatusRequestDto dto, CancellationToken cancellationToken)
         {
             var updated = await _mediator.Send(new SetCourseCategoryStatusCommand { Id = id, IsActive = dto.IsActive }, cancellationToken);
