@@ -13,9 +13,8 @@ function HeroSection() {
   }, []);
 
   const handleGetStarted = useCallback(() => {
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 2000);
-  }, []);
+    navigate('/login');
+  }, [navigate]);
 
   const stats = useMemo(() => [
     { value: '100%', label: 'Chuẩn Bộ GD' },
@@ -23,12 +22,6 @@ function HeroSection() {
     { value: '24/7', label: 'Hỗ trợ AI' },
   ], []);
 
-  const dashboardButtons = useMemo(() => [
-    { label: 'Teacher', path: '/dashboard/teacher' },
-    { label: 'Student', path: '/dashboard/student' },
-    { label: 'Admin', path: '/dashboard/admin' },
-    { label: 'Manager', path: '/dashboard/manager' },
-  ], []);
 
   return (
     <section className="relative pt-12 pb-12 px-4 md:px-6 z-10">
@@ -79,18 +72,7 @@ function HeroSection() {
                 ) : 'Bắt đầu ngay'}
               </button>
 
-              <span className="hidden sm:inline self-center text-gray-400 text-sm">hoặc</span>
 
-              {dashboardButtons.map((button) => (
-                <button
-                  key={button.label}
-                  onClick={() => navigate(button.path)}
-                  className="px-6 py-3 bg-white font-semibold rounded-lg border-2 transition-all duration-300 text-sm md:text-base hover:shadow-lg hover:scale-105 border-blue-600 text-blue-600 hover:bg-blue-50"
-                  aria-label={`Vào Dashboard ${button.label.toLowerCase()}`}
-                >
-                  {button.label}
-                </button>
-              ))}
             </div>
 
             {/* Stats */}
@@ -164,8 +146,8 @@ function FeatureCardsCarousel() {
                   }
                 }}
                 className={`p-5 rounded-xl transition-all duration-500 cursor-pointer ${currentFeature === idx
-                    ? 'bg-blue-50 shadow-md scale-105 border border-blue-200'
-                    : 'bg-gray-50 hover:bg-blue-50/30'
+                  ? 'bg-blue-50 shadow-md scale-105 border border-blue-200'
+                  : 'bg-gray-50 hover:bg-blue-50/30'
                   }`}
                 role="button"
                 tabIndex={0}
@@ -387,12 +369,12 @@ function ProcessStep({ step, index }) {
 }
 
 function CTASection() {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = useCallback(() => {
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 2000);
-  }, []);
+    navigate('/login');
+  }, [navigate]);
 
   return (
     <section className="py-16 md:py-20 px-4 md:px-6 relative z-10">
@@ -467,6 +449,21 @@ function BackgroundAnimations() {
 }
 
 export default function HomePage() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    const role = localStorage.getItem('userRole');
+
+    if (token && role) {
+      const lowerRole = String(role).toLowerCase();
+      if (lowerRole.includes('admin')) navigate('/dashboard/admin');
+      else if (lowerRole.includes('teacher')) navigate('/dashboard/teacher');
+      else if (lowerRole.includes('manager')) navigate('/dashboard/manager');
+      else if (lowerRole.includes('user') || lowerRole.includes('student')) navigate('/dashboard/student');
+    }
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-white overflow-hidden">
       <BackgroundAnimations />

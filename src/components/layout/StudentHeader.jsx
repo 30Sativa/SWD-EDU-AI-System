@@ -1,10 +1,38 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, LogOut, Search, GraduationCap } from 'lucide-react';
+import { message } from 'antd';
+import { getCurrentUser } from '../../features/user/api/userApi';
 
 export default function StudentHeader() {
     const location = useLocation();
+    const navigate = useNavigate();
+    const [user, setUser] = useState({ name: 'User', role: 'Student' });
     const BASE_PATH = '/dashboard/student';
+
+    React.useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await getCurrentUser();
+                const userData = response?.data || response;
+                userData && setUser({
+                    name: userData.userName || 'User',
+                    role: userData.roleName || 'Student'
+                });
+                userData?.userName && localStorage.setItem('userName', userData.userName);
+            } catch (error) {
+                console.error('Failed to fetch user profile:', error);
+                // Fallback to localStorage
+                const storedName = localStorage.getItem('userName');
+                const storedRole = localStorage.getItem('userRole');
+                setUser({
+                    name: storedName || 'User',
+                    role: storedRole || 'Student'
+                });
+            }
+        };
+        fetchUser();
+    }, []);
 
     const navItems = [
         { label: 'Tổng quan', path: 'dashboard' },
@@ -13,16 +41,29 @@ export default function StudentHeader() {
         { label: 'Tiến độ', path: 'progress' },
     ];
 
+    const getInitials = (name) => {
+        return name ? name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'U';
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userName');
+        message.success('Đăng xuất thành công');
+        navigate('/');
+    };
+
     return (
         <header className="h-16 w-full bg-white border-b border-gray-200/60 shadow-sm sticky top-0 z-50">
             <div className="h-full w-full px-8 relative flex items-center justify-between">
-                <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <div className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <GraduationCap size={28} className="flex-shrink-0 text-blue-600" />
                     <div>
                         <h1 className="text-base font-bold leading-none text-gray-900">EDU-AI Classroom</h1>
                         <p className="text-[10px] text-gray-500 mt-1">Học tập đơn giản hơn</p>
                     </div>
-                </Link>
+                </div>
 
                 {/* Navigation - Perfectly Centered, Absolute */}
                 <nav className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-2">
@@ -61,17 +102,25 @@ export default function StudentHeader() {
 
                     <div className="h-8 w-px bg-gray-200/60 mx-1"></div>
 
-                    <div className="flex items-center gap-3 cursor-pointer group">
+                    <Link to={`${BASE_PATH}/profile`} className="flex items-center gap-3 cursor-pointer group no-underline">
                         <div className="text-right hidden sm:block">
-                            <p className="text-sm font-bold text-gray-800 leading-none group-hover:text-blue-600 transition-colors">Ngọc Nguyễn</p>
-                            <p className="text-[11px] text-gray-500 mt-0.5 font-medium">Student</p>
+                            <p className="text-sm font-bold text-gray-800 leading-none group-hover:text-blue-600 transition-colors">{user.name}</p>
+                            <p className="text-[11px] text-gray-500 mt-0.5 font-medium">{user.role}</p>
                         </div>
                         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-white group-hover:ring-blue-100 transition-all">
-                            NN
+                            {getInitials(user.name)}
                         </div>
-                    </div>
-                </div>
+                    </Link>
 
+                    <button
+                        onClick={handleLogout}
+                        className="text-gray-500 hover:text-red-600 transition-colors ml-2"
+                        title="Đăng xuất"
+                    >
+                        <LogOut size={20} />
+                    </button>
+
+                </div>
             </div>
         </header>
     );
