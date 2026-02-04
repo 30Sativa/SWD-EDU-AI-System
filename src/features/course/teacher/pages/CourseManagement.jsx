@@ -64,17 +64,18 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const CourseCard = ({ course, navigate, isTemplate = false }) => {
-  const status = course.status?.toLowerCase() || (course.isActive ? 'active' : 'draft');
+// Renamed prop to 'data' to avoid any 'course' naming confusion in higher scopes
+const CourseCard = ({ data, navigate, isTemplate = false }) => {
+  const status = data.status?.toLowerCase() || (data.isActive ? 'active' : 'draft');
 
   return (
     <div
       className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 group relative overflow-hidden flex flex-col cursor-pointer"
-      onClick={() => !isTemplate ? navigate(`/dashboard/teacher/courses/${course.id}`) : null}
+      onClick={() => !isTemplate ? navigate(`/dashboard/teacher/courses/${data.id}`) : null}
     >
       <div className="h-40 overflow-hidden bg-slate-100 relative">
-        {course.thumbnail ? (
-          <img src={course.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        {data.thumbnail ? (
+          <img src={data.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-300"><BookOpen size={32} /></div>
         )}
@@ -86,22 +87,22 @@ const CourseCard = ({ course, navigate, isTemplate = false }) => {
       <div className="p-5 flex flex-col flex-1">
         <div className="mb-3">
           <span className="text-[10px] font-bold text-[#0487e2] bg-blue-50 px-2 py-1 rounded-md uppercase tracking-wider">
-            {course.subject?.name || course.subjectName || course.category || 'Hệ thống'}
+            {data.subject?.name || data.subjectName || data.category || 'Hệ thống'}
           </span>
         </div>
 
         <h3 className="font-bold text-base text-slate-800 mb-2 group-hover:text-[#0487e2] transition-colors line-clamp-2 min-h-[3rem]">
-          {course.title || course.name}
+          {data.title || data.name}
         </h3>
 
         <div className="flex items-center gap-4 text-xs font-medium text-slate-500 mt-auto pt-4 border-t border-slate-100">
           <div className="flex items-center gap-1.5">
             <Users size={14} className="text-slate-400" />
-            <span>{course.enrollmentCount || 0} HV</span>
+            <span>{data.enrollmentCount || 0} HV</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Clock size={14} className="text-slate-400" />
-            <span>{Math.floor((course.totalDuration || 0) / 60)}h {(course.totalDuration || 0) % 60}m</span>
+            <span>{Math.floor((data.totalDuration || 0) / 60)}h {(data.totalDuration || 0) % 60}m</span>
           </div>
         </div>
 
@@ -113,7 +114,7 @@ const CourseCard = ({ course, navigate, isTemplate = false }) => {
               className="text-emerald-600 border-emerald-200 hover:text-emerald-700 hover:border-emerald-400 font-semibold"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/dashboard/teacher/courses/create?templateId=${course.id}`);
+                navigate(`/dashboard/teacher/courses/create?templateId=${data.id}`);
               }}
             >
               <Copy size={16} className="mr-2" /> Sử dụng mẫu này
@@ -146,7 +147,7 @@ export default function CourseManagement() {
       setCourses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Lỗi khi tải danh sách khóa học:', error);
-      message.error('Không thể kết nối máy chủ');
+      // message.error('Không thể kết nối máy chủ');
     } finally {
       setLoading(false);
     }
@@ -156,16 +157,16 @@ export default function CourseManagement() {
     fetchCourses();
   }, [fetchCourses]);
 
-  const filteredCourses = courses.filter(course =>
-    (course.title || course.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.code?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCourses = courses.filter(item =>
+    (item.title || item.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // --- Columns for List View ---
   const columns = [
     {
       title: 'KHÓA HỌC',
-      key: 'course',
+      key: 'courseName', // Unique key
       width: 400,
       render: (_, record) => (
         <div className="flex items-center gap-4 group cursor-pointer" onClick={() => navigate(`/dashboard/teacher/courses/${record.id}`)}>
@@ -352,8 +353,8 @@ export default function CourseManagement() {
           ) : (
             viewMode === 'grid' ? (
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredCourses.map(course => (
-                  <CourseCard key={course.id} course={course} navigate={navigate} isTemplate={activeTab === 'templates'} />
+                {filteredCourses.map(item => (
+                  <CourseCard key={item.id} data={item} navigate={navigate} isTemplate={activeTab === 'templates'} />
                 ))}
               </div>
             ) : (
