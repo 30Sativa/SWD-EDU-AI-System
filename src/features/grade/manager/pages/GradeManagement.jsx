@@ -1,14 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit, Hash } from 'lucide-react';
-import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty } from 'antd';
-import { getGradeLevels, createGradeLevel } from '../../api/gradeApi';
+import { Plus, Search, Edit, Hash, Settings } from 'lucide-react';
+import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, Switch } from 'antd';
+import {
+    getGradeLevels,
+    createGradeLevel,
+    updateGradeLevel,
+    changeGradeLevelStatus
+} from '../../api/gradeApi';
 
 export default function GradeManagement() {
     const [grades, setGrades] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingGrade, setEditingGrade] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [statusUpdating, setStatusUpdating] = useState(null);
     const [form] = Form.useForm();
 
     const fetchGrades = useCallback(async () => {
@@ -29,26 +36,61 @@ export default function GradeManagement() {
         fetchGrades();
     }, [fetchGrades]);
 
-    const handleOpenModal = () => {
-        form.resetFields();
+    const handleOpenModal = (grade = null) => {
+        if (grade) {
+            setEditingGrade(grade);
+            form.setFieldsValue({
+                code: grade.code,
+                name: grade.name,
+                description: grade.description,
+                sortOrder: grade.sortOrder
+            });
+        } else {
+            setEditingGrade(null);
+            form.resetFields();
+            form.setFieldsValue({ sortOrder: 0 });
+        }
         setIsModalOpen(true);
     };
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
+        setEditingGrade(null);
         form.resetFields();
+    };
+
+    const handleToggleStatus = async (id) => {
+        try {
+            setStatusUpdating(id);
+            await changeGradeLevelStatus(id);
+            message.success('Đã cập nhật trạng thái khối lớp');
+
+            // Optimistic update
+            setGrades(prev => prev.map(g =>
+                g.id === id ? { ...g, isActive: !g.isActive } : g
+            ));
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Không thể đổi trạng thái');
+        } finally {
+            setStatusUpdating(null);
+        }
     };
 
     const handleSubmit = async (values) => {
         try {
             setSubmitting(true);
-            await createGradeLevel(values);
-            message.success('Thêm khối lớp mới thành công!');
+            if (editingGrade) {
+                await updateGradeLevel(editingGrade.id, values);
+                message.success('Cập nhật khối lớp thành công!');
+            } else {
+                await createGradeLevel(values);
+                message.success('Thêm khối lớp mới thành công!');
+            }
             handleCloseModal();
             fetchGrades();
         } catch (error) {
-            console.error('Lỗi khi thêm khối lớp:', error);
-            message.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo khối lớp');
+            console.error('Lỗi lưu khối lớp:', error);
+            message.error(error.response?.data?.message || 'Có lỗi xảy ra trong quá trình xử lý');
         } finally {
             setSubmitting(false);
         }
@@ -82,13 +124,29 @@ export default function GradeManagement() {
             title: 'Mô tả',
             dataIndex: 'description',
             key: 'description',
-            render: (desc) => <span className="text-slate-500 text-sm">{desc || '---'}</span>
+            render: (desc) => <span className="text-slate-500 text-sm italic">{desc || 'Chưa có mô tả'}</span>
         },
         {
             title: 'Thứ tự',
             dataIndex: 'sortOrder',
             key: 'sortOrder',
+            align: 'center',
             render: (order) => <span className="font-medium text-slate-500">{order || 0}</span>
+        },
+        {
+            title: 'Trạng thái',
+            dataIndex: 'isActive',
+            key: 'isActive',
+            align: 'center',
+            render: (isActive, record) => (
+                <Switch
+                    size="small"
+                    checked={isActive}
+                    loading={statusUpdating === record.id}
+                    onChange={() => handleToggleStatus(record.id)}
+                    className={isActive ? 'bg-[#0487e2]' : ''}
+                />
+            )
         },
         {
             title: 'Thao tác',
@@ -97,7 +155,12 @@ export default function GradeManagement() {
             render: (_, record) => (
                 <div className="flex items-center justify-end gap-1">
                     <Tooltip title="Chỉnh sửa">
-                        <Button type="text" icon={<Edit size={16} />} className="text-slate-400 hover:text-[#0487e2]" />
+                        <Button
+                            type="text"
+                            icon={<Edit size={16} />}
+                            className="text-slate-400 hover:text-[#0487e2]"
+                            onClick={() => handleOpenModal(record)}
+                        />
                     </Tooltip>
                 </div>
             )
@@ -117,7 +180,7 @@ export default function GradeManagement() {
                         type="primary"
                         size="large"
                         icon={<Plus size={18} />}
-                        onClick={handleOpenModal}
+                        onClick={() => handleOpenModal()}
                         className="bg-[#0487e2] hover:bg-[#0463ca] h-11 px-6 rounded-lg font-semibold shadow-md border-none flex items-center"
                     >
                         Thêm Khối lớp
@@ -154,7 +217,7 @@ export default function GradeManagement() {
                             columns={columns}
                             dataSource={filteredGrades}
                             rowKey="id"
-                            pagination={{ pageSize: 10, showSizeChanger: false }}
+                            pagination={{ pageSize: 12, showSizeChanger: false }}
                             className="custom-table"
                         />
                     )}
@@ -165,8 +228,8 @@ export default function GradeManagement() {
             <Modal
                 title={
                     <div className="flex items-center gap-2 text-[#0463ca] uppercase text-xs font-black tracking-widest pt-2">
-                        <Plus size={16} />
-                        Thêm cấu hình khối lớp mới
+                        {editingGrade ? <Settings size={16} /> : <Plus size={16} />}
+                        {editingGrade ? 'Cập nhật thông tin khối lớp' : 'Thêm cấu hình khối lớp mới'}
                     </div>
                 }
                 open={isModalOpen}
@@ -188,7 +251,12 @@ export default function GradeManagement() {
                             name="code"
                             rules={[{ required: true, message: 'Vui lòng nhập mã' }]}
                         >
-                            <Input placeholder="VD: G10" className="h-11 rounded-lg font-bold uppercase" prefix={<Hash size={16} className="text-slate-400" />} />
+                            <Input
+                                disabled={!!editingGrade}
+                                placeholder="VD: G10"
+                                className="h-11 rounded-lg font-bold uppercase disabled:bg-slate-50"
+                                prefix={<Hash size={16} className="text-slate-400" />}
+                            />
                         </Form.Item>
 
                         <Form.Item
@@ -227,7 +295,7 @@ export default function GradeManagement() {
                             loading={submitting}
                             className="flex-1 bg-[#0487e2] h-11 rounded-lg font-bold uppercase text-xs tracking-widest shadow-md shadow-[#0487e2]/20 border-none"
                         >
-                            Xác nhận tạo
+                            {editingGrade ? 'Lưu cập nhật' : 'Xác nhận tạo'}
                         </Button>
                     </div>
                 </Form>
