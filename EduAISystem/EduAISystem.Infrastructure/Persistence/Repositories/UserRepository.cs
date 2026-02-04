@@ -129,6 +129,17 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             return domain;
         }
 
+        public async Task<string?> GetFullNameByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            var fullName = await _context.UserProfiles
+                .AsNoTracking()
+                .Where(p => p.UserId == id)
+                .Select(p => p.FullName)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return string.IsNullOrWhiteSpace(fullName) ? null : fullName;
+        }
+
         public async Task<UserDomain?> GetByEmailAsync(string email)
         {
             var entity = await _context.Users
