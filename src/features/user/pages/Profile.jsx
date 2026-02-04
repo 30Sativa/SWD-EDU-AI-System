@@ -23,34 +23,29 @@ export default function Profile() {
         fetchProfile();
     }, []);
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-[60vh]">
-                <Spin size="large" tip="Đang tải hồ sơ..." />
-            </div>
-        );
-    }
+    if (loading) return (
+        <div className="flex justify-center items-center h-[60vh]">
+            <Spin size="large" tip="Đang tải hồ sơ..." />
+        </div>
+    );
 
-    if (!user) {
-        return (
-            <div className="text-center py-20">
-                <p className="text-gray-500 text-lg">Không tìm thấy thông tin người dùng.</p>
-            </div>
-        );
-    }
+    if (!user) return (
+        <div className="text-center py-20">
+            <p className="text-gray-500 text-lg">Không tìm thấy thông tin người dùng.</p>
+        </div>
+    );
 
     const getInitials = (name) => {
-        if (!name) return 'U';
-        return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+        return name ? name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'U';
     };
 
     const getRoleTag = (roleId) => {
-        switch (roleId) {
-            case 1: return <Tag color="blue">Học viên</Tag>;
-            case 2: return <Tag color="gold">Quản trị viên</Tag>;
-            case 3: return <Tag color="purple">Quản lý chuyên môn</Tag>;
-            default: return <Tag color="default">Người dùng</Tag>;
-        }
+        const roles = {
+            1: <Tag color="blue">Học viên</Tag>,
+            2: <Tag color="gold">Quản trị viên</Tag>,
+            3: <Tag color="purple">Quản lý chuyên môn</Tag>
+        };
+        return roles[roleId] || <Tag color="default">Người dùng</Tag>;
     };
 
     return (

@@ -20,6 +20,7 @@ import QuestionList from "../features/question-bank/teacher/pages/QuestionList";
 import ManagerDashboard from "../features/dashboard/manager/pages/ManagerDashboard";
 import SubjectManagement from "../features/subject/manager/pages/SubjectManagement";
 import SubjectDetail from "../features/subject/manager/pages/SubjectDetail";
+import GradeManagement from "../features/grade/manager/pages/GradeManagement";
 import CourseDetail from "../features/course/student/pages/CourseDetail";
 import CoursesList from "../features/course/student/pages/CoursesList";
 import LessonDetail from "../features/lesson/student/pages/LessonDetail";
@@ -90,6 +91,7 @@ export default function RouteMap() {
             <Route index element={<ManagerDashboard />} />
             <Route path="subjects" element={<SubjectManagement />} />
             <Route path="subjects/:id" element={<SubjectDetail />} />
+            <Route path="grades" element={<GradeManagement />} />
             <Route path="profile" element={<Profile />} />
           </Route>
         </Route>

@@ -15,3 +15,7 @@ export const getSubjectById = (id) => {
 export const updateSubject = (id, data) => {
     return axiosClient.put(`/api/manager/subjects/${id}`, data);
 };
+
+export const deleteSubject = (id) => {
+    return axiosClient.delete(`/api/manager/subjects/${id}`);
+};

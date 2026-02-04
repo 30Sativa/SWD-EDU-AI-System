@@ -15,15 +15,11 @@ export default function StudentHeader() {
             try {
                 const response = await getCurrentUser();
                 const userData = response?.data || response;
-                if (userData) {
-                    setUser({
-                        name: userData.userName || 'User',
-                        role: userData.roleName || 'Student'
-                    });
-                    if (userData.userName) {
-                        localStorage.setItem('userName', userData.userName);
-                    }
-                }
+                userData && setUser({
+                    name: userData.userName || 'User',
+                    role: userData.roleName || 'Student'
+                });
+                userData?.userName && localStorage.setItem('userName', userData.userName);
             } catch (error) {
                 console.error('Failed to fetch user profile:', error);
                 // Fallback to localStorage
@@ -46,13 +42,7 @@ export default function StudentHeader() {
     ];
 
     const getInitials = (name) => {
-        if (!name) return 'U';
-        return name
-            .split(' ')
-            .map(n => n[0])
-            .slice(0, 2)
-            .join('')
-            .toUpperCase();
+        return name ? name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'U';
     };
 
     const handleLogout = () => {

@@ -351,7 +351,7 @@ export default function UserManagement() {
         FullName: formData.name,
         UserName: safeUserName,
         Email: formData.email,
-        Password: 'Password123!',
+        Password: '123456',
         Role: roleId
       };
 
@@ -422,25 +422,15 @@ export default function UserManagement() {
   const [deletingUser, setDeletingUser] = useState(null);
   const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
 
-  // Toggle user status (Active/Inactive)
-  const handleToggleStatus = async (user) => {
-    // NOTE: Backend API 'updateUserProfile' does NOT support changing IsActive status.
-    // We are simulating this on Frontend for now or waiting for a specific Lock/Unlock API.
 
+  const handleToggleStatus = async (user) => {
     const newStatus = user.status === 'Hoạt động' ? false : true;
     const newStatusText = newStatus ? 'Hoạt động' : 'Tạm khóa';
 
-    // UI Optimistic Update only
     setUsers(users.map(u => u.id === user.id ? { ...u, status: newStatusText } : u));
     message.info(`Đã đổi trạng thái sang ${newStatusText} (Chưa lưu vào DB - cần API Backend)`);
 
-    /* 
-    // OLD CODE - Re-enable when Backend supports status update
-    try {
-        await updateUserProfile(user.id, { IsActive: newStatus });
-        message.success(`Đã chuyển trạng thái sang ${newStatusText}`);
-    } catch (error) { ... }
-    */
+
   };
 
   const handleDeleteClick = (user) => {

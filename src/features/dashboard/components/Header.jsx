@@ -23,9 +23,7 @@ export default function Header({ userRole, basePath }) {
         const response = await getCurrentUser();
         const userData = response?.data || response;
         setCurrentUser(userData);
-        if (userData?.userName) {
-          localStorage.setItem('userName', userData.userName);
-        }
+        userData?.userName && localStorage.setItem('userName', userData.userName);
       } catch (error) {
         console.error('Failed to fetch user:', error);
       }
@@ -36,13 +34,13 @@ export default function Header({ userRole, basePath }) {
   const userName = currentUser?.userName || localStorage.getItem('userName') || 'User';
 
   const getRoleLabel = (role) => {
-    switch (role) {
-      case 'teacher': return 'Giáo viên';
-      case 'student': return 'Học sinh';
-      case 'admin': return 'Quản trị viên';
-      case 'manager': return 'Quản lý chuyên môn';
-      default: return role;
-    }
+    const labels = {
+      'teacher': 'Giáo viên',
+      'student': 'Học sinh',
+      'admin': 'Quản trị viên',
+      'manager': 'Quản lý chuyên môn'
+    };
+    return labels[role] || role;
   };
 
   const handleLogout = () => {
