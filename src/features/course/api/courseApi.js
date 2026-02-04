@@ -19,3 +19,9 @@ export const createSection = async (courseId, data) => {
     const response = await axiosClient.post(`/api/courses/${courseId}/sections`, data);
     return response;
 };
+
+export const getCourseById = (id) => axiosClient.get(`/api/courses/${id}`);
+
+export const publishCourse = (id) => axiosClient.post(`/api/courses/${id}/publish`);
+
+export const deleteCourse = (id) => axiosClient.delete(`/api/courses/${id}`);
