@@ -102,12 +102,13 @@ export default function CreateCourse() {
                 description: allValues.description || "",
                 thumbnail: allValues.thumbnail || "",
                 subjectId: allValues.subjectId,
-                gradeLevelId: (allValues.gradeLevelId && allValues.gradeLevelId !== "3fa85f64-5717-4562-b3fc-2c963f66afa6") ? allValues.gradeLevelId : "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                categoryId: (allValues.categoryId && allValues.categoryId !== "3fa85f64-5717-4562-b3fc-2c963f66afa6") ? allValues.categoryId : "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                teacherId: allValues.teacherId,
+                gradeLevelId: (allValues.gradeLevelId && allValues.gradeLevelId !== "3fa85f64-5717-4562-b3fc-2c963f66afa6") ? allValues.gradeLevelId : null,
+                categoryId: (allValues.categoryId && allValues.categoryId !== "3fa85f64-5717-4562-b3fc-2c963f66afa6") ? allValues.categoryId : null,
                 level: allValues.level || "Beginner",
                 language: "vi-VN",
-                price: Number(0),
-                discountPrice: Number(0),
+                price: 0,
+                discountPrice: 0,
                 totalLessons: Number(allValues.totalLessons || 0),
                 totalDuration: Number(allValues.totalDuration || 0)
             };
@@ -151,7 +152,16 @@ export default function CreateCourse() {
                     duration: 8
                 });
             } else {
-                const errorMsg = error.response?.data?.message || error.response?.data?.title || error.message || 'Có lỗi xảy ra khi đồng bộ dữ liệu';
+                const errorData = error.response?.data;
+                let errorMsg = 'Có lỗi xảy ra khi đồng bộ dữ liệu';
+
+                if (typeof errorData === 'string') errorMsg = errorData;
+                else if (errorData?.message) errorMsg = errorData.message;
+                else if (errorData?.title) errorMsg = errorData.title;
+                else if (errorData?.errors) {
+                    errorMsg = Object.values(errorData.errors).flat().join(', ');
+                }
+
                 message.error(errorMsg);
             }
         } finally {

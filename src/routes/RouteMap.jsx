@@ -98,6 +98,7 @@ export default function RouteMap() {
             <Route path="subjects/:id" element={<SubjectDetail />} />
             <Route path="courses" element={<ManagerCourseManagement />} />
             <Route path="courses/create" element={<ManagerCreateCourse />} />
+            <Route path="courses/:courseId" element={<TeacherCourseDetail />} />
             <Route path="grades" element={<GradeManagement />} />
             <Route path="terms" element={<TermManagement />} />
             <Route path="profile" element={<Profile />} />
@@ -132,3 +133,4 @@ export default function RouteMap() {
     </Routes>
   );
 }
+// Routes updated to trigger HMR check

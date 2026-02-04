@@ -4,14 +4,13 @@ import {
     Plus,
     Search,
     BookOpen,
-    MoreVertical,
-    Filter,
     LayoutGrid,
     List as ListIcon,
-    Calendar,
-    Layers,
-    CheckCircle2,
-    AlertCircle,
+    Users,
+    Clock,
+    ArrowRight,
+    Filter,
+    MoreVertical,
     Eye,
     Edit
 } from 'lucide-react';
@@ -19,31 +18,111 @@ import {
     Table,
     Button,
     Input,
-    Tag,
     message,
-    Spin,
-    Select,
+    Tooltip,
     Empty,
-    Tooltip
+    Select,
+    Tag,
+    Dropdown,
+    Space,
+    Spin
 } from 'antd';
 import { getCourses } from '../../api/courseApi';
+
+// --- Shared Components (Clean Admin Style) ---
+
+const StatCard = ({ label, value, subtext, icon: Icon, color }) => {
+    const colorMap = {
+        blue: 'text-blue-600 bg-blue-50',
+        emerald: 'text-emerald-600 bg-emerald-50',
+        purple: 'text-purple-600 bg-purple-50',
+        amber: 'text-amber-600 bg-amber-50',
+    };
+
+    return (
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${colorMap[color] || colorMap.blue}`}>
+                <Icon size={24} />
+            </div>
+            <div className="text-left">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-0.5">{label}</p>
+                <div className="text-2xl font-bold text-slate-800 leading-none">{value}</div>
+            </div>
+        </div>
+    );
+};
+
+const StatusBadge = ({ status }) => {
+    const isActive = status === 'published' || status === 'active' || status === 'Active';
+    return (
+        <Tag color={isActive ? 'success' : 'default'} className="border-0 m-0 font-semibold px-2 py-0.5 rounded-md">
+            {isActive ? 'Hoạt động' : 'Bản nháp'}
+        </Tag>
+    );
+};
+
+const CourseCard = ({ course, navigate }) => {
+    const status = course.status?.toLowerCase() || (course.isActive ? 'active' : 'draft');
+
+    return (
+        <div
+            className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 group relative overflow-hidden flex flex-col cursor-pointer"
+            onClick={() => navigate(`/dashboard/manager/courses/${course.id}`)}
+        >
+            <div className="h-40 overflow-hidden bg-slate-100 relative">
+                {course.thumbnail ? (
+                    <img src={course.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300"><BookOpen size={32} /></div>
+                )}
+                <div className="absolute top-3 right-3">
+                    <StatusBadge status={status} />
+                </div>
+            </div>
+
+            <div className="p-5 flex flex-col flex-1">
+                <div className="mb-3">
+                    <span className="text-[10px] font-bold text-[#0487e2] bg-blue-50 px-2 py-1 rounded-md uppercase tracking-wider">
+                        {course.subject?.name || course.subjectName || course.category || 'Hệ thống'}
+                    </span>
+                </div>
+
+                <h3 className="font-bold text-base text-slate-800 mb-2 group-hover:text-[#0487e2] transition-colors line-clamp-2 min-h-[3rem]">
+                    {course.title || course.name}
+                </h3>
+
+                <div className="flex items-center gap-4 text-xs font-medium text-slate-500 mt-auto pt-4 border-t border-slate-100">
+                    <div className="flex items-center gap-1.5">
+                        <Users size={14} className="text-slate-400" />
+                        <span>{course.enrollmentCount || 0} HV</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <Clock size={14} className="text-slate-400" />
+                        <span>{Math.floor((course.totalDuration || 0) / 60)}h {(course.totalDuration || 0) % 60}m</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default function CourseManagement() {
     const navigate = useNavigate();
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState('All');
+    const [viewMode, setViewMode] = useState('list'); // Default to list for admin feel
 
     const fetchCourses = useCallback(async () => {
         try {
             setLoading(true);
             const res = await getCourses();
-            // Robust extraction handling { success, data: { items } } or { success, data: [...] }
             const data = res?.data?.items || res?.items || res?.data || res || [];
             setCourses(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Lỗi khi tải danh sách khóa học:', error);
-            message.error('Không thể kết nối máy chủ để tải danh sách khóa học');
+            message.error('Không thể kết nối máy chủ');
         } finally {
             setLoading(false);
         }
@@ -53,236 +132,197 @@ export default function CourseManagement() {
         fetchCourses();
     }, [fetchCourses]);
 
-    const filteredCourses = courses.filter(course =>
-        (course.title || course.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.code?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredCourses = courses.filter(course => {
+        const matchesSearch = (course.title || course.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            course.code?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = filterStatus === 'All' ||
+            (filterStatus === 'Active' ? (course.isActive || course.status === 'Published') : (!course.isActive || course.status !== 'Published'));
 
+        return matchesSearch && matchesStatus;
+    });
+
+    // --- Columns for List View ---
     const columns = [
         {
-            title: 'Khóa học',
+            title: 'KHÓA HỌC',
             key: 'course',
+            width: 400,
             render: (_, record) => (
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl overflow-hidden bg-blue-50 flex items-center justify-center text-[#0487e2] shadow-sm shrink-0 border border-slate-100 relative group/thumb">
+                <div className="flex items-center gap-4 group cursor-pointer" onClick={() => navigate(`/dashboard/manager/courses/${record.id}`)}>
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                         {record.thumbnail ? (
-                            <img src={record.thumbnail} alt={record.title} className="w-full h-full object-cover transition-transform group-hover/thumb:scale-110" onError={(e) => { e.target.style.display = 'none'; }} />
+                            <img src={record.thumbnail} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                         ) : (
-                            <BookOpen size={24} />
-                        )}
-                        {record.isFeatured && (
-                            <div className="absolute top-0 right-0 p-1">
-                                <div className="w-2 h-2 bg-amber-400 rounded-full shadow-sm ring-2 ring-white" />
-                            </div>
+                            <div className="w-full h-full flex items-center justify-center text-slate-400"><BookOpen size={16} /></div>
                         )}
                     </div>
-                    <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-800 text-base leading-tight truncate">{record.title || record.name}</span>
-                            {record.isFeatured && (
-                                <Tag color="gold" className="m-0 text-[8px] font-black uppercase px-1.5 leading-tight rounded-sm border-none bg-gradient-to-r from-amber-400 to-orange-500 text-white">VIP</Tag>
-                            )}
-                        </div>
-                        <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">{record.code}</span>
+                    <div>
+                        <div className="font-bold text-slate-700 text-sm group-hover:text-[#0487e2] transition-colors">{record.title || record.name}</div>
+                        <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">{record.code}</div>
                     </div>
                 </div>
             )
         },
         {
-            title: 'Phân loại',
-            key: 'level',
+            title: 'THỐNG KÊ',
+            key: 'stats',
             render: (_, record) => (
-                <div className="flex flex-col gap-1">
-                    <Tag className="rounded-lg font-bold border-none bg-blue-50 text-blue-600 px-2 py-0 text-[10px] w-fit">
-                        {record.level || 'Chưa định nghĩa'}
-                    </Tag>
-                    <span className="text-[10px] text-slate-500 font-bold px-1 flex items-center gap-1">
-                        <Layers size={10} className="text-[#0487e2]" />
-                        {record.subjectName || 'Khối lớp N/A'}
-                    </span>
+                <div className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                    <div className="flex items-center gap-1.5"><Users size={14} className="text-slate-400" /> {record.enrollmentCount || 0} học viên</div>
+                    <div className="flex items-center gap-1.5"><Clock size={14} className="text-slate-400" /> {Math.floor((record.totalDuration || 0) / 60)}h {(record.totalDuration || 0) % 60}m</div>
                 </div>
             )
         },
         {
-            title: 'Chỉ số tương tác',
-            key: 'metrics',
+            title: 'PHÂN LOẠI',
+            key: 'category',
             render: (_, record) => (
-                <div className="space-y-1.5">
-                    <div className="flex items-center gap-4">
-                        <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
-                            <Users size={12} className="text-slate-400" />
-                            {record.enrollmentCount || 0}
-                        </div>
-                        <div className="text-[11px] font-bold text-amber-500 flex items-center gap-1">
-                            <CheckCircle2 size={12} fill="currentColor" className="text-amber-100" />
-                            {record.rating || '0.0'}
-                        </div>
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                        <Clock size={10} />
-                        {record.totalLessons || 0} bài • {Math.floor(record.totalDuration / 60) || 0}h {(record.totalDuration % 60) || 0}m
-                    </div>
-                </div>
+                <Tag className="rounded-md border-0 bg-slate-100 text-slate-600 font-semibold">
+                    {record.subject?.name || record.subjectName || 'Hệ thống'}
+                </Tag>
             )
         },
         {
-            title: 'Trạng thái',
-            dataIndex: 'status',
+            title: 'TRẠNG THÁI',
             key: 'status',
-            render: (status) => {
-                const isActive = status === 'Active' || status === 'Published';
-                return (
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${isActive
-                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                        : 'bg-slate-50 text-slate-400 border-slate-100'
-                        }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-                        {isActive ? 'Hoạt động' : 'Bản nháp'}
-                    </span>
-                );
-            }
+            align: 'center',
+            render: (_, record) => <StatusBadge status={record.status || (record.isActive ? 'Active' : 'Draft')} />
         },
         {
-            title: '',
+            title: 'TÁC VỤ',
             key: 'action',
             align: 'right',
-            render: () => (
-                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Tooltip title="Xem chi tiết">
-                        <Button type="text" icon={<Eye size={18} />} className="text-slate-300 hover:text-[#0487e2]" />
+            render: (_, record) => (
+                <div className="flex justify-end gap-1">
+                    <Tooltip title="Chi tiết">
+                        <Button
+                            type="text"
+                            shape="circle"
+                            icon={<Eye size={16} />}
+                            className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
+                            onClick={() => navigate(`/dashboard/manager/courses/${record.id}`)}
+                        />
                     </Tooltip>
-                    <Tooltip title="Sửa nhanh">
-                        <Button type="text" icon={<Edit size={18} />} className="text-slate-300 hover:text-[#0487e2]" />
+                    <Tooltip title="Chỉnh sửa">
+                        <Button
+                            type="text"
+                            shape="circle"
+                            icon={<Edit size={16} />}
+                            className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/dashboard/manager/courses/edit/${record.id}`);
+                            }}
+                        />
                     </Tooltip>
                 </div>
             )
         }
     ];
 
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <Spin size="large" />
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
-            <div className="max-w-7xl mx-auto space-y-8">
+            <div className="max-w-7xl mx-auto space-y-6">
 
                 {/* Header */}
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-black tracking-tight text-slate-900 leading-none">
-                            Danh mục <span className="text-[#0487e2]">Khóa học</span>
-                        </h1>
-                        <p className="text-slate-500 font-medium text-sm italic">Quản lý chuyên sâu các chương trình đào tạo của hệ thống.</p>
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Quản lý Khóa học</h1>
+                        <p className="text-slate-500 text-sm mt-1 font-medium">Quản lý chương trình đào tạo và nội dung học tập</p>
                     </div>
-
                     <Button
                         type="primary"
-                        size="large"
-                        icon={<Plus size={20} />}
+                        icon={<Plus size={18} />}
                         onClick={() => navigate('/dashboard/manager/courses/create')}
-                        className="bg-[#0487e2] hover:bg-[#0374c4] h-14 px-8 rounded-[1.25rem] font-bold shadow-xl shadow-blue-200 border-none flex items-center gap-2 transition-all hover:-translate-y-1 hover:shadow-blue-300 active:scale-95"
+                        className="bg-[#0487e2] hover:bg-[#0374c4] h-11 px-6 rounded-lg font-bold shadow-sm border-none flex items-center gap-2"
                     >
-                        Tạo Khóa học mới
+                        Thêm khóa học
                     </Button>
                 </header>
 
-                {/* Filters/Toolbar */}
-                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 p-4 md:p-6 backdrop-blur-sm bg-white/90 sticky top-4 z-10 mx-1">
-                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                        <div className="relative flex-1 w-full group">
-                            <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#0487e2] transition-colors" />
-                            <Input
-                                placeholder="Tìm khóa học chuyên sâu..."
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                className="w-full h-14 pl-12 pr-4 rounded-xl border-none bg-slate-50 group-focus-within:bg-white transition-all text-base font-medium shadow-none group-focus-within:ring-2 ring-blue-100"
-                                allowClear
-                            />
-                        </div>
-                        <div className="flex gap-3 shrink-0">
-                            <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100 flex items-center gap-1">
-                                <Button type="text" className="h-10 rounded-lg bg-white shadow-sm text-[#0487e2] font-bold"><LayoutGrid size={18} /></Button>
-                                <Button type="text" className="h-10 rounded-lg text-slate-400 hover:text-slate-600"><ListIcon size={18} /></Button>
-                            </div>
-                            <Select
-                                defaultValue="all"
-                                className="w-48 h-14 custom-select-v5"
-                                options={[{ value: 'all', label: 'Mọi trạng thái' }]}
-                            />
-                        </div>
+                {/* Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <StatCard label="Tổng khóa học" value={courses.length} icon={BookOpen} color="blue" />
+                    <StatCard label="Tổng học viên" value={courses.reduce((acc, c) => acc + (c.enrollmentCount || 0), 0)} icon={Users} color="emerald" />
+                    <StatCard label="Tổng thời lượng" value={`${Math.floor(courses.reduce((acc, c) => acc + (c.totalDuration || 0), 0) / 60)}h`} icon={Clock} color="purple" />
+                </div>
+
+                {/* Toolbar */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div className="flex gap-3 w-full md:w-auto flex-1">
+                        <Input
+                            placeholder="Tìm kiếm..."
+                            prefix={<Search size={18} className="text-slate-400" />}
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="h-10 rounded-lg border-slate-200 max-w-sm"
+                        />
+                        <Select
+                            value={filterStatus}
+                            onChange={setFilterStatus}
+                            className="w-40 h-10"
+                            options={[
+                                { value: 'All', label: 'Tất cả' },
+                                { value: 'Active', label: 'Hoạt động' },
+                                { value: 'Draft', label: 'Bản nháp' },
+                            ]}
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-[#0487e2]' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            <ListIcon size={18} />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-[#0487e2]' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            <LayoutGrid size={18} />
+                        </button>
                     </div>
                 </div>
 
-                {/* Table/List View */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden min-h-[500px] mx-1">
-                    {loading ? (
-                        <div className="py-40 flex flex-col items-center justify-center space-y-6">
-                            <div className="relative flex items-center justify-center">
-                                <div className="w-16 h-16 border-4 border-blue-50 border-t-blue-500 rounded-full animate-spin"></div>
-                                <BookOpen className="absolute text-blue-500" size={20} />
-                            </div>
-                            <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] animate-pulse">Synchronizing Data</p>
-                        </div>
-                    ) : filteredCourses.length === 0 ? (
-                        <div className="py-32 text-center flex flex-col items-center">
-                            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-200">
-                                <BookOpen size={48} />
-                            </div>
-                            <Empty description={<span className="text-slate-400 font-bold uppercase tracking-widest text-xs">Không có dữ liệu khóa học</span>} />
-                            <Button type="link" onClick={() => navigate('/dashboard/manager/courses/create')} className="mt-4 font-black text-[#0487e2] uppercase text-xs">Phát triển khóa học ngay</Button>
+                {/* Content */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
+                    {filteredCourses.length === 0 ? (
+                        <div className="py-24 text-center">
+                            <Empty description="Không tìm thấy khóa học nào" />
                         </div>
                     ) : (
-                        <Table
-                            columns={columns}
-                            dataSource={filteredCourses}
-                            rowKey="id"
-                            pagination={{
-                                pageSize: 8,
-                                showSizeChanger: false,
-                                className: "custom-pagination"
-                            }}
-                            rowClassName="group cursor-pointer"
-                            onRow={(record) => ({
-                                onClick: () => { } // Navigate to detail
-                            })}
-                            className="custom-course-table-v2"
-                        />
+                        viewMode === 'grid' ? (
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {filteredCourses.map(course => (
+                                    <CourseCard key={course.id} course={course} navigate={navigate} />
+                                ))}
+                            </div>
+                        ) : (
+                            <Table
+                                columns={columns}
+                                dataSource={filteredCourses}
+                                rowKey="id"
+                                pagination={{
+                                    pageSize: 10,
+                                    showSizeChanger: false,
+                                    className: "px-6 py-4"
+                                }}
+                                rowClassName="hover:bg-slate-50 transition-colors"
+                            />
+                        )
                     )}
                 </div>
 
             </div>
-
-            <style dangerouslySetInnerHTML={{
-                __html: `
-        .custom-course-table-v2 .ant-table-thead > tr > th {
-          background: #fafbfc !important;
-          font-weight: 800 !important;
-          text-transform: uppercase !important;
-          font-size: 10px !important;
-          letter-spacing: 0.15em !important;
-          color: #94a3b8 !important;
-          padding: 1.5rem !important;
-          border-bottom: 2px solid #f1f5f9 !important;
-        }
-        .custom-course-table-v2 .ant-table-tbody > tr > td {
-          padding: 1.5rem !important;
-          border-bottom: 1px solid #f8fafc !important;
-          transition: all 0.3s !important;
-        }
-        .custom-course-table-v2 .ant-table-tbody > tr:hover > td {
-          background-color: #fcfdfe !important;
-        }
-        .custom-select-v5 .ant-select-selector {
-          height: 56px !important;
-          border-radius: 0.75rem !important;
-          border: none !important;
-          background-color: #f8fafc !important;
-          display: flex !important;
-          align-items: center !important;
-          font-weight: 700 !important;
-        }
-        .custom-pagination .ant-pagination-item-active {
-           border-color: #0487e2 !important;
-           border-radius: 8px !important;
-        }
-      `}} />
         </div>
     );
 }
