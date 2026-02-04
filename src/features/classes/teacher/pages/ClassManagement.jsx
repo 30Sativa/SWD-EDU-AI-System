@@ -82,7 +82,6 @@ const ClassManagement = () => {
                     </div>
                 ) : (
                     <>
-                        {/* Grid - Flow 26: data từ GET /api/manager/classes */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                             {filteredClasses.map((cls) => {
                                 const title = cls.name ?? cls.title ?? '—';
