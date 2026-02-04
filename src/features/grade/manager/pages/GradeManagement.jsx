@@ -9,11 +9,12 @@ import {
 } from '../../api/gradeApi';
 import {
     getClasses,
-    createClass
+    createClass,
+    updateClass
 } from '../../../classes/api/classApi';
 import { Users, Calendar } from 'lucide-react';
 import { getUsers, ROLE_ENUM } from '../../../user/api/userApi';
-import axiosClient from '../../../../lib/axiosClient';
+import { getTerms } from '../../../term/api/termApi';
 
 export default function GradeManagement() {
     const [activeTab, setActiveTab] = useState('1'); // '1': Grades, '2': Classes
@@ -36,6 +37,7 @@ export default function GradeManagement() {
     const [isClassModalOpen, setIsClassModalOpen] = useState(false);
     const [classSubmitting, setClassSubmitting] = useState(false);
     const [filterGradeId, setFilterGradeId] = useState('All');
+    const [editingClass, setEditingClass] = useState(null);
 
     const [statusUpdating, setStatusUpdating] = useState(null);
     const [form] = Form.useForm();
@@ -49,8 +51,7 @@ export default function GradeManagement() {
                 getGradeLevels(),
                 getClasses(),
                 getUsers({ RoleFilter: ROLE_ENUM.TEACHER, PageSize: 100 }),
-                axiosClient.get('/api/semesters') // Assuming API endpoint for terms/semesters
-                    .catch(() => ({ data: [] })) // Fail gracefully
+                getTerms().catch(() => ({ data: [] })) // Use centralized API
             ]);
 
             const gradeData = gradeRes?.data?.items || gradeRes?.items || gradeRes?.data || gradeRes || [];
@@ -127,26 +128,51 @@ export default function GradeManagement() {
         }
     };
 
-    const handleOpenClassModal = () => {
-        classForm.resetFields();
-        classForm.setFieldsValue({ maxStudents: 40 });
+    const handleOpenClassModal = (classItem = null) => {
+        setEditingClass(classItem);
+        if (classItem) {
+            classForm.setFieldsValue({
+                code: classItem.code,
+                name: classItem.name,
+                maxStudents: classItem.maxStudents || classItem.maxStudent || 40,
+                termId: classItem.termId,
+                teacherId: classItem.teacherId,
+                gradeLevelId: classItem.gradeLevelId || classItem.gradeId,
+                description: classItem.description
+            });
+        } else {
+            classForm.resetFields();
+            classForm.setFieldsValue({ maxStudents: 40 });
+        }
         setIsClassModalOpen(true);
     };
 
     const handleClassSubmit = async (values) => {
         try {
             setClassSubmitting(true);
-            // Payload transformation if necessary
             const payload = {
                 ...values,
                 maxStudents: parseInt(values.maxStudents)
             };
-            await createClass(payload);
-            message.success('Tạo lớp học mới thành công!');
+
+            if (editingClass) {
+                await updateClass(editingClass.id, payload);
+                message.success('Cập nhật lớp học thành công!');
+            } else {
+                await createClass(payload);
+                message.success('Tạo lớp học mới thành công!');
+            }
+
             setIsClassModalOpen(false);
             fetchData();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Có lỗi xảy ra');
+            console.error('Update/Create Class Error:', error);
+            if (error.response && error.response.data && error.response.data.errors) {
+                const errorMsg = Object.values(error.response.data.errors).flat().join(', ');
+                message.error(errorMsg || 'Lỗi dữ liệu không hợp lệ');
+            } else {
+                message.error(error.response?.data?.message || 'Có lỗi xảy ra');
+            }
         } finally {
             setClassSubmitting(false);
         }
@@ -328,6 +354,22 @@ export default function GradeManagement() {
                     {isActive ? "Đang hoạt động" : "Ngừng hoạt động"}
                 </Tag>
             )
+        },
+        {
+            title: 'TÁC VỤ',
+            key: 'action',
+            align: 'right',
+            render: (_, record) => (
+                <Tooltip title="Chỉnh sửa">
+                    <Button
+                        type="text"
+                        shape="circle"
+                        icon={<Edit size={16} />}
+                        className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 transition-colors"
+                        onClick={() => handleOpenClassModal(record)}
+                    />
+                </Tooltip>
+            )
         }
     ];
 
@@ -489,11 +531,20 @@ export default function GradeManagement() {
                         <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
                             <School size={24} />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-800">Thêm Lớp học mới</h3>
-                        <p className="text-slate-500 text-sm mt-1">Tạo lớp học mới cho năm học hiện tại</p>
+                        <h3 className="text-xl font-bold text-slate-800">
+                            {editingClass ? "Cập nhật Lớp học" : "Thêm Lớp học mới"}
+                        </h3>
+                        <p className="text-slate-500 text-sm mt-1">
+                            {editingClass ? "Điều chỉnh thông tin lớp học hiện tại" : "Tạo lớp học mới cho năm học hiện tại"}
+                        </p>
                     </div>
 
                     <Form form={classForm} layout="vertical" onFinish={handleClassSubmit} className="space-y-4">
+
+                        <Form.Item label="Tên Lớp" name="name" rules={[{ required: true, message: 'Nhập tên lớp' }]}>
+                            <Input className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" placeholder="VD: Lớp 10A1" />
+                        </Form.Item>
+
                         <div className="grid grid-cols-2 gap-4">
                             <Form.Item label="Mã Lớp" name="code" rules={[{ required: true, message: 'Nhập mã lớp' }]}>
                                 <Input className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" placeholder="VD: 10A1" />
@@ -559,7 +610,9 @@ export default function GradeManagement() {
 
                         <div className="flex gap-3 pt-2">
                             <Button className="flex-1 h-11 rounded-xl font-semibold border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => setIsClassModalOpen(false)}>Hủy bỏ</Button>
-                            <Button type="primary" htmlType="submit" loading={classSubmitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold shadow-lg shadow-blue-200 border-none">Tạo Lớp Mới</Button>
+                            <Button type="primary" htmlType="submit" loading={classSubmitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold shadow-lg shadow-blue-200 border-none">
+                                {editingClass ? "Lưu Thay Đổi" : "Tạo Lớp Mới"}
+                            </Button>
                         </div>
                     </Form>
                 </div>
