@@ -284,7 +284,7 @@ export default function ManagerDashboard() {
                 <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-semibold">
                   <tr>
                     <th className="px-6 py-4">Tên Môn học</th>
-                    <th className="px-6 py-4">Khối lớp</th>
+                    <th className="px-6 py-4">Mã Môn</th>
                     <th className="px-6 py-4">Lượt sử dụng</th>
                     <th className="px-6 py-4">Trạng thái</th>
                     <th className="px-6 py-4 text-right"></th>
@@ -307,7 +307,7 @@ export default function ManagerDashboard() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm font-medium text-slate-700">
-                          {grades[sub.gradeId] || grades[sub.gradeLevelId] || `Khối ${sub.gradeId || '?'}`}
+                          <span className="font-mono bg-slate-100 px-2 py-1 rounded text-xs text-slate-600">{sub.code || '---'}</span>
                         </td>
                         <td className="px-6 py-4 text-sm font-medium text-slate-700">
                           {sub.usageCount || 0} lớp

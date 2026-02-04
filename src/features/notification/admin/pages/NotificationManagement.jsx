@@ -1,487 +1,290 @@
 import React, { useState } from 'react';
 import {
   Bell,
+  Search,
   Plus,
-  Save,
+  Filter,
   Send,
-  Edit,
-  Trash2,
-  X,
-  Check,
-  Lightbulb,
-  BarChart3,
-  Users,
-  User,
-  ArrowUp,
-  ArrowDown,
-  Calendar,
   Clock,
-  Mail,
-  MessageSquare,
+  CheckCircle,
+  AlertCircle,
+  Info,
+  Trash2,
+  Eye,
+  MoreVertical,
+  Calendar,
+  Users
 } from 'lucide-react';
+import {
+  Table,
+  Button,
+  Input,
+  Select,
+  Tag,
+  Modal,
+  Form,
+  DatePicker,
+  Tooltip,
+  message,
+  Empty,
+  Tabs
+} from 'antd';
+
+const { TextArea } = Input;
+const { Option } = Select;
 
 export default function NotificationManagement() {
-  const [activeTab, setActiveTab] = useState('Tất cả');
-  const [formData, setFormData] = useState({
-    subject: '',
-    message: '',
-    targetRoles: {
-      'Quản trị viên': false,
-      'Quản lý': false,
-      'Giáo viên': false,
-      'Học sinh': false,
-    },
-    deliveryChannels: {
-      inApp: true,
-      email: false,
-    },
-  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('All');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const [notifications, setNotifications] = useState([
+  // Mock Data
+  const mockNotifications = [
     {
-      id: 1,
-      subject: 'Khẩn cấp: Bản vá Bảo mật 4.2.0',
-      sentBy: 'Hệ thống',
-      sentAt: '2 giờ trước',
-      category: 'Cảnh báo Bảo mật',
-      categoryColor: 'bg-red-100 text-red-700',
-      audience: ['Quản trị viên', 'Quản lý'],
-      status: 'Trực tiếp',
-      statusColor: 'text-green-600',
-      statusDot: 'bg-green-500',
+      id: 'NOT-001',
+      title: 'Bảo trì hệ thống định kỳ',
+      content: 'Hệ thống sẽ tạm dừng để bảo trì từ 00:00 - 02:00 ngày 25/10/2023. Vui lòng lưu lại công việc của bạn.',
+      type: 'System',
+      target: 'All',
+      status: 'Sent',
+      sentAt: '24/10/2023 10:00',
+      author: 'Admin System'
     },
     {
-      id: 2,
-      subject: 'Ra mắt Tính năng: AI-Tutor v2',
-      sentBy: 'Admin',
-      sentAt: '24/10/2023',
-      category: 'Cập nhật Sản phẩm',
-      categoryColor: 'bg-blue-100 text-blue-700',
-      audience: ['Học sinh'],
-      status: 'Đã gửi',
-      statusColor: 'text-gray-600',
-      statusDot: 'bg-gray-400',
+      id: 'NOT-002',
+      title: 'Thông báo nghỉ lễ Quốc Khánh',
+      content: 'Nhà trường thông báo lịch nghỉ lễ Quốc Khánh 2/9 cho toàn thể học sinh và giáo viên.',
+      type: 'General',
+      target: 'All Users',
+      status: 'Scheduled',
+      sentAt: '30/08/2024 08:00',
+      author: 'Phòng Đào tạo'
     },
     {
-      id: 3,
-      subject: 'Quy trình Sao lưu Cơ sở dữ liệu',
-      sentBy: 'Hệ thống',
-      sentAt: '30/10',
-      category: 'Bảo trì',
-      categoryColor: 'bg-orange-100 text-orange-700',
-      audience: ['Quản trị viên', 'Quản lý'],
-      status: 'Đã lên lịch',
-      statusColor: 'text-blue-600',
-      statusDot: 'bg-blue-500',
-    },
-  ]);
-
-  const kpis = [
-    {
-      label: 'Phát sóng Trực tiếp',
-      value: '12',
-      change: '+5%',
-      positive: true,
+      id: 'NOT-003',
+      title: 'Nhắc nhở nộp bài tập cuối kỳ',
+      content: 'Các em học sinh khối 12 lưu ý hạn nộp bài tập cuối kỳ môn Toán là ngày 15/11.',
+      type: 'Academic',
+      target: 'Students (Grade 12)',
+      status: 'Sent',
+      sentAt: '10/11/2023 09:30',
+      author: 'Nguyễn Văn A'
     },
     {
-      label: 'Nhiệm vụ Đã lên lịch',
-      value: '04',
-      change: 'Không thay đổi',
-      positive: null,
-    },
-    {
-      label: 'Tổng số Đã gửi (Hàng tháng)',
-      value: '14.2k',
-      change: '~2.4%',
-      positive: false,
+      id: 'NOT-004',
+      title: 'Cập nhật chính sách bảo mật',
+      content: 'Chúng tôi đã cập nhật chính sách bảo mật mới. Vui lòng xem chi tiết tại trang cài đặt.',
+      type: 'Security',
+      target: 'All Users',
+      status: 'Draft',
+      sentAt: '-',
+      author: 'Admin Security'
     },
   ];
 
-  const handleRoleToggle = (role) => {
-    setFormData({
-      ...formData,
-      targetRoles: {
-        ...formData.targetRoles,
-        [role]: !formData.targetRoles[role],
-      },
-    });
-  };
+  const [notifications, setNotifications] = useState(mockNotifications);
 
-  const handleChannelToggle = (channel) => {
-    setFormData({
-      ...formData,
-      deliveryChannels: {
-        ...formData.deliveryChannels,
-        [channel]: !formData.deliveryChannels[channel],
-      },
-    });
-  };
-
-  const handleSaveDraft = () => {
-    if (!formData.subject || !formData.message) {
-      alert('Vui lòng điền đầy đủ tiêu đề và nội dung');
-      return;
-    }
-    alert('Đã lưu bản nháp thành công!');
-  };
-
-  const handleBroadcast = () => {
-    if (!formData.subject || !formData.message) {
-      alert('Vui lòng điền đầy đủ tiêu đề và nội dung');
-      return;
-    }
-
-    const selectedRoles = Object.entries(formData.targetRoles)
-      .filter(([_, selected]) => selected)
-      .map(([role]) => role);
-
-    if (selectedRoles.length === 0) {
-      alert('Vui lòng chọn ít nhất một vai trò mục tiêu');
-      return;
-    }
-
-    const newNotification = {
-      id: notifications.length + 1,
-      subject: formData.subject,
-      sentBy: 'Admin',
-      sentAt: 'Vừa xong',
-      category: 'Thông báo',
-      categoryColor: 'bg-blue-100 text-blue-700',
-      audience: selectedRoles,
-      status: 'Trực tiếp',
-      statusColor: 'text-green-600',
-      statusDot: 'bg-green-500',
-    };
-
-    setNotifications([newNotification, ...notifications]);
-    setFormData({
-      subject: '',
-      message: '',
-      targetRoles: {
-        'Quản trị viên': false,
-        'Quản lý': false,
-        'Giáo viên': false,
-        'Học sinh': false,
-      },
-      deliveryChannels: {
-        inApp: true,
-        email: false,
-      },
-    });
-
-    alert('Đã gửi thông báo thành công!');
-  };
-
-  const filteredNotifications = notifications.filter((notif) => {
-    if (activeTab === 'Tất cả') return true;
-    if (activeTab === 'Đang hoạt động') return notif.status === 'Trực tiếp';
-    if (activeTab === 'Đã lên lịch') return notif.status === 'Đã lên lịch';
-    return true;
+  // Filter Logic
+  const filteredData = notifications.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === 'All' || item.type === filterType;
+    return matchesSearch && matchesType;
   });
 
+  // Columns
+  const columns = [
+    {
+      title: 'TIÊU ĐỀ',
+      key: 'title',
+      width: 300,
+      render: (_, record) => (
+        <div className="flex items-start gap-3">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${record.type === 'System' ? 'bg-red-50 text-red-600' :
+              record.type === 'Security' ? 'bg-orange-50 text-orange-600' :
+                record.type === 'Academic' ? 'bg-blue-50 text-blue-600' :
+                  'bg-slate-100 text-slate-500'
+            }`}>
+            {record.type === 'System' ? <AlertCircle size={20} /> :
+              record.type === 'Security' ? <Info size={20} /> :
+                record.type === 'Academic' ? <Bell size={20} /> :
+                  <Info size={20} />}
+          </div>
+          <div>
+            <div className="font-bold text-slate-700 text-[15px] hover:text-[#0487e2] cursor-pointer transition-colors">{record.title}</div>
+            <div className="text-xs text-slate-400 font-medium truncate max-w-[250px]">{record.content}</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: 'LOẠI & ĐỐI TƯỢNG',
+      key: 'type',
+      render: (_, record) => (
+        <div className="space-y-1">
+          <Tag className="m-0 font-bold border-none bg-slate-100 text-slate-600">{record.type}</Tag>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+            <Users size={12} />
+            {record.target}
+          </div>
+        </div>
+      )
+    },
+    {
+      title: 'TRẠNG THÁI',
+      key: 'status',
+      render: (_, record) => {
+        let color = 'default';
+        let text = record.status;
+        if (record.status === 'Sent') { color = 'success'; text = 'Đã gửi'; }
+        if (record.status === 'Scheduled') { color = 'processing'; text = 'Đã lên lịch'; }
+        if (record.status === 'Draft') { color = 'default'; text = 'Bản nháp'; }
+
+        return (
+          <Tag color={color} className="rounded-full px-2.5 font-bold border-none text-[11px] uppercase">
+            {text}
+          </Tag>
+        );
+      }
+    },
+    {
+      title: 'THỜI GIAN',
+      key: 'time',
+      render: (_, record) => (
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+          <Clock size={14} className="text-slate-400" />
+          {record.sentAt}
+        </div>
+      )
+    },
+    {
+      title: 'TÁC VỤ',
+      key: 'action',
+      align: 'right',
+      render: (_, record) => (
+        <div className="flex items-center justify-end gap-1">
+          <Tooltip title="Xem chi tiết">
+            <Button type="text" shape="circle" icon={<Eye size={16} />} className="text-slate-400 hover:text-[#0487e2]" />
+          </Tooltip>
+          <Tooltip title="Xóa">
+            <Button type="text" shape="circle" icon={<Trash2 size={16} />} className="text-slate-400 hover:text-rose-500" />
+          </Tooltip>
+        </div>
+      )
+    }
+  ];
+
+  const handleSubmit = () => {
+    message.success('Tạo thông báo thành công! (Mock)');
+    setIsCreateModalOpen(false);
+  };
+
   return (
-    <div className="p-6 md:p-8 bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý Thông báo</h1>
-              <p className="text-gray-600">
-                Phát đi các cập nhật quan trọng và quản lý cảnh báo toàn hệ thống trong hệ sinh thái EDU-AI.
-              </p>
-            </div>
-            <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
-              <Plus size={16} />
-              Tạo Thông báo
-            </button>
+
+        {/* Header */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Quản lý Thông báo</h1>
+            <p className="text-slate-500 text-sm mt-1 font-medium">Gửi và quản lý thông báo hệ thống tới người dùng.</p>
           </div>
+          <Button
+            type="primary"
+            icon={<Plus size={18} />}
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-[#0487e2] hover:bg-[#0463ca] h-11 px-6 rounded-lg font-bold shadow-md border-none flex items-center gap-2"
+          >
+            Tạo Thông báo
+          </Button>
+        </header>
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            {kpis.map((kpi, index) => (
-              <div key={index} className="bg-white border border-gray-200 rounded-lg p-5">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{kpi.label}</p>
-                <div className="flex items-end justify-between">
-                  <p className="text-3xl font-bold text-gray-900">{kpi.value}</p>
-                  <div className="flex items-center gap-1">
-                    {kpi.positive === true && (
-                      <>
-                        <ArrowUp size={14} className="text-green-600" />
-                        <span className="text-xs font-medium text-green-600">{kpi.change}</span>
-                      </>
-                    )}
-                    {kpi.positive === false && (
-                      <>
-                        <ArrowDown size={14} className="text-red-600" />
-                        <span className="text-xs font-medium text-red-600">{kpi.change}</span>
-                      </>
-                    )}
-                    {kpi.positive === null && (
-                      <span className="text-xs font-medium text-gray-500">{kpi.change}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+        {/* Toolbar */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col md:flex-row gap-4 justify-between items-center">
+          <div className="flex gap-3 w-full md:w-auto">
+            <Input
+              placeholder="Tìm kiếm thông báo..."
+              prefix={<Search size={16} className="text-slate-400" />}
+              className="h-10 w-full md:w-64 rounded-lg"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+            <Select
+              defaultValue="All"
+              className="w-40 h-10 [&>.ant-select-selector]:!rounded-lg"
+              onChange={setFilterType}
+            >
+              <Option value="All">Tất cả loại</Option>
+              <Option value="System">Hệ thống</Option>
+              <Option value="Academic">Học tập</Option>
+              <Option value="General">Chung</Option>
+            </Select>
           </div>
-        </div>
-
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - New Communication */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Edit size={20} className="text-gray-600" />
-              <h2 className="text-xl font-bold text-gray-900">Thông báo Mới</h2>
-            </div>
-
-            <div className="space-y-5">
-              {/* Subject Title */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                  Tiêu đề
-                </label>
-                <input
-                  type="text"
-                  value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  placeholder="ví dụ: Bảo trì hệ thống đã lên lịch"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-              </div>
-
-              {/* Message Body */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                  Nội dung Tin nhắn
-                </label>
-                <textarea
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  placeholder="Mô tả ngắn gọn về cập nhật..."
-                  rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
-                />
-              </div>
-
-              {/* Target Roles */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
-                  Vai trò Mục tiêu
-                </label>
-                <div className="space-y-2">
-                  {Object.keys(formData.targetRoles).map((role) => (
-                    <label key={role} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.targetRoles[role]}
-                        onChange={() => handleRoleToggle(role)}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">{role}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Delivery Channels */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
-                  Kênh Gửi
-                </label>
-                <div className="space-y-4">
-                  {/* In-App Notification */}
-                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <MessageSquare size={16} className="text-blue-600" />
-                        <span className="text-sm font-semibold text-gray-900">Thông báo trong Ứng dụng</span>
-                      </div>
-                      <p className="text-xs text-gray-600">Cửa sổ bật lên thời gian thực</p>
-                    </div>
-                    <button
-                      onClick={() => handleChannelToggle('inApp')}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        formData.deliveryChannels.inApp ? 'bg-blue-600' : 'bg-gray-300'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          formData.deliveryChannels.inApp ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Email Blast */}
-                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Mail size={16} className="text-gray-600" />
-                        <span className="text-sm font-semibold text-gray-900">Gửi Email Hàng loạt</span>
-                      </div>
-                      <p className="text-xs text-gray-600">Gửi đến địa chỉ đã xác minh</p>
-                    </div>
-                    <button
-                      onClick={() => handleChannelToggle('email')}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        formData.deliveryChannels.email ? 'bg-blue-600' : 'bg-gray-300'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          formData.deliveryChannels.email ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={handleSaveDraft}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors inline-flex items-center justify-center gap-2"
-                >
-                  <Save size={16} />
-                  Lưu Bản nháp
-                </button>
-                <button
-                  onClick={handleBroadcast}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2"
-                >
-                  <Send size={16} />
-                  Gửi Ngay
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Recent Broadcast Activity */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Hoạt động Phát sóng Gần đây</h2>
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex gap-2 mb-6 border-b border-gray-200">
-              {['Tất cả', 'Đang hoạt động', 'Đã lên lịch'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    activeTab === tab
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* Notifications List */}
-            <div className="space-y-4">
-              {filteredNotifications.map((notif) => (
-                <div key={notif.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-1">{notif.subject}</h3>
-                      <p className="text-xs text-gray-500">
-                        Được gửi {notif.sentAt} bởi {notif.sentBy}
-                      </p>
-                    </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded ${notif.categoryColor}`}>
-                      {notif.category}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      {/* Audience */}
-                      <div className="flex items-center gap-2">
-                        {notif.audience.length > 1 ? (
-                          <Users size={16} className="text-gray-400" />
-                        ) : (
-                          <User size={16} className="text-gray-400" />
-                        )}
-                        <span className="text-xs text-gray-600">{notif.audience.join(', ')}</span>
-                      </div>
-
-                      {/* Status */}
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${notif.statusDot}`}></div>
-                        <span className={`text-xs font-medium ${notif.statusColor}`}>{notif.status}</span>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
-                        <Edit size={14} />
-                      </button>
-                      <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-              <p className="text-xs font-medium text-gray-600">
-                HIỂN THỊ {filteredNotifications.length} TRONG TỔNG SỐ {notifications.length} MỤC
-              </p>
-              <div className="flex gap-2">
-                <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors">
-                  <ArrowUp size={16} className="rotate-[-90deg]" />
-                </button>
-                <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors">
-                  <ArrowDown size={16} className="rotate-[-90deg]" />
-                </button>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 text-sm text-slate-500 font-medium bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+            <Filter size={14} />
+            Hiển thị {filteredData.length} kết quả
           </div>
         </div>
 
-        {/* Bottom Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Pro Tip Card */}
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-5">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center flex-shrink-0">
-                <Lightbulb size={24} className="text-yellow-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Mẹo Chuyên nghiệp: Vai trò Mục tiêu</h3>
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  Chỉ chọn các vai trò cần thiết để giảm mệt mỏi do thông báo và cải thiện tỷ lệ tương tác.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Engagement Insights Card */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-5">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <BarChart3 size={24} className="text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Thông tin Chi tiết về Tương tác</h3>
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  Cảnh báo "Bảo trì toàn cầu" tuần trước có tỷ lệ đọc <strong>92%</strong> trong vòng{' '}
-                  <strong>15 phút</strong> đầu tiên.
-                </p>
-              </div>
-            </div>
-          </div>
+        {/* Table */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <Table
+            columns={columns}
+            dataSource={filteredData}
+            rowKey="id"
+            pagination={{ pageSize: 10 }}
+            className="custom-table"
+            locale={{ emptyText: <Empty description="Không có thông báo nào" /> }}
+          />
         </div>
       </div>
+
+      {/* Create Modal */}
+      <Modal
+        title={<div className="text-[#0463ca] uppercase text-xs font-black tracking-widest">Tạo Thông báo Mới</div>}
+        open={isCreateModalOpen}
+        onCancel={() => setIsCreateModalOpen(false)}
+        footer={null}
+        centered
+        width={600}
+      >
+        <Form layout="vertical" onFinish={handleSubmit} className="pt-4">
+          <Form.Item label={<span className="font-bold text-slate-500 text-xs uppercase">Tiêu đề</span>} required>
+            <Input placeholder="Nhập tiêu đề thông báo" className="h-10 rounded-lg" />
+          </Form.Item>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item label={<span className="font-bold text-slate-500 text-xs uppercase">Loại thông báo</span>} required>
+              <Select className="h-10">
+                <Option value="System">Hệ thống (System)</Option>
+                <Option value="General">Thông tin chung (General)</Option>
+                <Option value="Academic">Học tập (Academic)</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item label={<span className="font-bold text-slate-500 text-xs uppercase">Gửi tới</span>} required>
+              <Select className="h-10" mode="multiple" placeholder="Chọn đối tượng">
+                <Option value="All">Tất cả người dùng</Option>
+                <Option value="Student">Học sinh</Option>
+                <Option value="Teacher">Giáo viên</Option>
+              </Select>
+            </Form.Item>
+          </div>
+
+          <Form.Item label={<span className="font-bold text-slate-500 text-xs uppercase">Nội dung</span>} required>
+            <TextArea rows={4} placeholder="Nhập nội dung chi tiết..." className="rounded-lg" />
+          </Form.Item>
+
+          <Form.Item label={<span className="font-bold text-slate-500 text-xs uppercase">Thời gian gửi</span>}>
+            <DatePicker showTime className="w-full h-10 rounded-lg" placeholder="Gửi ngay lập tức nếu để trống" />
+          </Form.Item>
+
+          <div className="flex gap-3 pt-4 border-t border-slate-100 mt-6">
+            <Button onClick={() => setIsCreateModalOpen(false)} className="flex-1 h-11 rounded-lg">Hủy bỏ</Button>
+            <Button type="primary" htmlType="submit" className="flex-1 h-11 rounded-lg bg-[#0487e2] font-bold border-none flex items-center justify-center gap-2">
+              <Send size={16} /> Gửi thông báo
+            </Button>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }

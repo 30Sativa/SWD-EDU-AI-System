@@ -24,6 +24,7 @@ import GradeManagement from "../features/grade/manager/pages/GradeManagement";
 import TermManagement from "../features/term/manager/pages/TermManagement";
 import ManagerCourseManagement from "../features/course/manager/pages/CourseManagement";
 import ManagerCreateCourse from "../features/course/manager/pages/CreateCourse";
+import ManagerQuestionBank from "../features/question-bank/manager/pages/QuestionBank";
 import TeacherCreateCourse from "../features/course/teacher/pages/CreateCourse";
 import CourseDetail from "../features/course/student/pages/CourseDetail";
 import CoursesList from "../features/course/student/pages/CoursesList";
@@ -40,6 +41,7 @@ import UserManagement from "../features/user/admin/pages/UserManagement";
 import NotificationManagement from "../features/notification/admin/pages/NotificationManagement";
 import AuditLogManagement from "../features/audit-log/admin/pages/AuditLogManagement";
 import SystemSettings from "../features/settings/admin/pages/SystemSettings";
+import GeneralSettings from "../features/settings/pages/GeneralSettings";
 
 const Layout = () => (
   <div className="flex flex-col min-h-screen">
@@ -73,6 +75,7 @@ export default function RouteMap() {
             <Route path="question-bank" element={<QuestionBank />} />
             <Route path="question-bank/:folderId" element={<QuestionList />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<GeneralSettings />} />
           </Route>
         </Route>
 
@@ -87,6 +90,7 @@ export default function RouteMap() {
             <Route path="quizzes/:quizId" element={<QuizDetail />} />
             <Route path="progress" element={<StudentProgress />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<GeneralSettings />} />
           </Route>
         </Route>
 
@@ -100,7 +104,10 @@ export default function RouteMap() {
             <Route path="courses/create" element={<ManagerCreateCourse />} />
             <Route path="grades" element={<GradeManagement />} />
             <Route path="terms" element={<TermManagement />} />
+            <Route path="terms" element={<TermManagement />} />
+            <Route path="question-bank" element={<ManagerQuestionBank />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<GeneralSettings />} />
           </Route>
         </Route>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit, LayoutGrid, List, Eye, Hash, Palette } from 'lucide-react';
-import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, Select } from 'antd';
+import { Plus, Search, Edit, LayoutGrid, List, Eye, Hash, Palette, MoreVertical } from 'lucide-react';
+import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, Select, Dropdown } from 'antd';
 import { getSubjects, createSubject } from '../../api/subjectApi';
 
 export default function SubjectManagement() {
@@ -77,6 +77,7 @@ export default function SubjectManagement() {
         return matchesSearch;
     }), [subjects, searchTerm, statusFilter]);
 
+    // Define table columns (for list view)
     const columns = [
         {
             title: 'Môn học',
@@ -130,27 +131,26 @@ export default function SubjectManagement() {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-800">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
+            <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header Section */}
-                <header className="flex flex-row justify-between items-center mb-10">
+                <header className="flex flex-row justify-between items-center">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Quản lý Môn học</h1>
                         <p className="text-slate-500 text-sm mt-1 font-medium">Quản lý và thiết lập cấu trúc chương trình học.</p>
                     </div>
                     <Button
                         type="primary"
-                        size="large"
                         icon={<Plus size={18} />}
                         onClick={handleOpenCreateModal}
-                        className="bg-[#0487e2] hover:bg-[#0463ca] h-11 px-6 rounded-lg font-semibold shadow-md border-none flex items-center"
+                        className="bg-[#0487e2] hover:bg-[#0463ca] h-11 px-6 rounded-lg font-bold shadow-md border-none flex items-center gap-2"
                     >
                         Tạo Môn học
                     </Button>
                 </header>
 
                 {/* Filters Section */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] p-4">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
                     <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
                         <div className="flex flex-1 gap-4 w-full">
                             <Input
@@ -158,12 +158,12 @@ export default function SubjectManagement() {
                                 prefix={<Search size={18} className="text-slate-400" />}
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
-                                className="flex-1 h-11 rounded-lg border-slate-200 focus:border-[#0487e2] shadow-none"
+                                className="flex-1 h-10 rounded-lg border-slate-200 bg-white hover:border-[#0487e2] focus:border-[#0487e2]"
                                 allowClear
                             />
                             <Select
                                 defaultValue="All"
-                                className="w-48 h-11 custom-select"
+                                className="w-48 h-10 [&>.ant-select-selector]:!rounded-lg [&>.ant-select-selector]:!border-slate-200 [&>.ant-select-selector]:!h-10 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
                                 onChange={setStatusFilter}
                                 options={[
                                     { value: 'All', label: 'Tất cả trạng thái' },
@@ -172,18 +172,18 @@ export default function SubjectManagement() {
                                 ]}
                             />
                         </div>
-                        <div className="flex items-center bg-slate-100 p-1 rounded-lg shrink-0">
+                        <div className="flex items-center gap-1 bg-white border border-slate-200 p-1 rounded-lg shrink-0">
                             <Button
-                                type={viewMode === 'grid' ? 'primary' : 'text'}
-                                icon={<LayoutGrid size={18} />}
+                                type="text"
+                                icon={<LayoutGrid size={16} />}
                                 onClick={() => setViewMode('grid')}
-                                className={`rounded-md h-9 w-10 flex items-center justify-center border-none shadow-none ${viewMode === 'grid' ? 'bg-white text-[#0487e2] shadow-sm' : 'text-slate-500 hover:text-[#0487e2]'}`}
+                                className={`rounded-md h-8 w-8 flex items-center justify-center p-0 ${viewMode === 'grid' ? 'bg-blue-50 text-[#0487e2]' : 'text-slate-400 hover:text-slate-600'}`}
                             />
                             <Button
-                                type={viewMode === 'list' ? 'primary' : 'text'}
-                                icon={<List size={18} />}
+                                type="text"
+                                icon={<List size={16} />}
                                 onClick={() => setViewMode('list')}
-                                className={`rounded-md h-9 w-10 flex items-center justify-center border-none shadow-none ${viewMode === 'list' ? 'bg-white text-[#0487e2] shadow-sm' : 'text-slate-500 hover:text-[#0487e2]'}`}
+                                className={`rounded-md h-8 w-8 flex items-center justify-center p-0 ${viewMode === 'list' ? 'bg-blue-50 text-[#0487e2]' : 'text-slate-400 hover:text-slate-600'}`}
                             />
                         </div>
                     </div>
@@ -191,56 +191,58 @@ export default function SubjectManagement() {
 
                 {/* Content Rendering */}
                 {loading ? (
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center py-24">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center py-20">
                         <Spin size="large" />
-                        <p className="mt-4 text-slate-500 font-medium">Đang đồng bộ dữ liệu hệ thống...</p>
+                        <p className="mt-4 text-slate-500 font-medium">Đang tải dữ liệu...</p>
                     </div>
                 ) : filteredData.length === 0 ? (
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm py-20 text-center">
-                        <Empty description={<span className="text-slate-400">Không tìm thấy kết quả phù hợp</span>} />
+                        <Empty description={<span className="text-slate-400 font-medium">Không tìm thấy kết quả phù hợp</span>} />
                     </div>
                 ) : viewMode === 'grid' ? (
                     /* Grid View */
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
                         {filteredData.map((item) => (
                             <div
                                 key={item.id}
+                                className="group bg-white rounded-xl p-5 border border-slate-200 hover:border-[#0487e2] hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col justify-between h-full relative"
                                 onClick={() => navigate(`/dashboard/manager/subjects/${item.id}`)}
-                                className="group bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden relative"
                             >
-                                <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: item.color || '#0487e2' }}></div>
-
-                                <div className="flex justify-between items-start mb-6">
-                                    <div
-                                        className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-sm transition-transform group-hover:scale-110"
-                                        style={{ backgroundColor: item.color || '#0487e2' }}
-                                    >
-                                        {item.name?.charAt(0)}
+                                <div>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div
+                                            className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl font-bold shadow-sm"
+                                            style={{ backgroundColor: item.color || '#0487e2' }}
+                                        >
+                                            {item.name?.charAt(0)}
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded">
+                                                {item.code}
+                                            </span>
+                                            <Tag color={item.isActive ? 'success' : 'default'} className="m-0 border-none px-1.5 py-0 text-[9px] font-bold uppercase">
+                                                {item.isActive ? 'Đã xuất bản' : 'Bản nháp'}
+                                            </Tag>
+                                        </div>
                                     </div>
-                                    <span className="text-[10px] font-mono font-bold px-2 py-1 bg-slate-50 text-slate-400 rounded-md">
-                                        {item.code}
-                                    </span>
+
+                                    <div className="space-y-1 mb-4">
+                                        <h3 className="text-lg font-bold text-slate-800 group-hover:text-[#0487e2] transition-colors line-clamp-1">
+                                            {item.name}
+                                        </h3>
+                                        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider truncate">
+                                            {item.nameEn || 'ENGLISH NAME N/A'}
+                                        </p>
+                                    </div>
                                 </div>
 
-                                <div className="space-y-1">
-                                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-[#0487e2] transition-colors line-clamp-1">
-                                        {item.name}
-                                    </h3>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">
-                                        {item.nameEn || 'ENGLISH NAME N/A'}
-                                    </p>
-                                </div>
-
-                                <div className="mt-6 pt-4 border-t border-slate-50 flex justify-between items-center text-left">
-                                    <Tag color={item.isActive ? 'success' : 'default'} className="rounded-md px-2 py-0 font-bold border-none m-0 text-[9px] uppercase">
-                                        {item.isActive ? 'Đã xuất bản' : 'Đang soạn'}
-                                    </Tag>
+                                <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-end">
                                     <Button
                                         size="small"
                                         type="text"
                                         icon={<Edit size={14} />}
                                         onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/manager/subjects/${item.id}`, { state: { isEditing: true } }); }}
-                                        className="text-slate-300 hover:text-[#0487e2] hover:bg-transparent p-0"
+                                        className="text-slate-400 hover:text-[#0487e2] hover:bg-transparent"
                                     />
                                 </div>
                             </div>
@@ -248,7 +250,7 @@ export default function SubjectManagement() {
                     </div>
                 ) : (
                     /* List View (Table) */
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] overflow-hidden">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                         <Table
                             columns={columns}
                             dataSource={filteredData}
@@ -260,7 +262,7 @@ export default function SubjectManagement() {
                 )}
             </div>
 
-            {/* Modal Setup - Only for Creation */}
+            {/* Modal Setup (Unchanged) */}
             <Modal
                 title={
                     <div className="flex items-center gap-2 text-[#0463ca] uppercase text-xs font-black tracking-widest">
@@ -373,7 +375,7 @@ export default function SubjectManagement() {
                             type="primary"
                             htmlType="submit"
                             loading={submitting}
-                            className="flex-1 bg-[#0487e2] h-11 rounded-lg font-bold uppercase text-xs tracking-widest shadow-md shadow-[#0487e2]/20 border-none"
+                            className="flex-1 bg-[#0487e2] h-11 rounded-lg font-bold uppercase text-xs tracking-widest shadow-md border-none"
                         >
                             Xác nhận khởi tạo
                         </Button>

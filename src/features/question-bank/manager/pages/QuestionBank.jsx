@@ -4,7 +4,6 @@ import {
     Plus,
     Search,
     Filter,
-    MoreHorizontal,
     FolderOpen,
     FileQuestion,
     BrainCircuit,
@@ -14,7 +13,8 @@ import {
     Edit,
     Layers,
     Clock,
-    CheckCircle2
+    User,
+    ListFilter
 } from 'lucide-react';
 import {
     Table,
@@ -23,7 +23,8 @@ import {
     Tag,
     Select,
     Tooltip,
-    Empty
+    Empty,
+    Avatar
 } from 'antd';
 
 export default function QuestionBank() {
@@ -31,7 +32,7 @@ export default function QuestionBank() {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
 
-    // Mock data for question folders (grouped by Lesson/Topic)
+    // Mock data for manager view - includes "author" field
     const questionFolders = [
         {
             id: 1,
@@ -39,6 +40,7 @@ export default function QuestionBank() {
             code: 'MATH10-C2-L1',
             subject: 'Toán học',
             grade: 'Lớp 10',
+            author: 'Nguyễn Văn Hùng',
             questionCount: 45,
             aiGenerated: 20,
             manual: 25,
@@ -52,6 +54,7 @@ export default function QuestionBank() {
             code: 'MATH11-C1-L3',
             subject: 'Toán học',
             grade: 'Lớp 11',
+            author: 'Trần Thị Mai',
             questionCount: 32,
             aiGenerated: 15,
             manual: 17,
@@ -65,6 +68,7 @@ export default function QuestionBank() {
             code: 'PHYS10-C2-L5',
             subject: 'Vật lý',
             grade: 'Lớp 10',
+            author: 'Lê Văn Lâm',
             questionCount: 28,
             aiGenerated: 28,
             manual: 0,
@@ -78,6 +82,7 @@ export default function QuestionBank() {
             code: 'BIO12-C3-L1',
             subject: 'Sinh học',
             grade: 'Lớp 12',
+            author: 'Phạm Thị Lan',
             questionCount: 50,
             aiGenerated: 10,
             manual: 40,
@@ -91,6 +96,7 @@ export default function QuestionBank() {
             code: 'ENG10-U2-GR',
             subject: 'Tiếng Anh',
             grade: 'Lớp 10',
+            author: 'David Nguyen',
             questionCount: 60,
             aiGenerated: 30,
             manual: 30,
@@ -102,7 +108,8 @@ export default function QuestionBank() {
 
     const filteredData = questionFolders.filter(item => {
         const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.code.toLowerCase().includes(searchTerm.toLowerCase());
+            item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.author.toLowerCase().includes(searchTerm.toLowerCase());
 
         let matchesStatus = true;
         if (statusFilter !== 'all') {
@@ -132,6 +139,20 @@ export default function QuestionBank() {
             )
         },
         {
+            title: 'NGƯỜI TẠO',
+            key: 'author',
+            width: 200,
+            render: (_, record) => (
+                <div className="flex items-center gap-3">
+                    <Avatar size={32} style={{ backgroundColor: '#fde3cf', color: '#f56a00' }}>{record.author.charAt(0)}</Avatar>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700">{record.author}</span>
+                        <span className="text-[10px] text-slate-500 uppercase font-semibold">Giáo viên</span>
+                    </div>
+                </div>
+            )
+        },
+        {
             title: 'MÔN HỌC',
             key: 'subject',
             render: (_, record) => (
@@ -145,7 +166,7 @@ export default function QuestionBank() {
             )
         },
         {
-            title: 'THỐNG KÊ CÂU HỎI',
+            title: 'THỐNG KÊ',
             key: 'stats',
             render: (_, record) => (
                 <div className="space-y-1.5">
@@ -160,15 +181,6 @@ export default function QuestionBank() {
                         >
                             {record.difficulty}
                         </Tag>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-[10px] font-medium text-slate-500">
-                        <div className="flex items-center gap-1 text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded" title="Tạo bởi AI">
-                            <BrainCircuit size={10} /> {record.aiGenerated}
-                        </div>
-                        <div className="flex items-center gap-1 text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded" title="Tạo thủ công">
-                            <PenTool size={10} /> {record.manual}
-                        </div>
                     </div>
                 </div>
             )
@@ -212,7 +224,6 @@ export default function QuestionBank() {
                             shape="circle"
                             icon={<Eye size={16} />}
                             className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
-                            onClick={() => navigate(`/dashboard/teacher/question-bank/${record.id}`)}
                         />
                     </Tooltip>
                     <Tooltip title="Chỉnh sửa">
@@ -243,8 +254,8 @@ export default function QuestionBank() {
                 {/* Header */}
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Ngân hàng câu hỏi</h1>
-                        <p className="text-slate-500 text-sm mt-1 font-medium">Quản lý kho câu hỏi theo chủ đề và bài học.</p>
+                        <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Ngân hàng câu hỏi (Toàn biên)</h1>
+                        <p className="text-slate-500 text-sm mt-1 font-medium">Quản lý toàn bộ kho câu hỏi của tất cả giảng viên trong hệ thống.</p>
                     </div>
 
                     <div className="flex gap-3">
@@ -274,12 +285,23 @@ export default function QuestionBank() {
 
                         <div className="flex gap-3 w-full md:w-auto">
                             <Input
-                                placeholder="Tìm kiếm bộ câu hỏi..."
+                                placeholder="Tìm kiếm bộ câu hỏi, giáo viên..."
                                 prefix={<Search size={16} className="text-slate-400" />}
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 className="h-10 w-full md:w-64 rounded-lg border-slate-200 bg-white hover:border-[#0487e2] focus:border-[#0487e2]"
                                 allowClear
+                            />
+
+                            <Select
+                                defaultValue="all-subjects"
+                                className="w-40 h-10 [&>.ant-select-selector]:!rounded-lg [&>.ant-select-selector]:!border-slate-200 [&>.ant-select-selector]:!h-10 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
+                                options={[
+                                    { value: 'all-subjects', label: 'Tất cả môn học' },
+                                    { value: 'math', label: 'Toán học' },
+                                    { value: 'physics', label: 'Vật lý' },
+                                    { value: 'english', label: 'Tiếng Anh' }
+                                ]}
                             />
 
                             <Select
@@ -312,12 +334,12 @@ export default function QuestionBank() {
                                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-slate-300">
                                         <FolderOpen size={32} />
                                     </div>
-                                    <Empty description={<span className="text-slate-400 font-medium">Không tìm thấy bộ câu hỏi nào</span>} />
+                                    <Empty description={<span className="text-slate-400 font-medium">Không tìm thấy dữ liệu nào</span>} />
                                 </div>
                             )
                         }}
                         onRow={(record) => ({
-                            onClick: () => navigate(`/dashboard/teacher/question-bank/${record.id}`),
+                            onClick: () => { }, // navigate to detail if needed
                             className: "cursor-pointer hover:bg-slate-50 transition-colors"
                         })}
                     />
