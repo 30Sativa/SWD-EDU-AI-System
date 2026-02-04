@@ -19,3 +19,5 @@ export const updateGradeLevel = (id, data) => {
 export const changeGradeLevelStatus = (id) => {
     return axiosClient.patch(`/api/manager/grade-levels/${id}/status`, {});
 };
+
+

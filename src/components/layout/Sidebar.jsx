@@ -15,6 +15,7 @@ import {
   FileText,
   Book,
   Layers,
+  Calendar, // Import Calendar
 } from 'lucide-react';
 import ScrollToTop from './ScrollToTop';
 import Header from '../../features/dashboard/components/Header';
@@ -26,6 +27,7 @@ const MENU_ITEMS = [
   { label: 'Thông báo', icon: Bell, path: 'notifications', allowedRoles: ['admin', 'manager'] },
   { label: 'Nhật ký hệ thống', icon: FileText, path: 'audit-logs', allowedRoles: ['admin'] },
   { label: 'Quản lý Môn học', icon: Book, path: 'subjects', allowedRoles: ['manager'] },
+  { label: 'Quản lý Kỳ học', icon: Calendar, path: 'terms', allowedRoles: ['manager'] },
   { label: 'Quản lý Khối/Lớp', icon: Layers, path: 'grades', allowedRoles: ['manager'] },
   { label: 'Ngân hàng câu hỏi', icon: ListChecks, path: 'question-bank', allowedRoles: ['manager'] },
   { label: 'Khóa học', icon: BookOpen, path: 'courses', allowedRoles: ['teacher', 'student'] },
