@@ -16,7 +16,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             _context = context;
         }
 
-        public Task AddAsync(UserDomain? user)
+        public async Task AddAsync(UserDomain? user)
         {
             var entity = new Infrastructure.Persistence.Entities.User
             {
@@ -29,7 +29,26 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 CreatedAt = user.CreatedAt
             };
             _context.Users.Add(entity);
-            return _context.SaveChangesAsync();
+
+            if (user.Role == UserRoleDomain.Student)
+            {
+                var studentCode = "STU" + Guid.NewGuid().ToString("N")[..17];
+                _context.Students.Add(new Infrastructure.Persistence.Entities.Student
+                {
+                    UserId = user.Id,
+                    StudentCode = studentCode,
+                    EnrollmentDate = DateTime.UtcNow
+                });
+            }
+            else if (user.Role == UserRoleDomain.Teacher)
+            {
+                _context.Teachers.Add(new Infrastructure.Persistence.Entities.Teacher
+                {
+                    UserId = user.Id
+                });
+            }
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateProfileAsync(Guid userId, UserProfileDomain profile, CancellationToken cancellationToken = default)

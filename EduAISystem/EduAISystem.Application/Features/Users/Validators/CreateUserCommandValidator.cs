@@ -9,7 +9,9 @@ namespace EduAISystem.Application.Features.Users.Validators
         private static readonly int[] AllowedRoles =
         {
             (int)UserRoleDomain.Admin,
-            (int)UserRoleDomain.Manager
+            (int)UserRoleDomain.Manager,
+            (int)UserRoleDomain.Student,
+            (int)UserRoleDomain.Teacher
         };
 
         public CreateUserCommandValidator()
@@ -29,7 +31,7 @@ namespace EduAISystem.Application.Features.Users.Validators
 
             RuleFor(x => x.Request.Role)
                 .Must(r => AllowedRoles.Contains(r))
-                .WithMessage("Chỉ được tạo user với vai trò Admin hoặc Manager.");
+                .WithMessage("Vai trò phải là Admin, Manager, Student hoặc Teacher.");
         }
     }
 }

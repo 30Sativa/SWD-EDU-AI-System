@@ -1,4 +1,4 @@
-﻿using EduAISystem.Domain.Enums;
+using EduAISystem.Domain.Enums;
 using EduAISystem.Infrastructure.Persistence.Context;
 using EduAISystem.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -23,10 +23,10 @@ namespace EduAISystem.Infrastructure.Persistence.Seed
 
             await SeedUserAsync(
                 context,
-                "user@gmail.com",
-                "user",
+                "student@gmail.com",
+                "student",
                 "123456",
-                UserRoleDomain.User);
+                UserRoleDomain.Student);
 
             await SeedUserAsync(
                 context,
@@ -46,8 +46,10 @@ namespace EduAISystem.Infrastructure.Persistence.Seed
             if (await context.Users.AnyAsync(u => u.Email == email))
                 return;
 
+            var userId = Guid.NewGuid();
             context.Users.Add(new User
             {
+                Id = userId,
                 UserName = userName,
                 Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
@@ -55,6 +57,20 @@ namespace EduAISystem.Infrastructure.Persistence.Seed
                 CreatedAt = DateTime.UtcNow,
                 Role = (int)role
             });
+
+            if (role == UserRoleDomain.Student)
+            {
+                context.Students.Add(new Student
+                {
+                    UserId = userId,
+                    StudentCode = "STU" + Guid.NewGuid().ToString("N")[..17],
+                    EnrollmentDate = DateTime.UtcNow
+                });
+            }
+            else if (role == UserRoleDomain.Teacher)
+            {
+                context.Teachers.Add(new Teacher { UserId = userId });
+            }
 
             await context.SaveChangesAsync();
         }
