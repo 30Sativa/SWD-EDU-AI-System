@@ -133,10 +133,7 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Tổng quan Hệ thống</h1>
             <p className="text-slate-500 text-sm mt-1">Theo dõi các chỉ số hiệu suất chính và trạng thái hạ tầng.</p>
           </div>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-[#0487e2] text-white font-semibold rounded-lg hover:bg-[#0463ca] transition-all shadow-md shadow-[#0487e2]/20">
-            <Plus size={18} />
-            <span>Thêm Quản trị viên</span>
-          </button>
+
         </header>
 
         {/* Stats Grid - Style StatCard */}
