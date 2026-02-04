@@ -21,7 +21,13 @@ namespace EduAISystem.Application.Features.CourseCategories.Handler
                 return null;
 
             var dto = request.Request;
-            existing.Update(dto.Name, dto.Description, dto.ParentId, dto.IconUrl, dto.SortOrder);
+            var name = dto.Name ?? existing.Name;
+            var description = dto.Description ?? existing.Description;
+            var parentId = dto.ParentId ?? existing.ParentId;
+            var iconUrl = dto.IconUrl ?? existing.IconUrl;
+            var sortOrder = dto.SortOrder ?? existing.SortOrder;
+
+            existing.Update(name, description, parentId, iconUrl, sortOrder);
             await _categories.UpdateAsync(existing, cancellationToken);
 
             var updated = await _categories.GetByIdAsync(existing.Id, cancellationToken) ?? existing;

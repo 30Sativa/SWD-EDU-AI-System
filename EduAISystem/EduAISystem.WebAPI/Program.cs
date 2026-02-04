@@ -1,4 +1,4 @@
-﻿using EduAISystem.Application;
+using EduAISystem.Application;
 using EduAISystem.Infrastructure;
 using EduAISystem.Infrastructure.Persistence.Seed;
 using EduAISystem.WebAPI.Middlewares;

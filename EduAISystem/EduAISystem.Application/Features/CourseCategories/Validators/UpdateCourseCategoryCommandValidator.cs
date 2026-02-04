@@ -10,12 +10,18 @@ namespace EduAISystem.Application.Features.CourseCategories.Validators
             RuleFor(x => x.Id)
                 .NotEqual(Guid.Empty).WithMessage("Id không hợp lệ.");
 
-            RuleFor(x => x.Request.Name)
-                .NotEmpty().WithMessage("Tên danh mục khóa học không được để trống.")
-                .MaximumLength(100).WithMessage("Tên danh mục khóa học không được vượt quá 100 ký tự.");
+            When(x => x.Request.Name != null, () =>
+            {
+                RuleFor(x => x.Request.Name!)
+                    .NotEmpty().WithMessage("Tên danh mục khóa học không được để trống.")
+                    .MaximumLength(100).WithMessage("Tên danh mục khóa học không được vượt quá 100 ký tự.");
+            });
 
-            RuleFor(x => x.Request.SortOrder)
-                .GreaterThanOrEqualTo(0).WithMessage("SortOrder không được âm.");
+            When(x => x.Request.SortOrder.HasValue, () =>
+            {
+                RuleFor(x => x.Request.SortOrder!.Value)
+                    .GreaterThanOrEqualTo(0).WithMessage("SortOrder không được âm.");
+            });
         }
     }
 }
