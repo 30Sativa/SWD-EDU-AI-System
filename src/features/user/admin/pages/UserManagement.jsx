@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, Search, Plus, Edit, Trash2, Filter, Download, Upload, FileSpreadsheet, FileText, X, CheckCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Save, Power, PowerOff, MoreVertical, Mail, Shield, Activity, Eye, ChevronDown, User } from 'lucide-react';
+import { Users, Search, Plus, Edit, Trash2, Filter, Download, Upload, FileSpreadsheet, FileText, X, CheckCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Save, Power, PowerOff, MoreVertical, Mail, Shield, Activity, Eye, ChevronDown, User, ShieldCheck } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { message, Spin } from 'antd';
 import { getUsers, getRoleName, ROLE_ENUM, getUserById, deleteUser, createUser, createStudent, createTeacher, createAdmin, createManager, updateUserProfile } from "../../api/userApi";
@@ -8,8 +8,8 @@ export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('Tất cả');
-  const [filterStatus, setFilterStatus] = useState('Tất cả');
+  const [filterRole, setFilterRole] = useState('Tất cả Vai trò');
+  const [filterStatus, setFilterStatus] = useState('Tất cả Trạng thái');
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
 
@@ -101,9 +101,10 @@ export default function UserManagement() {
     .filter((user) => {
       const matchesSearch =
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesRole = filterRole === 'Tất cả' || user.role === filterRole;
-      const matchesStatus = filterStatus === 'Tất cả' || user.status === filterStatus;
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.id.toString().toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = filterRole === 'Tất cả Vai trò' || user.role === filterRole;
+      const matchesStatus = filterStatus === 'Tất cả Trạng thái' || user.status === filterStatus;
       return matchesSearch && matchesRole && matchesStatus;
     })
     .sort((a, b) => {
@@ -840,91 +841,159 @@ export default function UserManagement() {
 
       {/* User Detail Modal */}
       {showDetailModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in zoom-in duration-300">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-lg w-full border border-white/20 overflow-hidden">
-            {/* Header with Background Pattern */}
-            <div className="relative px-8 pt-10 pb-20 bg-gradient-to-br from-[#0487e2] to-[#0463ca] text-white">
-              <div className="absolute top-0 right-0 p-8 opacity-10">
-                <Users size={120} />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center z-50 p-4 animate-in fade-in duration-500">
+          <div className="bg-white rounded-[3rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] max-w-xl w-full border border-white/40 overflow-hidden transform transition-all animate-in zoom-in-95 duration-300">
+            {/* Dynamic Header */}
+            <div className={`relative h-48 bg-gradient-to-br transition-all duration-700 ${viewingUser?.roleName?.match(/Admin|Quản trị/) ? 'from-purple-600 to-indigo-700' :
+              viewingUser?.roleName?.match(/Manager|Quản lý/) ? 'from-orange-500 to-rose-600' :
+                viewingUser?.roleName?.match(/Teacher|Giáo viên/) ? 'from-emerald-500 to-teal-700' :
+                  'from-[#0487e2] to-[#0463ca]'
+              }`}>
+              <div className="absolute inset-0 opacity-10 pointer-events-none">
+                <div className="absolute -top-24 -left-24 w-64 h-64 bg-white rounded-full blur-3xl"></div>
+                <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-black rounded-full blur-3xl"></div>
               </div>
-              <div className="relative z-10 flex flex-col items-center">
-                <h2 className="text-xl font-black uppercase tracking-[0.2em]">Thông tin Chi tiết</h2>
-                <div className="mt-6 w-24 h-24 bg-white/20 backdrop-blur-md rounded-[2rem] border-4 border-white/30 flex items-center justify-center shadow-2xl relative">
-                  {isLoadingDetail ? <Spin /> : (
-                    <span className="text-4xl font-black">{viewingUser?.fullName?.charAt(0) || viewingUser?.userName?.charAt(0) || 'U'}</span>
-                  )}
-                  <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 border-4 border-white rounded-full flex items-center justify-center shadow-lg">
-                    <Shield size={14} className="text-white" />
+
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="absolute top-6 right-6 text-white/50 hover:text-white hover:bg-white/10 p-2.5 rounded-2xl transition-all z-30"
+              >
+                <X size={20} strokeWidth={3} />
+              </button>
+
+              {/* Avatar Overlap */}
+              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 md:left-12 md:translate-x-0">
+                <div className="relative group">
+                  <div className="w-32 h-32 bg-white rounded-[2.5rem] p-1.5 shadow-2xl transition-transform group-hover:scale-105 duration-500">
+                    <div className={`w-full h-full rounded-[2.2rem] flex items-center justify-center text-4xl font-black transition-colors ${viewingUser?.roleName?.match(/Admin|Quản trị/) ? 'bg-purple-50 text-purple-600' :
+                      viewingUser?.roleName?.match(/Manager|Quản lý/) ? 'bg-orange-50 text-orange-600' :
+                        viewingUser?.roleName?.match(/Teacher|Giáo viên/) ? 'bg-emerald-50 text-emerald-600' :
+                          'bg-blue-50 text-blue-600'
+                      }`}>
+                      {isLoadingDetail ? <Spin /> : (viewingUser?.fullName?.charAt(0) || viewingUser?.name?.charAt(0) || 'U')}
+                    </div>
+                  </div>
+                  <div className={`absolute -bottom-1 -right-1 w-10 h-10 border-4 border-white rounded-2xl flex items-center justify-center shadow-lg transform rotate-12 ${viewingUser?.status === 'Hoạt động' ? 'bg-emerald-500' : 'bg-rose-500'
+                    }`}>
+                    <ShieldCheck size={18} className="text-white" />
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="absolute top-8 right-8 text-white/70 hover:text-white hover:bg-white/10 p-2 rounded-2xl transition-all"
-              >
-                <X size={24} strokeWidth={2.5} />
-              </button>
             </div>
 
-            <div className="px-8 pb-10 -mt-10 relative z-20">
-              <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-8 space-y-8">
-                {isLoadingDetail ? (
-                  <div className="flex flex-col items-center justify-center py-10 opacity-50 italic">
-                    <p className="text-sm font-bold text-slate-400">Đang truy xuất thông tin...</p>
-                  </div>
-                ) : viewingUser ? (
-                  <>
-                    <div className="text-center">
-                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">{viewingUser.fullName || viewingUser.userName}</h3>
-                      <p className="text-slate-400 font-bold text-sm mt-1">{viewingUser.email}</p>
-
-                      <div className="mt-4 inline-flex px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-50 text-slate-500 border border-slate-100">
-                        {viewingUser.roleName}
-                      </div>
+            {/* Content Area */}
+            <div className="px-8 pt-20 pb-10">
+              {isLoadingDetail ? (
+                <div className="py-20 flex flex-col items-center gap-4">
+                  <Spin size="large" />
+                  <p className="text-slate-400 font-black uppercase text-[10px] tracking-[0.3em]">Đang đồng bộ dữ liệu hồ sơ...</p>
+                </div>
+              ) : viewingUser ? (
+                <div className="space-y-8">
+                  {/* Primary Info */}
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                      <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-none group cursor-default">
+                        {viewingUser.fullName || viewingUser.name}
+                        <span className="inline-block ml-2 opacity-0 group-hover:opacity-100 transition-opacity"><Edit size={16} className="text-[#0487e2]" /></span>
+                      </h3>
+                      <p className="text-slate-400 font-bold text-sm mt-3 flex items-center gap-2">
+                        <Mail size={16} className="text-[#0487e2]" />
+                        {viewingUser.email}
+                      </p>
                     </div>
+                    <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] border-2 shadow-sm ${viewingUser?.roleName?.match(/Admin|Quản trị/) ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                      viewingUser?.roleName?.match(/Manager|Quản lý/) ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                        viewingUser?.roleName?.match(/Teacher|Giáo viên/) ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                          'bg-blue-50 text-blue-700 border-blue-100'
+                      }`}>
+                      {viewingUser.roleName || viewingUser.role}
+                    </div>
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mã nhân sự</p>
-                        <p className="text-sm font-bold text-slate-700 truncate">{viewingUser.id.toString().slice(0, 15)}...</p>
-                      </div>
-                      <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Trạng thái</p>
-                        <div className={`flex items-center gap-2 text-sm font-black uppercase tracking-wider ${viewingUser.status === 'Hoạt động' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          <div className={`w-2 h-2 rounded-full ${viewingUser.status === 'Hoạt động' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></div>
-                          {viewingUser.status}
+                  <div className="h-px bg-slate-100 w-full"></div>
+
+                  {/* Info Blocks */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-5 bg-slate-50/80 rounded-[1.5rem] border border-slate-100 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-100 group">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-white rounded-lg shadow-sm group-hover:bg-[#0487e2] group-hover:text-white transition-colors">
+                          <Activity size={16} />
                         </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Trạng thái hệ thống</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${viewingUser.status === 'Hoạt động' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
+                        <p className={`text-sm font-black uppercase tracking-wider ${viewingUser.status === 'Hoạt động' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          {viewingUser.status}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-4 bg-[#f0f6fa]/50 rounded-2xl border border-blue-50">
-                      <Mail size={18} className="text-[#0487e2]" />
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Email liên hệ</p>
-                        <p className="text-sm font-bold text-slate-700">{viewingUser.email}</p>
+                    <div className="p-5 bg-slate-50/80 rounded-[1.5rem] border border-slate-100 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-100 group">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-white rounded-lg shadow-sm group-hover:bg-[#0487e2] group-hover:text-white transition-colors">
+                          <Shield size={16} />
+                        </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Mã định danh</p>
                       </div>
+                      <p className="text-sm font-bold text-slate-700 font-mono">
+                        UID-{viewingUser.id.toString().slice(0, 12).toUpperCase()}
+                      </p>
                     </div>
 
-                    <div className="pt-4 flex items-center justify-between text-xs text-slate-400 font-bold border-t border-slate-50">
-                      <span className="flex items-center gap-1"><Activity size={14} /> Gia nhập:</span>
-                      <span className="text-slate-900 italic uppercase">{viewingUser.joinDate}</span>
+                    <div className="p-5 bg-slate-50/80 rounded-[1.5rem] border border-slate-100 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-100 group">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-white rounded-lg shadow-sm group-hover:bg-[#0487e2] group-hover:text-white transition-colors">
+                          <Users size={16} />
+                        </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Tên đăng nhập</p>
+                      </div>
+                      <p className="text-sm font-bold text-slate-700">
+                        @{viewingUser.userName || viewingUser.name.toLowerCase().replace(/\s/g, '')}
+                      </p>
                     </div>
-                  </>
-                ) : (
-                  <div className="text-center py-10 text-slate-300 font-black italic">
-                    DỮ LIỆU KHÔNG KHẢ DỤNG
+
+                    <div className="p-5 bg-slate-50/80 rounded-[1.5rem] border border-slate-100 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-100 group">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-white rounded-lg shadow-sm group-hover:bg-[#0487e2] group-hover:text-white transition-colors">
+                          <Activity size={16} />
+                        </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Ngày kích hoạt</p>
+                      </div>
+                      <p className="text-sm font-bold text-slate-700">
+                        {viewingUser.joinDate || '---'}
+                      </p>
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <div className="mt-6 flex justify-center">
-                <button
-                  onClick={() => setShowDetailModal(false)}
-                  className="px-12 py-3 bg-slate-900 text-white font-black rounded-2xl text-xs uppercase tracking-[0.2em] hover:bg-black shadow-xl shadow-slate-200 transition-all active:scale-95"
-                >
-                  Hoàn tất
-                </button>
-              </div>
+                  {/* Action Bar */}
+                  <div className="pt-4 flex items-center gap-3">
+                    <button
+                      onClick={() => setShowDetailModal(false)}
+                      className="flex-1 py-4 bg-slate-900 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] hover:bg-black shadow-xl shadow-slate-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      Đóng cửa sổ
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowDetailModal(false);
+                        handleEditUser(viewingUser);
+                      }}
+                      className="p-4 bg-slate-50 text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 rounded-2xl transition-all border border-slate-100 shadow-sm"
+                    >
+                      <Edit size={20} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-20 text-center space-y-4">
+                  <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto">
+                    <AlertCircle size={40} />
+                  </div>
+                  <p className="text-slate-400 font-black uppercase text-xs tracking-widest">Không tìm thấy thông tin nhân sự</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
