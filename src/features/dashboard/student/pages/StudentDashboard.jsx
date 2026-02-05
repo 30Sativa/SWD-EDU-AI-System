@@ -75,7 +75,7 @@ export default function StudentDashboard() {
       <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[#0463ca]">
-            Chào buổi sáng, Ngọc
+            Chào, Ngọc
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Bạn đã hoàn thành 85% mục tiêu tuần
