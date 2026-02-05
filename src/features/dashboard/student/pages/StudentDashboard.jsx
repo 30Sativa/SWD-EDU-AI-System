@@ -17,57 +17,57 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+const stats = [
+  { label: 'Khóa học đang học', value: '4', icon: BookOpen },
+  { label: 'Giờ học tuần này', value: '12.5h', icon: Clock },
+  { label: 'Bài tập hoàn thành', value: '85%', icon: CheckCircle },
+];
+
+const studyData = [
+  { day: 'T2', hours: 1.5 },
+  { day: 'T3', hours: 2 },
+  { day: 'T4', hours: 1 },
+  { day: 'T5', hours: 2.5 },
+  { day: 'T6', hours: 1.8 },
+  { day: 'T7', hours: 3 },
+  { day: 'CN', hours: 2.2 },
+];
+
+const continueLearning = [
+  {
+    id: 1,
+    title: 'Nhập môn Trí tuệ Nhân tạo',
+    lesson: 'Neural Networks Basic',
+    progress: 65,
+    image:
+      'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1000',
+    lastAccessed: '2 giờ trước',
+  },
+  {
+    id: 2,
+    title: 'Lập trình Python căn bản',
+    lesson: 'Functions & Modules',
+    progress: 42,
+    image:
+      'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?auto=format&fit=crop&q=80&w=1000',
+    lastAccessed: '1 ngày trước',
+  },
+];
+
+const upcomingDeadlines = [
+  {
+    title: 'Kiểm tra giữa kỳ AI',
+    course: 'Nhập môn Trí tuệ Nhân tạo',
+    date: 'Hôm nay, 14:00',
+  },
+  {
+    title: 'Nộp bài tập Python',
+    course: 'Lập trình Python căn bản',
+    date: 'Ngày mai, 23:59',
+  },
+];
+
 export default function StudentDashboard() {
-  const stats = [
-    { label: 'Khóa học đang học', value: '4', icon: BookOpen },
-    { label: 'Giờ học tuần này', value: '12.5h', icon: Clock },
-    { label: 'Bài tập hoàn thành', value: '85%', icon: CheckCircle },
-  ];
-
-  const studyData = [
-    { day: 'T2', hours: 1.5 },
-    { day: 'T3', hours: 2 },
-    { day: 'T4', hours: 1 },
-    { day: 'T5', hours: 2.5 },
-    { day: 'T6', hours: 1.8 },
-    { day: 'T7', hours: 3 },
-    { day: 'CN', hours: 2.2 },
-  ];
-
-  const continueLearning = [
-    {
-      id: 1,
-      title: 'Nhập môn Trí tuệ Nhân tạo',
-      lesson: 'Neural Networks Basic',
-      progress: 65,
-      image:
-        'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1000',
-      lastAccessed: '2 giờ trước',
-    },
-    {
-      id: 2,
-      title: 'Lập trình Python căn bản',
-      lesson: 'Functions & Modules',
-      progress: 42,
-      image:
-        'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?auto=format&fit=crop&q=80&w=1000',
-      lastAccessed: '1 ngày trước',
-    },
-  ];
-
-  const upcomingDeadlines = [
-    {
-      title: 'Kiểm tra giữa kỳ AI',
-      course: 'Nhập môn Trí tuệ Nhân tạo',
-      date: 'Hôm nay, 14:00',
-    },
-    {
-      title: 'Nộp bài tập Python',
-      course: 'Lập trình Python căn bản',
-      date: 'Ngày mai, 23:59',
-    },
-  ];
-
   return (
     <div className="space-y-10 pb-12">
 
@@ -119,8 +119,8 @@ export default function StudentDashboard() {
           <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded-md">7 ngày qua</span>
         </div>
 
-        <div className="h-[240px] w-full">
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <div className="h-[240px] w-full overflow-hidden">
+          <ResponsiveContainer width="99%" height="100%" minWidth={0}>
             <AreaChart data={studyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
