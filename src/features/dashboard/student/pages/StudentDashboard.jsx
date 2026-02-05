@@ -113,45 +113,45 @@ export default function StudentDashboard() {
       {/* 📊 Study Chart (UPDATED) */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
         <div className="flex justify-between items-center mb-6">
-           <h3 className="text-base font-bold text-gray-900">
-             Thời gian học tập
-           </h3>
-           <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded-md">7 ngày qua</span>
+          <h3 className="text-base font-bold text-gray-900">
+            Thời gian học tập
+          </h3>
+          <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded-md">7 ngày qua</span>
         </div>
 
         <div className="h-[240px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <AreaChart data={studyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0487e2" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#0487e2" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#0487e2" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#0487e2" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="day" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{fill: '#9ca3af', fontSize: 12}} 
+              <XAxis
+                dataKey="day"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#9ca3af', fontSize: 12 }}
                 dy={10}
               />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{fill: '#9ca3af', fontSize: 12}} 
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#9ca3af', fontSize: 12 }}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                 cursor={{ stroke: '#0487e2', strokeWidth: 1, strokeDasharray: '4 4' }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="hours" 
-                stroke="#0487e2" 
-                strokeWidth={3} 
-                fillOpacity={1} 
-                fill="url(#colorHours)" 
+              <Area
+                type="monotone"
+                dataKey="hours"
+                stroke="#0487e2"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#colorHours)"
                 activeDot={{ r: 6, strokeWidth: 0, fill: '#0463ca' }}
               />
             </AreaChart>
