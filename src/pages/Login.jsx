@@ -105,7 +105,7 @@ export default function Login() {
                     else if (lowerRole.includes('teacher')) {
                         navigate('/dashboard/teacher');
                     }
-                    else if (lowerRole.includes('user')) {
+                    else if (lowerRole.includes('user') || lowerRole.includes('student')) {
                         navigate('/dashboard/student');
                     }
                     else if (lowerRole.includes('manager')) {

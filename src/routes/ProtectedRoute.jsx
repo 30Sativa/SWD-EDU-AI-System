@@ -29,7 +29,7 @@ const ProtectedRoute = ({ allowedRoles = [] }) => {
         if (!hasPermission) {
             if (normalizedUserRole === 'admin') return <Navigate to="/dashboard/admin" replace />;
             if (normalizedUserRole === 'teacher') return <Navigate to="/dashboard/teacher" replace />;
-            if (normalizedUserRole === 'user') return <Navigate to="/dashboard/student" replace />;
+            if (normalizedUserRole === 'user' || normalizedUserRole === 'student') return <Navigate to="/dashboard/student" replace />;
             if (normalizedUserRole === 'manager') return <Navigate to="/dashboard/manager" replace />;
 
             return <Navigate to="/" replace />;

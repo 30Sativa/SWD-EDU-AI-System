@@ -80,7 +80,7 @@ export default function RouteMap() {
         </Route>
 
         {/* Role: Student */}
-        <Route element={<ProtectedRoute allowedRoles={['user']} />}>
+        <Route element={<ProtectedRoute allowedRoles={['user', 'student']} />}>
           <Route path="student" element={<StudentLayout />}>
             <Route index element={<StudentDashboard />} />
             <Route path="courses" element={<CoursesList />} />
