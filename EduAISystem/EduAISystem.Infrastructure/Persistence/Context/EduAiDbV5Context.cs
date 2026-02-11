@@ -90,9 +90,9 @@ public partial class EduAiDbV5Context : DbContext
 
     public virtual DbSet<UserProfile> UserProfiles { get; set; }
 
-//    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-//        => optionsBuilder.UseSqlServer("Data Source=(local);Database=EduAI_DB_V5;Trusted_Connection=True;TrustServerCertificate=True;");
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Data Source=(local);Database=EduAI_DB_V5;Trusted_Connection=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -904,16 +904,18 @@ public partial class EduAiDbV5Context : DbContext
 
             entity.HasIndex(e => e.IsActive, "IX_Users_IsActive").HasFilter("([DeletedAt] IS NULL)");
 
-            entity.HasIndex(e => e.UserName, "UQ__Users__C9F28456986D65F2").IsUnique();
+            entity.HasIndex(e => e.Email, "UX_Users_Email")
+                .IsUnique()
+                .HasFilter("([DeletedAt] IS NULL)");
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
             entity.Property(e => e.Email).HasMaxLength(150);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.IsEmailVerified).HasDefaultValue(false);
+            entity.Property(e => e.IsFirstLogin).HasDefaultValue(true);
             entity.Property(e => e.PasswordHash).HasMaxLength(255);
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysdatetime())");
-            entity.Property(e => e.UserName).HasMaxLength(100);
         });
 
         modelBuilder.Entity<UserProfile>(entity =>

@@ -22,7 +22,6 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             {
                 Id = user!.Id,
                 Email = user.Email,
-                UserName = user.UserName,
                 PasswordHash = user.PasswordHash,
                 IsActive = user.IsActive,
                 Role = (int)user.Role,
@@ -111,7 +110,6 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             var domain = new UserDomain(
                 entity.Id,
                 entity.Email,
-                entity.UserName,
                 entity.PasswordHash,
                 entity.IsActive ?? false,
                 (UserRoleDomain)entity.Role,
@@ -148,7 +146,6 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             return entity == null ? null : new UserDomain(
                 entity.Id,
                 entity.Email,
-                entity.UserName,
                 entity.PasswordHash,
                 entity.IsActive ?? false,
                 (UserRoleDomain)entity.Role,
@@ -174,7 +171,6 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 var term = searchTerm.Trim();
                 query = query.Where(u =>
                     u.Email.Contains(term) ||
-                    (u.UserName != null && u.UserName.Contains(term)) ||
                     (u.UserProfile != null && u.UserProfile.FullName.Contains(term)));
             }
 
@@ -198,7 +194,6 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 var domain = new UserDomain(
                     u.Id,
                     u.Email,
-                    u.UserName,
                     u.PasswordHash,
                     u.IsActive ?? false,
                     (UserRoleDomain)u.Role,

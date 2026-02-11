@@ -1,4 +1,7 @@
-﻿namespace EduAISystem.Infrastructure.Persistence.Entities;
+﻿using System;
+using System.Collections.Generic;
+
+namespace EduAISystem.Infrastructure.Persistence.Entities;
 
 public partial class Subject
 {

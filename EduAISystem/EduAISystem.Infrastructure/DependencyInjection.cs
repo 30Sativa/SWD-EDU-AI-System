@@ -4,6 +4,8 @@ using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Infrastructure.Persistence.Context;
 using EduAISystem.Infrastructure.Persistence.Repositories;
 using EduAISystem.Infrastructure.Security;
+using EduAISystem.Infrastructure.Services.Email;
+using EduAISystem.Infrastructure.Services.Excel;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -37,8 +39,13 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IClientContext, ClientContext>();
             services.AddScoped<ISectionRepository, SectionRepository>();
+            services.AddScoped<ILessonRepository, LessonRepository>();
+
             // 3. Services khác (nếu có)
             // services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<IExcelUserParser, ExcelUserParser>();
+            services.AddScoped<IEmailService, EmailService>();
+
             services.AddHttpContextAccessor();
             services.AddScoped<IClientContext, ClientContext>();
             services.Configure<JwtSettings>(

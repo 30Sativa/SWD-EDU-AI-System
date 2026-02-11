@@ -7,6 +7,7 @@
   </PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+		<PackageReference Include="ClosedXML" Version="0.105.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.23" />
 		<PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.9" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
@@ -27,7 +28,6 @@
 	  <Folder Include="BackgroundJobs\" />
 	  <Folder Include="Settings\" />
 	  <Folder Include="Services\Identity\" />
-	  <Folder Include="Services\Email\" />
 	  <Folder Include="Services\FileStorage\" />
 	  <Folder Include="Services\Cache\" />
 	  <Folder Include="Services\ExternalApis\" />

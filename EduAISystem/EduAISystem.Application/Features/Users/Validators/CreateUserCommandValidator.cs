@@ -21,10 +21,7 @@ namespace EduAISystem.Application.Features.Users.Validators
                 .EmailAddress().WithMessage("Email không hợp lệ.")
                 .MaximumLength(256).WithMessage("Email không được vượt quá 256 ký tự.");
 
-            RuleFor(x => x.Request.UserName)
-                .NotEmpty().WithMessage("Tên đăng nhập không được để trống.")
-                .MaximumLength(100).WithMessage("Tên đăng nhập không được vượt quá 100 ký tự.");
-
+          
             RuleFor(x => x.Request.Password)
                 .NotEmpty().WithMessage("Mật khẩu không được để trống.")
                 .MinimumLength(6).WithMessage("Mật khẩu phải có ít nhất 6 ký tự.");

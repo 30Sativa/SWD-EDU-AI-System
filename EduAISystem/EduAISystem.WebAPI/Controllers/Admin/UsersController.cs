@@ -90,5 +90,24 @@ namespace EduAISystem.WebAPI.Controllers.Admin
                 return NotFound(ApiResponse<object>.Fail("Không tìm thấy người dùng"));
             return Ok(ApiResponse<object>.Ok(null, "Đã đánh dấu xóa người dùng"));
         }
+        [HttpPost("import")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> ImportUsers(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("File is required");
+
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+
+            var command = new ImportUsersCommand(
+                file.FileName,
+                ms.ToArray()
+            );
+
+            await _mediator.Send(command);
+
+            return Ok(ApiResponse<object>.Ok(null,"Import thành công"));
+        }
     }
 }

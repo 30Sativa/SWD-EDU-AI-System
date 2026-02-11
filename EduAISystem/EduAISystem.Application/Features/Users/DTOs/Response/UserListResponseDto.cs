@@ -4,7 +4,6 @@
     {
         public Guid Id { get; init; }
         public string Email { get; init; } = string.Empty;
-        public string? UserName { get; init; }
 
         // FullName bên bảng UserProfile, sẽ null nếu user chưa có profile
         public string? FullName { get; init; }

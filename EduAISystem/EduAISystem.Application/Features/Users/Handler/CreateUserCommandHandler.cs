@@ -29,7 +29,6 @@ namespace EduAISystem.Application.Features.Users.Handler
             var passwordHash = _passwordHasher.Hash(request.Request.Password);
             var user = UserDomain.Create(
                 request.Request.Email,
-                request.Request.UserName,
                 passwordHash,
                 (UserRoleDomain)request.Request.Role);
 
@@ -39,7 +38,6 @@ namespace EduAISystem.Application.Features.Users.Handler
             {
                 Id = user.Id,
                 Email = user.Email,
-                UserName = user.UserName,
                 Role = (int)user.Role,
                 IsActive = user.IsActive,
                 CreatedAt = user.CreatedAt,

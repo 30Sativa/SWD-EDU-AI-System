@@ -8,12 +8,15 @@ namespace EduAISystem.Application.Features.Lessons.DTOs.Request
 {
     public class CreateLessonRequestDto
     {
-        public string Title { get; set; } = string.Empty;
-        public string Slug { get; set; } = string.Empty;
-        public string UrlVideo { get; set; } = string.Empty;
-        public string Content { get; set; } = string.Empty;
+        public Guid SectionId { get; set; }
+        public string Title { get; set; } = null!;
+        public string Slug { get; set; } = null!;
+        public string? VideoUrl { get; set; }
+        public string? Content { get; set; }
         public int SortOrder { get; set; }
-        public int Duration { get; set; } 
-        
+        public int? Duration { get; set; }
+        public bool? IsPreview { get; set; }
+
+
     }
 }

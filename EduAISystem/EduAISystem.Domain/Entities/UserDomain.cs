@@ -6,12 +6,13 @@ namespace EduAISystem.Domain.Entities
     {
         public Guid Id { get; private set; }
 
-        public string Email { get; private set; } = string.Empty;
-        public string UserName { get; private set; } = string.Empty;   
+        public string Email { get; private set; } = string.Empty; 
         public string PasswordHash { get; private set; } = string.Empty;
 
         public bool IsActive { get; private set; }
         public UserRoleDomain Role { get; private set; }
+        public bool IsFirstLogin { get; private set; }
+        public bool IsEmailVerified { get; private set; }
 
         public DateTime CreatedAt { get; private set; }
 
@@ -36,7 +37,6 @@ namespace EduAISystem.Domain.Entities
         internal UserDomain(
             Guid id,
             string email,
-            string? userName,
             string passwordHash,
             bool isActive,
             UserRoleDomain role,
@@ -44,16 +44,14 @@ namespace EduAISystem.Domain.Entities
         {
             Id = id;
             Email = email;
-            UserName = userName ?? string.Empty;
             PasswordHash = passwordHash;
             IsActive = isActive;
             Role = role;
             CreatedAt = createdAt;
         }
-
+        // Factory method to create a new UserDomain
         public static UserDomain Create(
             string email,
-            string username,
             string passwordHash,
             UserRoleDomain role)
         {
@@ -61,10 +59,24 @@ namespace EduAISystem.Domain.Entities
             {
                 Id = Guid.NewGuid(),
                 Email = email,
-                UserName = username,
                 PasswordHash = passwordHash,
                 Role = role,
                 IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+        // Factory method to create an imported UserDomain
+        public static UserDomain CreateImported(string email, string passwordHash, UserRoleDomain role)
+        {
+            return new UserDomain
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                PasswordHash = passwordHash,
+                Role = role,
+                IsActive = true,
+                IsFirstLogin = true,
+                IsEmailVerified = false,
                 CreatedAt = DateTime.UtcNow
             };
         }
@@ -73,6 +85,16 @@ namespace EduAISystem.Domain.Entities
 
         public bool CanLogin() => IsActive;
 
+ 
+        public void ChangePassword(string newHash)
+        {
+            PasswordHash = newHash;
+            IsFirstLogin = false;
+        }
+        public void VerifyEmail()
+        {
+            IsEmailVerified = true;
+        }
         public void Deactivate()
         {
             IsActive = false;
@@ -81,11 +103,6 @@ namespace EduAISystem.Domain.Entities
         public void Activate()
         {
             IsActive = true;
-        }
-
-        public void ChangePassword(string newHash)
-        {
-            PasswordHash = newHash;
         }
 
         public void ChangeRole(UserRoleDomain role)

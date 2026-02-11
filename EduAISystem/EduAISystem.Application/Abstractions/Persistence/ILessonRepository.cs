@@ -14,5 +14,6 @@ namespace EduAISystem.Application.Abstractions.Persistence
         Task DeleteAsync(LessonDomain lesson);
 
         Task<LessonDomain?> GetByIdAsync(Guid id);
+        Task<List<LessonDomain>> GetBySectionIdAsync(Guid sectionId);
     }
 }

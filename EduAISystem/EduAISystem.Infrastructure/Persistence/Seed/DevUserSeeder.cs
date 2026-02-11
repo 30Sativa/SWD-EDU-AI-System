@@ -50,7 +50,6 @@ namespace EduAISystem.Infrastructure.Persistence.Seed
             context.Users.Add(new User
             {
                 Id = userId,
-                UserName = userName,
                 Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
                 IsActive = true,

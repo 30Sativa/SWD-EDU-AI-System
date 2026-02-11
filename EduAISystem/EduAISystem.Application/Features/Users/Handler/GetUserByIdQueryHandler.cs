@@ -37,7 +37,6 @@ namespace EduAISystem.Application.Features.Users.Handler
             {
                 Id = user.Id,
                 Email = user.Email,
-                UserName = user.UserName,
                 Role = (int)user.Role,
                 IsActive = user.IsActive,
                 CreatedAt = user.CreatedAt,

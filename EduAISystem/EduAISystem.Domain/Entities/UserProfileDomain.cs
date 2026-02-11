@@ -89,9 +89,9 @@
 
         // Helper
         private static bool IsValidGender(string gender) =>
-            gender.Equals("Male", StringComparison.OrdinalIgnoreCase) ||
-            gender.Equals("Female", StringComparison.OrdinalIgnoreCase) ||
-            gender.Equals("Other", StringComparison.OrdinalIgnoreCase);
+            gender.Equals("Nam", StringComparison.OrdinalIgnoreCase) ||
+            gender.Equals("Nữ", StringComparison.OrdinalIgnoreCase) ||
+            gender.Equals("Khác", StringComparison.OrdinalIgnoreCase);
     }
 }
 

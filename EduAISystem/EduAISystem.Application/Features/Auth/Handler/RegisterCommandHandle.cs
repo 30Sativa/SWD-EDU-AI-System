@@ -35,7 +35,7 @@ namespace EduAISystem.Application.Features.Auth.Handler
             //Hash password
             var passwordHash = _hasher.Hash(request.Request.PasswordHash);
             //Create user
-            var user = UserDomain.Create(request.Request.Email, request.Request.UserName,passwordHash, UserRoleDomain.Admin);
+            var user = UserDomain.Create(request.Request.Email,passwordHash, UserRoleDomain.Admin);
 
             await _users.AddAsync(user);
 

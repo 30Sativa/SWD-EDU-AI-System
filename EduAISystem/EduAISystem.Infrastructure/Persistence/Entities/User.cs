@@ -13,8 +13,6 @@ public partial class User
 
     public int Role { get; set; }
 
-    public string? UserName { get; set; }
-
     public bool? IsEmailVerified { get; set; }
 
     public bool? IsActive { get; set; }
@@ -26,6 +24,8 @@ public partial class User
     public DateTime? UpdatedAt { get; set; }
 
     public DateTime? DeletedAt { get; set; }
+
+    public bool IsFirstLogin { get; set; }
 
     public virtual ICollection<Ailog> Ailogs { get; set; } = new List<Ailog>();
 
