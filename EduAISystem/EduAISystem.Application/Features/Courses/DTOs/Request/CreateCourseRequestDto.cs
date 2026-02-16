@@ -14,9 +14,6 @@ namespace EduAISystem.Application.Features.Courses.DTOs.Request
         public string? Level { get; set; }
         public string? Language { get; set; } = "vi-VN";
 
-        public decimal Price { get; set; }
-        public decimal? DiscountPrice { get; set; }
-
         public int TotalLessons { get; set; }
         public int TotalDuration { get; set; }
     }

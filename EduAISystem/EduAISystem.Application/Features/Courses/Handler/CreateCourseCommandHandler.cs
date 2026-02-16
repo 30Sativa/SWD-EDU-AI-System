@@ -30,8 +30,6 @@ namespace EduAISystem.Application.Features.Courses.Handler
                 dto.CategoryId,
                 dto.Level,
                 dto.Language,
-                dto.Price,
-                dto.DiscountPrice,
                 dto.TotalLessons,
                 dto.TotalDuration);
 
@@ -55,13 +53,8 @@ namespace EduAISystem.Application.Features.Courses.Handler
                 CategoryId = saved.CategoryId,
                 Level = saved.Level,
                 Language = saved.Language,
-                Price = saved.Price,
-                DiscountPrice = saved.DiscountPrice,
                 TotalLessons = saved.TotalLessons,
                 TotalDuration = saved.TotalDuration,
-                EnrollmentCount = saved.EnrollmentCount,
-                Rating = saved.Rating,
-                ReviewCount = saved.ReviewCount,
                 Status = saved.Status.ToString(),
                 IsActive = saved.IsActive,
                 IsFeatured = saved.IsFeatured,

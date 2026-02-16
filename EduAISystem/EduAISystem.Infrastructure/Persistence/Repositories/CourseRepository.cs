@@ -33,13 +33,8 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 CategoryId = course.CategoryId,
                 Level = course.Level,
                 Language = course.Language,
-                Price = course.Price,
-                DiscountPrice = course.DiscountPrice,
                 TotalLessons = course.TotalLessons,
                 TotalDuration = course.TotalDuration,
-                EnrollmentCount = course.EnrollmentCount,
-                Rating = course.Rating,
-                ReviewCount = course.ReviewCount,
                 Status = MapStatusToString(course.Status),
                 IsActive = course.IsActive,
                 IsFeatured = course.IsFeatured,
@@ -189,13 +184,8 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             entity.Thumbnail = course.Thumbnail;
             entity.Level = course.Level;
             entity.Language = course.Language;
-            entity.Price = course.Price;
-            entity.DiscountPrice = course.DiscountPrice;
             entity.TotalLessons = course.TotalLessons;
             entity.TotalDuration = course.TotalDuration;
-            entity.EnrollmentCount = course.EnrollmentCount;
-            entity.Rating = course.Rating;
-            entity.ReviewCount = course.ReviewCount;
             entity.Status = MapStatusToString(course.Status);
             entity.IsActive = course.IsActive;
             entity.IsFeatured = course.IsFeatured;
@@ -220,13 +210,8 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 c.CategoryId,
                 c.Level,
                 c.Language,
-                c.Price ?? 0,
-                c.DiscountPrice,
                 c.TotalLessons ?? 0,
                 c.TotalDuration ?? 0,
-                c.EnrollmentCount ?? 0,
-                c.Rating ?? 0,
-                c.ReviewCount ?? 0,
                 MapStatusToEnum(c.Status),
                 c.IsActive ?? true,
                 c.IsFeatured ?? false,

@@ -10,9 +10,6 @@ namespace EduAISystem.Application.Features.Courses.DTOs.Response
         public Guid SubjectId { get; init; }
         public string SubjectName { get; init; } = string.Empty;
 
-        public int EnrollmentCount { get; init; }
-        public decimal Rating { get; init; }
-        public int ReviewCount { get; init; }
 
         public string Status { get; init; } = string.Empty;
         public bool IsActive { get; init; }

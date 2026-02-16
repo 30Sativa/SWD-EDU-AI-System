@@ -18,9 +18,7 @@ namespace EduAISystem.Application.Features.Courses.Validators
             RuleFor(x => x.Request.SubjectId)
                 .NotEqual(Guid.Empty).WithMessage("SubjectId không hợp lệ.");
 
-            RuleFor(x => x.Request.Price)
-                .GreaterThanOrEqualTo(0).WithMessage("Giá khóa học không được âm.");
-
+           
             RuleFor(x => x.Request.TotalLessons)
                 .GreaterThanOrEqualTo(0).WithMessage("Tổng số bài học không được âm.");
 

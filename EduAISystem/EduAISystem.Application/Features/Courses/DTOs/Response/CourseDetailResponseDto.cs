@@ -18,14 +18,10 @@ namespace EduAISystem.Application.Features.Courses.DTOs.Response
 
         public string? Level { get; init; }
         public string? Language { get; init; }
-        public decimal Price { get; init; }
-        public decimal? DiscountPrice { get; init; }
+
 
         public int TotalLessons { get; init; }
         public int TotalDuration { get; init; }
-        public int EnrollmentCount { get; init; }
-        public decimal Rating { get; init; }
-        public int ReviewCount { get; init; }
 
         public string Status { get; init; } = string.Empty;
         public bool IsActive { get; init; }

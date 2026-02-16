@@ -281,21 +281,12 @@ public partial class EduAiDbV5Context : DbContext
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.Code).HasMaxLength(20);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
-            entity.Property(e => e.DiscountPrice).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.EnrollmentCount).HasDefaultValue(0);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.IsFeatured).HasDefaultValue(false);
             entity.Property(e => e.Language)
                 .HasMaxLength(20)
                 .HasDefaultValue("vi-VN");
             entity.Property(e => e.Level).HasMaxLength(20);
-            entity.Property(e => e.Price)
-                .HasDefaultValue(0m)
-                .HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.Rating)
-                .HasDefaultValue(0m)
-                .HasColumnType("decimal(3, 2)");
-            entity.Property(e => e.ReviewCount).HasDefaultValue(0);
             entity.Property(e => e.Slug).HasMaxLength(200);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)

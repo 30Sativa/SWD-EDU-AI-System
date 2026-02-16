@@ -29,19 +29,9 @@ public partial class Course
 
     public string? Language { get; set; }
 
-    public decimal? Price { get; set; }
-
-    public decimal? DiscountPrice { get; set; }
-
     public int? TotalLessons { get; set; }
 
     public int? TotalDuration { get; set; }
-
-    public int? EnrollmentCount { get; set; }
-
-    public decimal? Rating { get; set; }
-
-    public int? ReviewCount { get; set; }
 
     public string? Status { get; set; }
 
@@ -54,6 +44,8 @@ public partial class Course
     public DateTime? UpdatedAt { get; set; }
 
     public DateTime? DeletedAt { get; set; }
+
+    public bool IsTemplate { get; set; }
 
     public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
 
