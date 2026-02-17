@@ -20,17 +20,11 @@ namespace EduAISystem.Domain.Entities
 
         public string? Level { get; private set; }
         public string? Language { get; private set; }
-        public decimal Price { get; private set; }
-        public decimal? DiscountPrice { get; private set; }
         public int TotalLessons { get; private set; }
         public int TotalDuration { get; private set; }
-        public int EnrollmentCount { get; private set; }
-        public decimal Rating { get; private set; }
-        public int ReviewCount { get; private set; }
 
         public CourseStatusDomain Status { get; private set; }
         public bool IsActive { get; private set; }
-        public bool IsFeatured { get; private set; }
         public DateTime CreatedAt { get; private set; }
         public DateTime? UpdatedAt { get; private set; }
         public DateTime? DeletedAt { get; private set; }
@@ -50,8 +44,6 @@ namespace EduAISystem.Domain.Entities
             Guid? categoryId = null,
             string? level = null,
             string? language = "vi-VN",
-            decimal price = 0,
-            decimal? discountPrice = null,
             int totalLessons = 0,
             int totalDuration = 0)
         {
@@ -78,16 +70,10 @@ namespace EduAISystem.Domain.Entities
                 CategoryId = categoryId,
                 Level = level,
                 Language = language,
-                Price = price,
-                DiscountPrice = discountPrice,
                 TotalLessons = totalLessons,
                 TotalDuration = totalDuration,
-                EnrollmentCount = 0,
-                Rating = 0,
-                ReviewCount = 0,
                 Status = CourseStatusDomain.Draft,
                 IsActive = true,
-                IsFeatured = false,
                 CreatedAt = now,
                 UpdatedAt = now
             };
@@ -135,7 +121,6 @@ namespace EduAISystem.Domain.Entities
                 TotalDuration = totalDuration,
                 Status = status,
                 IsActive = isActive,
-                IsFeatured = isFeatured,
                 CreatedAt = createdAt,
                 UpdatedAt = updatedAt,
                 DeletedAt = deletedAt
@@ -199,9 +184,6 @@ namespace EduAISystem.Domain.Entities
             Description = description;
             Thumbnail = thumbnail;
             Level = level;
-            Language = language;
-            Price = price;
-            DiscountPrice = discountPrice;
             UpdatedAt = DateTime.UtcNow;
         }
 

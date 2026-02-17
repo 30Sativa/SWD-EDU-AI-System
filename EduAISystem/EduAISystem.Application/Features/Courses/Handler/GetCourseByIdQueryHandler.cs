@@ -41,7 +41,6 @@ namespace EduAISystem.Application.Features.Courses.Handler
                 TotalDuration = course.TotalDuration,
                 Status = course.Status.ToString(),
                 IsActive = course.IsActive,
-                IsFeatured = course.IsFeatured,
                 CreatedAt = course.CreatedAt,
                 UpdatedAt = course.UpdatedAt
             };

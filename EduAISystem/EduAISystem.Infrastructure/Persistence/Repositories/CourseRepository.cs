@@ -37,7 +37,6 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 TotalDuration = course.TotalDuration,
                 Status = MapStatusToString(course.Status),
                 IsActive = course.IsActive,
-                IsFeatured = course.IsFeatured,
                 CreatedAt = course.CreatedAt,
                 UpdatedAt = course.UpdatedAt,
                 DeletedAt = course.DeletedAt
@@ -188,7 +187,6 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             entity.TotalDuration = course.TotalDuration;
             entity.Status = MapStatusToString(course.Status);
             entity.IsActive = course.IsActive;
-            entity.IsFeatured = course.IsFeatured;
             entity.UpdatedAt = course.UpdatedAt;
 
             await _context.SaveChangesAsync(cancellationToken);
