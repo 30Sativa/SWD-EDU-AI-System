@@ -27,10 +27,10 @@ namespace EduAISystem.Application.Features.Courses.Handler
             }
 
             // Kiểm tra khóa học đã đủ thông tin tối thiểu để publish chưa
-            if (!course.IsReadyForPublish())
-            {
-                return false;
-            }
+            //if (!course.IsReadyForPublish())
+            //{
+            //    return false;
+            //}
 
             course.Publish();
             await _courseRepository.UpdateAsync(course, cancellationToken);

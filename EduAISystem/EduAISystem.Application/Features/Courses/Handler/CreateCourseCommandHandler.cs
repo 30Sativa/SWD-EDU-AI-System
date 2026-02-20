@@ -19,19 +19,7 @@ namespace EduAISystem.Application.Features.Courses.Handler
         {
             var dto = request.Request;
 
-            var course = CourseDomain.Create(
-                dto.Code,
-                dto.Title,
-                dto.SubjectId,
-                request.TeacherId,
-                dto.Description,
-                dto.Thumbnail,
-                dto.GradeLevelId,
-                dto.CategoryId,
-                dto.Level,
-                dto.Language,
-                dto.TotalLessons,
-                dto.TotalDuration);
+            var course = CourseDomain.CreateTemplate(request.Request.Code,request.Request.Title,request.Request.SubjectId,request.Request.Level,request.Request.GradeLevelId,request.Request.CategoryId,request.Request.Description,request.Request.Thumbnail);
 
             await _courseRepository.AddAsync(course, cancellationToken);
 
@@ -47,11 +35,10 @@ namespace EduAISystem.Application.Features.Courses.Handler
                 Description = saved.Description,
                 Thumbnail = saved.Thumbnail,
                 SubjectId = saved.SubjectId,
-                SubjectName = saved.SubjectName,
                 GradeLevelId = saved.GradeLevelId,
                 TeacherId = saved.TeacherId,
                 CategoryId = saved.CategoryId,
-                Level = saved.Level,
+                //Level = saved.Level,
                 Language = saved.Language,
                 TotalLessons = saved.TotalLessons,
                 TotalDuration = saved.TotalDuration,

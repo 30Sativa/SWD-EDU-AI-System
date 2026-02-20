@@ -26,6 +26,8 @@ namespace EduAISystem.Application.Abstractions.Persistence
             CancellationToken cancellationToken = default);
 
         Task UpdateAsync(CourseDomain course, CancellationToken cancellationToken = default);
+        Task<bool> ExistsByCodeAsync(string code, CancellationToken cancellationToken = default);
+        Task<CourseDomain?> GetTemplateWithDetailsAsync(Guid templateId, CancellationToken cancellationToken = default);
     }
 }
 

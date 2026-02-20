@@ -305,6 +305,10 @@ public partial class EduAiDbV5Context : DbContext
                 .HasForeignKey(d => d.GradeLevelId)
                 .HasConstraintName("FK__Courses__GradeLe__29221CFB");
 
+            entity.HasOne(d => d.SourceTemplate).WithMany(p => p.InverseSourceTemplate)
+                .HasForeignKey(d => d.SourceTemplateId)
+                .HasConstraintName("FK_Courses_SourceTemplate");
+
             entity.HasOne(d => d.Subject).WithMany(p => p.Courses)
                 .HasForeignKey(d => d.SubjectId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -312,7 +316,6 @@ public partial class EduAiDbV5Context : DbContext
 
             entity.HasOne(d => d.Teacher).WithMany(p => p.Courses)
                 .HasForeignKey(d => d.TeacherId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Courses__Teacher__2A164134");
         });
 

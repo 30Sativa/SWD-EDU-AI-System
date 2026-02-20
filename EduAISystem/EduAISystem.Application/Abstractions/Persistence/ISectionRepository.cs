@@ -10,5 +10,6 @@ namespace EduAISystem.Application.Abstractions.Persistence
 
         Task<SectionDomain?> GetByIdAsync(Guid id);
         Task<List<SectionDomain>> GetByCourseIdAsync(Guid courseId);
+        Task AddRangeAsync(IEnumerable<SectionDomain> sections, CancellationToken cancellationToken);
     }
 }

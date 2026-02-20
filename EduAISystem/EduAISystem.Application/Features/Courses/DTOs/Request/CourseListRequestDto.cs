@@ -9,6 +9,7 @@ namespace EduAISystem.Application.Features.Courses.DTOs.Request
         public string? Status { get; set; }
 
         public Guid? SubjectId { get; set; }
+        public bool? IsTemplate { get; set; }
 
         /// <summary>
         /// null: chỉ lấy khóa học chưa xóa (mặc định)

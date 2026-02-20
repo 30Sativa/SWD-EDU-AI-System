@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EduAISystem.Infrastructure.Persistence.Repositories
@@ -36,9 +37,35 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             return _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        public Task DeleteAsync(SectionDomain section)
+        public async Task AddRangeAsync(IEnumerable<SectionDomain> sections, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var entities = sections.Select(section => new Section
+            {
+                Id = section.Id,
+                CourseId = section.CourseId,
+                Title = section.Title,
+                Description = section.Description,
+                SortOrder = section.SortOrder,
+                IsActive = section.IsActive,
+                CreatedAt = section.CreatedAt,
+                UpdatedAt = section.UpdatedAt
+            }).ToList();
+
+            await _dbContext.Sections.AddRangeAsync(entities, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task DeleteAsync(SectionDomain section)
+        {
+            var entity = await _dbContext.Sections.FirstOrDefaultAsync(x => x.Id == section.Id);
+
+            if (entity == null)
+                throw new Exception("Section không tồn tại");
+
+            entity.IsActive = false;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
         }
 
         public async Task<List<SectionDomain>> GetByCourseIdAsync(Guid courseId)

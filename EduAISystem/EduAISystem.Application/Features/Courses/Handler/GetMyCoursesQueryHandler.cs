@@ -32,7 +32,6 @@ namespace EduAISystem.Application.Features.Courses.Handler
                 Title = c.Title,
                 Thumbnail = c.Thumbnail,
                 SubjectId = c.SubjectId,
-                SubjectName = c.SubjectName,
                 Status = c.Status.ToString(),
                 IsActive = c.IsActive,
                 CreatedAt = c.CreatedAt

@@ -31,7 +31,6 @@ namespace EduAISystem.Application.Features.Courses.Handler
                 Description = course.Description,
                 Thumbnail = course.Thumbnail,
                 SubjectId = course.SubjectId,
-                SubjectName = course.SubjectName,
                 GradeLevelId = course.GradeLevelId,
                 TeacherId = course.TeacherId,
                 CategoryId = course.CategoryId,

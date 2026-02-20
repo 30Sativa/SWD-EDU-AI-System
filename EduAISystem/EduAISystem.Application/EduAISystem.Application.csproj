@@ -10,9 +10,6 @@
     <Folder Include="Common\Mappings\" />
     <Folder Include="Features\Auth\Mappings\" />
     <Folder Include="Features\Auth\Queries\" />
-    <Folder Include="Features\Courses\DTOs\" />
-    <Folder Include="Features\Courses\Handler\" />
-    <Folder Include="Features\Courses\Commands\" />
     <Folder Include="Features\Courses\Validators\" />
     <Folder Include="Features\Courses\Queries\" />
     <Folder Include="Features\Sections\Validators\" />

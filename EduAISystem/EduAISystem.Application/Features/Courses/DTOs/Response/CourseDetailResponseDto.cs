@@ -1,3 +1,5 @@
+using EduAISystem.Domain.Enums;
+
 namespace EduAISystem.Application.Features.Courses.DTOs.Response
 {
     public class CourseDetailResponseDto
@@ -13,10 +15,10 @@ namespace EduAISystem.Application.Features.Courses.DTOs.Response
         public string SubjectName { get; init; } = string.Empty;
 
         public Guid? GradeLevelId { get; init; }
-        public Guid TeacherId { get; init; }
+        public Guid? TeacherId { get; init; }
         public Guid? CategoryId { get; init; }
 
-        public string? Level { get; init; }
+        public CourseLevelDomain Level { get; init; }
         public string? Language { get; init; }
 
 
