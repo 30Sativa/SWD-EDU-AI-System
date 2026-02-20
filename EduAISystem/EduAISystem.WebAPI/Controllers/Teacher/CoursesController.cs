@@ -84,5 +84,20 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             return Guid.TryParse(userId, out var id) ? id : null;
         }
+
+        [HttpPost("clone")]
+        public async Task<IActionResult> CloneFromTemplate([FromBody] CloneTemplateCourseRequestDto dto,CancellationToken cancellationToken)
+        {
+            var teacherId = GetCurrentUserId();
+            if (teacherId == null)
+                return Unauthorized();
+
+            var id = await _mediator.Send(
+                new CloneTemplateCourseCommand(dto),
+                cancellationToken);
+
+            return Ok(ApiResponse<Guid>
+                .Ok(id, "Clone khóa học thành công"));
+        }
     }
 }
