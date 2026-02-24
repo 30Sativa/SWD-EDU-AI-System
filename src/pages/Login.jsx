@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
 import { loginAPI } from '../api/authApi';
@@ -218,14 +218,7 @@ export default function Login() {
                     </button>
                 </form>
 
-                <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-                    <p className="text-sm text-gray-500">
-                        Chưa có tài khoản?{' '}
-                        <a href="/register" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>
-                            Đăng ký ngay
-                        </a>
-                    </p>
-                </div>
+
             </div>
         </div>
     );
