@@ -24,45 +24,45 @@ function HeroSection() {
         {/* Left content */}
         <div className="flex flex-col justify-between">
           <div className="space-y-5 md:space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-xs md:text-sm font-medium text-blue-700 border border-blue-100">
-            <span className="inline-block w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            Nền tảng học trực tuyến AI
-          </div>
-
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-blue-600 leading-tight">
-            <span className="inline">Giáo dục</span>{' '}
-            <span className="inline">Thông minh</span>
-          </h1>
-
-          <p className="text-sm md:text-base text-gray-600 max-w-xl">
-            Nền tảng học trực tuyến hiện đại dành cho học sinh THPT, kết hợp phương pháp sư phạm chuẩn
-            với công nghệ AI để chuẩn hóa nội dung và cá nhân hóa trải nghiệm học tập.
-          </p>
-
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleGetStarted}
-              className="px-8 md:px-10 py-3 rounded-full bg-blue-600 text-white text-sm md:text-base font-semibold shadow-lg shadow-blue-500/40 hover:bg-blue-700 hover:shadow-xl transition-transform hover:-translate-y-0.5"
-            >
-              Bắt đầu ngay
-            </button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 md:gap-4 max-w-md pt-6 md:pt-8">
-            <div className="rounded-2xl border border-blue-50 bg-blue-50/60 px-3 py-3">
-              <div className="text-xl md:text-2xl font-bold text-blue-700">100%</div>
-              <p className="text-xs md:text-sm text-gray-600">Chuẩn Bộ GD</p>
+            <div className="inline-flex w-fit items-center gap-2 px-4 py-2 md:py-2.5 rounded-full bg-blue-50 text-xs md:text-sm font-medium text-blue-700 border border-blue-100">
+              <span className="shrink-0 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="leading-tight pt-[2px]">Nền tảng học trực tuyến AI</span>
             </div>
-            <div className="rounded-2xl border border-blue-50 bg-blue-50/60 px-3 py-3">
-              <div className="text-xl md:text-2xl font-bold text-blue-700">3x</div>
-              <p className="text-xs md:text-sm text-gray-600">Nhanh hơn</p>
+
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-blue-600 leading-tight">
+              <span className="inline">Giáo dục</span>{' '}
+              <span className="inline">Thông minh</span>
+            </h1>
+
+            <p className="text-sm md:text-base text-gray-600 max-w-xl">
+              Nền tảng học trực tuyến hiện đại dành cho học sinh THPT, kết hợp phương pháp sư phạm chuẩn
+              với công nghệ AI để chuẩn hóa nội dung và cá nhân hóa trải nghiệm học tập.
+            </p>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleGetStarted}
+                className="px-8 md:px-10 py-3 rounded-full bg-blue-600 text-white text-sm md:text-base font-semibold shadow-lg shadow-blue-500/40 hover:bg-blue-700 hover:shadow-xl transition-transform hover:-translate-y-0.5"
+              >
+                Bắt đầu ngay
+              </button>
             </div>
-            <div className="rounded-2xl border border-blue-50 bg-blue-50/60 px-3 py-3">
-              <div className="text-xl md:text-2xl font-bold text-blue-700">24/7</div>
-              <p className="text-xs md:text-sm text-gray-600">Hỗ trợ AI</p>
+
+            <div className="grid grid-cols-3 gap-3 md:gap-4 max-w-md pt-6 md:pt-8">
+              <div className="rounded-2xl border border-blue-50 bg-blue-50/60 px-3 py-3">
+                <div className="text-xl md:text-2xl font-bold text-blue-700">100%</div>
+                <p className="text-xs md:text-sm text-gray-600">Chuẩn Bộ GD</p>
+              </div>
+              <div className="rounded-2xl border border-blue-50 bg-blue-50/60 px-3 py-3">
+                <div className="text-xl md:text-2xl font-bold text-blue-700">3x</div>
+                <p className="text-xs md:text-sm text-gray-600">Nhanh hơn</p>
+              </div>
+              <div className="rounded-2xl border border-blue-50 bg-blue-50/60 px-3 py-3">
+                <div className="text-xl md:text-2xl font-bold text-blue-700">24/7</div>
+                <p className="text-xs md:text-sm text-gray-600">Hỗ trợ AI</p>
+              </div>
             </div>
           </div>
-        </div>
         </div>
 
         {/* Right image collage, layout giống Vintar */}
@@ -79,10 +79,10 @@ function HeroSection() {
               {/* Student quote overlay */}
               <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-2xl bg-white/95 shadow-lg px-4 py-3 opacity-0 translate-y-3 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
                 <p className="text-xs md:text-sm text-gray-700 mb-1">
-                  “Nhờ khóa học thiết kế của EduAI, em đã có khách freelance đầu tiên chỉ sau một tháng!”
+                  “Nhờ lộ trình học tập rõ ràng trên EDU-AI, em đã tự tin hơn hẳn khi ôn thi học kì vừa rồi!”
                 </p>
                 <p className="text-xs md:text-sm font-semibold text-gray-900">
-                  Rina Sasmita – Học sinh THPT
+                  Minh Hương – Học sinh THPT
                 </p>
               </div>
             </div>
@@ -108,10 +108,10 @@ function HeroSection() {
               {/* Teacher quote overlay */}
               <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-2xl bg-white/95 shadow-lg px-4 py-3 opacity-0 translate-y-3 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
                 <p className="text-xs md:text-sm text-gray-700 mb-1">
-                  “Giúp học sinh thiết kế với mục tiêu rõ ràng và tự tin áp dụng vào thực tế.”
+                  “Nền tảng giúp giáo viên dễ dàng theo sát tiến độ và nắm bắt được lực học của từng học sinh.”
                 </p>
                 <p className="text-xs md:text-sm font-semibold text-gray-900">
-                  Rika Yuliani – Giáo viên hướng dẫn
+                  Cô Hương – Giáo viên Ngữ Văn
                 </p>
               </div>
             </div>
@@ -226,7 +226,7 @@ function FeaturesSection() {
       num: '02',
       title: 'AI hỗ trợ thông minh',
       desc: 'Công cụ AI tự động phân tích nội dung, gợi ý câu hỏi, giúp giáo viên tiết kiệm thời gian soạn bài.',
-      tags: [ 'Gợi ý câu hỏi', 'Trợ lý AI'],
+      tags: ['Gợi ý câu hỏi', 'Trợ lý AI'],
       image: '/assets/Screenshot 2026-02-04 203753.png',
     },
     {
@@ -298,9 +298,8 @@ function FeaturesSection() {
 function FeatureCard({ feature, index, isInView }) {
   return (
     <div
-      className={`group relative rounded-3xl shadow-md hover:shadow-2xl overflow-hidden border border-blue-100 bg-blue-50/40 flex flex-col transform transition-all duration-1000 ${
-        isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-      }`}
+      className={`group relative rounded-3xl shadow-md hover:shadow-2xl overflow-hidden border border-blue-100 bg-blue-50/40 flex flex-col transform transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+        }`}
       style={{ transitionDelay: isInView ? `${200 + index * 120}ms` : '0ms' }}
     >
       {/* Image */}
@@ -385,9 +384,8 @@ function AboutSection() {
     >
       <div className="max-w-7xl mx-auto w-full grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-start">
         <div
-          className={`flex flex-col justify-center transform transition-all duration-1000 ${
-            isInView ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'
-          }`}
+          className={`flex flex-col justify-center transform transition-all duration-1000 ${isInView ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'
+            }`}
         >
           <p className="text-xs md:text-sm font-semibold tracking-[0.25em] uppercase text-blue-500 mb-3">
             Về EDU-AI Classroom
@@ -420,9 +418,8 @@ function AboutSection() {
           {stats.map((item, idx) => (
             <div
               key={idx}
-              className={`rounded-3xl bg-blue-50/80 px-4 py-5 md:px-6 md:py-7 flex flex-col justify-between shadow-sm hover:shadow-md transform transition-all duration-1000 ${
-                isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
+              className={`rounded-3xl bg-blue-50/80 px-4 py-5 md:px-6 md:py-7 flex flex-col justify-between shadow-sm hover:shadow-md transform transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                }`}
               style={{ transitionDelay: isInView ? `${250 + idx * 150}ms` : '0ms' }}
             >
               <div className="text-lg md:text-2xl font-bold text-blue-700 mb-1">
@@ -608,9 +605,8 @@ function PortfolioSection() {
       className="py-12 md:py-16 px-4 md:px-6 lg:px-8 bg-blue-50/30 relative z-10 snap-start"
     >
       <div
-        className={`max-w-7xl mx-auto transition-all duration-1000 ${
-          isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-        }`}
+        className={`max-w-7xl mx-auto transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+          }`}
       >
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 md:mb-10">
           <div>
@@ -627,9 +623,8 @@ function PortfolioSection() {
           {testimonials.map((item, idx) => (
             <article
               key={item.name}
-              className={`relative flex flex-col rounded-3xl bg-white/95 shadow-[0_18px_55px_rgba(15,23,42,0.08)] border border-slate-100/80 p-6 md:p-7 overflow-hidden transform transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_26px_70px_rgba(37,99,235,0.22)] hover:border-blue-200 ${
-                isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}
+              className={`relative flex flex-col rounded-3xl bg-white/95 shadow-[0_18px_55px_rgba(15,23,42,0.08)] border border-slate-100/80 p-6 md:p-7 overflow-hidden transform transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_26px_70px_rgba(37,99,235,0.22)] hover:border-blue-200 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                }`}
               style={{
                 transitionDelay: isInView ? `${150 + idx * 70}ms` : '0ms',
               }}
