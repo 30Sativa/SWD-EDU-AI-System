@@ -8,6 +8,7 @@ using EduAISystem.Infrastructure.Services.Email;
 using EduAISystem.Infrastructure.Services.Excel;
 using EduAISystem.Infrastructure.Services.ExternalApis;
 using EduAISystem.Infrastructure.Services.FileStorage;
+using EduAISystem.Infrastructure.Services.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -44,6 +45,8 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<ILessonRepository, LessonRepository>();
             services.AddScoped<IFileTextExtractor, FileTextExtractor>();
             services.AddScoped<ICourseAiService, CourseAiService>();
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
             // 3. Services khác (nếu có)
             services.Configure<GeminiSettings>(
                     configuration.GetSection("Gemini"));

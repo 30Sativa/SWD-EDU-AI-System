@@ -29,7 +29,6 @@
 	<ItemGroup>
 	  <Folder Include="BackgroundJobs\" />
 	  <Folder Include="Settings\" />
-	  <Folder Include="Services\Identity\" />
 	  <Folder Include="Services\Cache\" />
 	  <Folder Include="Services\Payment\" />
 	</ItemGroup>

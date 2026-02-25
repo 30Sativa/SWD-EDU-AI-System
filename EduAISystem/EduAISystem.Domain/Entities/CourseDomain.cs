@@ -235,5 +235,19 @@ namespace EduAISystem.Domain.Entities
                    && !string.IsNullOrWhiteSpace(Description)
                    && !string.IsNullOrWhiteSpace(Thumbnail);
         }
+        // =========================
+        // ENROLL VALIDATION
+        // =========================
+        public void EnsureCanBeEnrolled()
+        {
+            if (IsTemplate)
+                throw new InvalidOperationException("Cannot enroll template course.");
+
+            if (!IsActive)
+                throw new InvalidOperationException("Course is inactive.");
+
+            if (Status != CourseStatusDomain.Published)
+                throw new InvalidOperationException("Only published courses can be enrolled.");
+        }
     }
 }
