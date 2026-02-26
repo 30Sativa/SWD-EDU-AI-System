@@ -24,9 +24,9 @@ function HeroSection() {
         {/* Left content */}
         <div className="flex flex-col justify-between">
           <div className="space-y-5 md:space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-xs md:text-sm font-medium text-blue-700 border border-blue-100">
-              <span className="inline-block w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              Nền tảng học trực tuyến AI
+            <div className="inline-flex w-fit items-center gap-2 px-4 py-2 md:py-2.5 rounded-full bg-blue-50 text-xs md:text-sm font-medium text-blue-700 border border-blue-100">
+              <span className="shrink-0 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="leading-tight pt-[2px]">Nền tảng học trực tuyến AI</span>
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-blue-600 leading-tight">
@@ -79,10 +79,10 @@ function HeroSection() {
               {/* Student quote overlay */}
               <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-2xl bg-white/95 shadow-lg px-4 py-3 opacity-0 translate-y-3 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
                 <p className="text-xs md:text-sm text-gray-700 mb-1">
-                  “Nhờ khóa học thiết kế của EduAI, em đã có khách freelance đầu tiên chỉ sau một tháng!”
+                  “Nhờ lộ trình học tập rõ ràng trên EDU-AI, em đã tự tin hơn hẳn khi ôn thi học kì vừa rồi!”
                 </p>
                 <p className="text-xs md:text-sm font-semibold text-gray-900">
-                  Rina Sasmita – Học sinh THPT
+                  Minh Hương – Học sinh THPT
                 </p>
               </div>
             </div>
@@ -108,10 +108,10 @@ function HeroSection() {
               {/* Teacher quote overlay */}
               <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-2xl bg-white/95 shadow-lg px-4 py-3 opacity-0 translate-y-3 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
                 <p className="text-xs md:text-sm text-gray-700 mb-1">
-                  “Giúp học sinh thiết kế với mục tiêu rõ ràng và tự tin áp dụng vào thực tế.”
+                  “Nền tảng giúp giáo viên dễ dàng theo sát tiến độ và nắm bắt được lực học của từng học sinh.”
                 </p>
                 <p className="text-xs md:text-sm font-semibold text-gray-900">
-                  Rika Yuliani – Giáo viên hướng dẫn
+                  Cô Hương – Giáo viên Ngữ Văn
                 </p>
               </div>
             </div>

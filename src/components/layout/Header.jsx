@@ -8,9 +8,8 @@ export default function Header() {
 
   const navItems = [
     { label: "Trang chủ", href: "/" },
-    { label: "Về EDU‑AI", href: "#about" },
+    { label: "Giới thiệu", href: "#about" },
     { label: "Tính năng", href: "#features" },
-    { label: "Liên hệ", href: "#contact" },
     { label: "Phản hồi", href: "#feedback" },
   ];
 
@@ -26,7 +25,13 @@ export default function Header() {
         const id = href.replace("#", "");
         const el = document.getElementById(id);
         if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          const headerOffset = 64; // Adjusted to match exact header height (h-16 = 64px)
+          const elementPosition = el.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth"
+          });
         }
       }
       setIsOpen(false);

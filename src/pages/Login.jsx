@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
 import { loginAPI } from '../api/authApi';
@@ -140,8 +140,15 @@ export default function Login() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-400/20 rounded-full blur-[100px] animate-pulse delay-1000"></div>
             </div>
 
-            <div className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100 p-8 z-10 mx-4 transition-all duration-300 hover:shadow-2xl hover:bg-white/90">
-                <div className="mb-8 text-center">
+            <div className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100 p-8 z-10 mx-4 transition-all duration-300 hover:shadow-2xl hover:bg-white/90 relative">
+                <button
+                    onClick={() => navigate('/')}
+                    className="absolute top-4 left-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
+                    title="Quay lại"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="mb-8 mt-2 text-center">
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Chào mừng trở lại</h1>
                     <p className="text-gray-500 mt-2 text-sm">Vui lòng đăng nhập để tiếp tục</p>
                 </div>
@@ -218,14 +225,7 @@ export default function Login() {
                     </button>
                 </form>
 
-                <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-                    <p className="text-sm text-gray-500">
-                        Chưa có tài khoản?{' '}
-                        <a href="/register" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>
-                            Đăng ký ngay
-                        </a>
-                    </p>
-                </div>
+
             </div>
         </div>
     );
