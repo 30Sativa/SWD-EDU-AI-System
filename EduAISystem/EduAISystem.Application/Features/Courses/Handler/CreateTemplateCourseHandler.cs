@@ -1,4 +1,5 @@
 ﻿using EduAISystem.Application.Abstractions.Persistence;
+using EduAISystem.Application.Common.Exceptions;
 using EduAISystem.Application.Features.Courses.Commands;
 using EduAISystem.Domain.Entities;
 using MediatR;
@@ -25,12 +26,12 @@ namespace EduAISystem.Application.Features.Courses.Handler
             var dto = request.Request;
             if(await _subjectRepository.GetByIdAsync(dto.SubjectId, cancellationToken) is null)
             {
-                throw new InvalidOperationException(
+                throw new NotFoundException(
                     $"Subject with id {dto.SubjectId} does not exist.");
             }
             if (await _courseRepository.ExistsByCodeAsync(dto.Code, cancellationToken))
             {
-                throw new InvalidOperationException(
+                throw new NotFoundException(
                     $"Course with code {dto.Code} already exists.");
             }
 
