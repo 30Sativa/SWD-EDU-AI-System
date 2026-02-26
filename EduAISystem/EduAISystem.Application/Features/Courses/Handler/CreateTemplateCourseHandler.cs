@@ -19,6 +19,7 @@ namespace EduAISystem.Application.Features.Courses.Handler
             CreateTemplateCourseCommand request,
             CancellationToken cancellationToken)
         {
+            //test
             var dto = request.Request;
             Console.WriteLine("==== DEBUG START ====");
             Console.WriteLine("SubjectId: " + dto.SubjectId);
