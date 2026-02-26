@@ -20,7 +20,7 @@ namespace EduAISystem.Application.Features.Courses.Handler
             CancellationToken cancellationToken)
         {
             var dto = request.Request;
-
+            Console.WriteLine("SubjectId: " + dto.SubjectId);
             if (await _courseRepository.ExistsByCodeAsync(dto.Code, cancellationToken))
             {
                 throw new InvalidOperationException(
