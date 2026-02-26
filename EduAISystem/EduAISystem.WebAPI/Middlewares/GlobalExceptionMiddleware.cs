@@ -52,6 +52,22 @@ namespace EduAISystem.WebAPI.Middlewares
                         Message = ve.Message,
                         Errors = ve.Errors
                     },
+
+                    NotFoundException ne => new ApiError
+                    {
+                        Message = ne.Message
+                    },
+
+                    ConflictException ce => new ApiError
+                    {
+                        Message = ce.Message
+                    },
+
+                    ForbiddenException fe => new ApiError
+                    {
+                        Message = fe.Message
+                    },
+
                     _ => new ApiError
                     {
                         Message = _env.IsDevelopment()

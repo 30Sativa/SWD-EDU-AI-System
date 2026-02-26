@@ -31,7 +31,7 @@ namespace EduAISystem.Application.Features.Courses.Handler
             }
             if (await _courseRepository.ExistsByCodeAsync(dto.Code, cancellationToken))
             {
-                throw new NotFoundException(
+                throw new ConflictException(
                     $"Course with code {dto.Code} already exists.");
             }
 
