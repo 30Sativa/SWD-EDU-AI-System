@@ -43,6 +43,13 @@
             Bio = bio;
         }
 
+        // Constructor đơn giản chỉ với required fields (dùng cho tạo mới, còn Load dùng cho mapping từ DB)
+        public UserProfileDomain(Guid userId, string fullName)
+        {
+            UserId = userId;
+            FullName = fullName;
+        }
+
         // Factory method để tạo từ Repository (mapping từ EF Entity)
         public static UserProfileDomain Load(
             Guid userId,

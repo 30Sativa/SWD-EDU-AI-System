@@ -22,13 +22,13 @@ namespace EduAISystem.Domain.Entities
         protected UserDomain() { } // EF
 
         //bussiness constructor
-        public UserDomain(string email, string passwordHash, UserRoleDomain role)
+        public UserDomain(string email, string passwordHash, UserProfileDomain userProfile,UserRoleDomain role)
         {
             Id = Guid.NewGuid();
             Email = email;
             PasswordHash = passwordHash;
             Role = role;
-
+            UserProfile = userProfile;
             IsActive = true;
             CreatedAt = DateTime.UtcNow;
         }
@@ -53,13 +53,17 @@ namespace EduAISystem.Domain.Entities
         public static UserDomain Create(
             string email,
             string passwordHash,
+            string fullName,
             UserRoleDomain role)
         {
+            var userId = Guid.NewGuid();
+            var profile = new UserProfileDomain(userId, fullName);
             return new UserDomain
             {
-                Id = Guid.NewGuid(),
+                Id = userId,
                 Email = email,
                 PasswordHash = passwordHash,
+                UserProfile = profile,
                 Role = role,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow

@@ -30,6 +30,7 @@ namespace EduAISystem.Application.Features.Users.Handler
             var user = UserDomain.Create(
                 request.Request.Email,
                 passwordHash,
+                request.Request.FullName,
                 (UserRoleDomain)request.Request.Role);
 
             await _userRepository.AddAsync(user);
@@ -41,7 +42,10 @@ namespace EduAISystem.Application.Features.Users.Handler
                 Role = (int)user.Role,
                 IsActive = user.IsActive,
                 CreatedAt = user.CreatedAt,
-                Profile = null
+                Profile = new UserProfileDetailDto
+                {
+                    FullName = user.UserProfile.FullName
+                }
             };
         }
     }
