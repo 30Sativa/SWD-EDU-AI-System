@@ -155,13 +155,7 @@ export default function TeacherDashboard() {
 
             {isCreateOpen && (
               <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                <button
-                  onClick={() => { setIsCreateOpen(false); navigate('/dashboard/teacher/courses/create'); }}
-                  className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 text-sm text-gray-700 transition-colors"
-                >
-                  <BookOpen size={16} className="text-[#0487e2]" />
-                  <span>Tạo khóa học</span>
-                </button>
+
                 <button className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
                   <FileText size={16} className="text-[#0487e2]" />
                   <span>Tạo bài học</span>
@@ -323,7 +317,7 @@ export default function TeacherDashboard() {
               </table>
               {courses.length === 0 && !loading && (
                 <div className="px-6 py-8 text-center text-slate-500 text-sm">
-                  Chưa có khóa học nào. <button type="button" onClick={() => navigate('/dashboard/teacher/courses/create')} className="text-[#0487e2] font-medium hover:underline">Tạo khóa học</button>
+                  Chưa có khóa học nào.
                 </div>
               )}
             </div>

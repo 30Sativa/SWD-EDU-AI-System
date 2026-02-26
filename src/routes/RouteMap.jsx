@@ -23,9 +23,9 @@ import SubjectDetail from "../features/subject/manager/pages/SubjectDetail";
 import GradeManagement from "../features/grade/manager/pages/GradeManagement";
 import TermManagement from "../features/term/manager/pages/TermManagement";
 import ManagerCourseManagement from "../features/course/manager/pages/CourseManagement";
-import ManagerCreateCourse from "../features/course/manager/pages/CreateCourse";
+import ManagerCreateTemplate from "../features/course/manager/pages/CreateTemplate";
+import ManagerCategoryManagement from "../features/category/manager/pages/CategoryManagement";
 import ManagerQuestionBank from "../features/question-bank/manager/pages/QuestionBank";
-import TeacherCreateCourse from "../features/course/teacher/pages/CreateCourse";
 import CourseDetail from "../features/course/student/pages/CourseDetail";
 import CoursesList from "../features/course/student/pages/CoursesList";
 import LessonDetail from "../features/lesson/student/pages/LessonDetail";
@@ -68,7 +68,6 @@ export default function RouteMap() {
           <Route path="teacher" element={<Sidebar userRole="teacher" />}>
             <Route index element={<TeacherDashboard />} />
             <Route path="courses" element={<CourseManagement />} />
-            <Route path="courses/create" element={<TeacherCreateCourse />} />
             <Route path="courses/:courseId" element={<TeacherCourseDetail />} />
             <Route path="classes/:classId/students" element={<ClassStudentList />} />
             <Route path="classes" element={<ClassManagement />} />
@@ -100,8 +99,9 @@ export default function RouteMap() {
             <Route index element={<ManagerDashboard />} />
             <Route path="subjects" element={<SubjectManagement />} />
             <Route path="subjects/:id" element={<SubjectDetail />} />
+            <Route path="categories" element={<ManagerCategoryManagement />} />
             <Route path="courses" element={<ManagerCourseManagement />} />
-            <Route path="courses/create" element={<ManagerCreateCourse />} />
+            <Route path="courses/create" element={<ManagerCreateTemplate />} />
             <Route path="grades" element={<GradeManagement />} />
             <Route path="terms" element={<TermManagement />} />
             <Route path="terms" element={<TermManagement />} />
