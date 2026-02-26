@@ -11,11 +11,12 @@ namespace EduAISystem.Application.Features.Courses.Handler
     {
         private readonly ICourseRepository _courseRepository;
         private readonly ISubjectRepository _subjectRepository;
-
-        public CreateTemplateCourseHandler(ICourseRepository courseRepository, ISubjectRepository subjectRepository)
+        private readonly ICourseCategoryRepository _courseCategoryRepository;
+        public CreateTemplateCourseHandler(ICourseRepository courseRepository, ISubjectRepository subjectRepository, ICourseCategoryRepository courseCategoryRepository)
         {
             _courseRepository = courseRepository;
             _subjectRepository = subjectRepository;
+            _courseCategoryRepository = courseCategoryRepository;
         }
 
         public async Task<Guid> Handle(
@@ -33,6 +34,11 @@ namespace EduAISystem.Application.Features.Courses.Handler
             {
                 throw new ConflictException(
                     $"Course with code {dto.Code} already exists.");
+            }
+            if(await _courseCategoryRepository.GetByIdAsync(dto.CategoryId, cancellationToken) is null)
+            {
+                throw new NotFoundException(
+                    $"Course category with id {dto.CategoryId} does not exist.");
             }
 
             var course = CourseDomain.CreateTemplate(

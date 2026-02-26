@@ -13,7 +13,7 @@ namespace EduAISystem.Application.Features.Courses.DTOs.Request
         public string Title { get; set; } = string.Empty;
         public Guid SubjectId { get; set; }
         public Guid? GradeLevelId { get; set; }
-        public Guid? CategoryId { get; set; }
+        public Guid CategoryId { get; set; }
         public string? Description { get; set; }
         public string? Thumbnail { get; set; }
         public Guid CreatedByUserId { get; set; }
