@@ -30,6 +30,8 @@ namespace EduAISystem.WebAPI.Middlewares
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Unhandled exception occurred");
+
                 context.Response.ContentType = "application/json";
 
                 var statusCode = ex switch
