@@ -27,7 +27,11 @@ namespace EduAISystem.Application.Features.Courses.Handler
         {
             var dto = request.Request;
 
-            var createdByUserId = _currentUser.UserId; //  Manager
+            var createdByUserId = _currentUser.UserId;
+            if(createdByUserId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException("User must be authenticated to create a course.");
+            }
 
             var course = CourseDomain.CreateTemplate(
                 code: dto.Code,
