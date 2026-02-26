@@ -9,22 +9,25 @@ namespace EduAISystem.Application.Features.Courses.Handler
         : IRequestHandler<CreateTemplateCourseCommand, Guid>
     {
         private readonly ICourseRepository _courseRepository;
+        private readonly ISubjectRepository _subjectRepository;
 
-        public CreateTemplateCourseHandler(ICourseRepository courseRepository)
+        public CreateTemplateCourseHandler(ICourseRepository courseRepository, ISubjectRepository subjectRepository)
         {
             _courseRepository = courseRepository;
+            _subjectRepository = subjectRepository;
         }
 
         public async Task<Guid> Handle(
             CreateTemplateCourseCommand request,
             CancellationToken cancellationToken)
         {
-            //test
+            
             var dto = request.Request;
-            Console.WriteLine("==== DEBUG START ====");
-            Console.WriteLine("SubjectId: " + dto.SubjectId);
-            Console.WriteLine("Code: " + dto.Code);
-            Console.WriteLine("==== DEBUG END ====");
+            if(await _subjectRepository.GetByIdAsync(dto.SubjectId, cancellationToken) is null)
+            {
+                throw new InvalidOperationException(
+                    $"Subject with id {dto.SubjectId} does not exist.");
+            }
             if (await _courseRepository.ExistsByCodeAsync(dto.Code, cancellationToken))
             {
                 throw new InvalidOperationException(
