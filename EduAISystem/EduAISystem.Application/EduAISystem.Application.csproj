@@ -12,6 +12,9 @@
     <Folder Include="Features\Auth\Queries\" />
     <Folder Include="Features\Courses\Validators\" />
     <Folder Include="Features\Courses\Queries\" />
+    <Folder Include="Features\Quiz\DTOs\Response\" />
+    <Folder Include="Features\Quiz\Validators\" />
+    <Folder Include="Features\Quiz\Queries\" />
     <Folder Include="Features\Sections\Validators\" />
     <Folder Include="Features\Subjects\DTOs\" />
     <Folder Include="Features\Subjects\Handler\" />

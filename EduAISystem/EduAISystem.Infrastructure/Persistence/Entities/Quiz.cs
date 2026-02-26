@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace EduAISystem.Infrastructure.Persistence.Entities;
+﻿namespace EduAISystem.Infrastructure.Persistence.Entities;
 
 public partial class Quiz
 {

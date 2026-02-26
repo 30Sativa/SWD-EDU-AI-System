@@ -2,7 +2,7 @@
 
 namespace EduAISystem.Application.Abstractions.Persistence
 {
-    public  interface ISectionRepository
+    public interface ISectionRepository
     {
         Task AddAsync(SectionDomain section, CancellationToken cancellationToken);
         Task UpdateAsync(SectionDomain section);
