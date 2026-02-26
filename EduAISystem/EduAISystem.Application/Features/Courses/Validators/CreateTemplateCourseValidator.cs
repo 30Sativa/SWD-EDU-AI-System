@@ -12,6 +12,7 @@ namespace EduAISystem.Application.Features.Courses.Validators
     {
         public CreateTemplateCourseValidator() 
         {
+            RuleFor(x => x.Request).NotNull().NotEmpty().WithMessage("Request không được null");
             RuleFor(x => x.Request.SubjectId).NotEmpty().WithMessage("SubjectId không được để trống.");
         }
     }
