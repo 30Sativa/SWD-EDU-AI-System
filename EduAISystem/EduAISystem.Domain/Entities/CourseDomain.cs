@@ -10,6 +10,9 @@ namespace EduAISystem.Domain.Entities
         public string Title { get; private set; } = string.Empty;
         public string Slug { get; private set; } = string.Empty;
 
+        // 🔥 Creator (Manager / System)
+        public Guid CreatedByUserId { get; private set; }
+
         public string? Description { get; private set; }
         public string? Thumbnail { get; private set; }
 
@@ -17,6 +20,7 @@ namespace EduAISystem.Domain.Entities
         public Guid? GradeLevelId { get; private set; }
         public Guid? CategoryId { get; private set; }
 
+        // 🔥 Teacher chỉ có khi course dùng thật
         public Guid? TeacherId { get; private set; }
         public Guid? SourceTemplateId { get; private set; }
 
@@ -38,20 +42,33 @@ namespace EduAISystem.Domain.Entities
 
         protected CourseDomain() { }
 
+        // =========================
+        // PRIVATE CONSTRUCTOR (CORE)
+        // =========================
         private CourseDomain(
             string code,
             string title,
             Guid subjectId,
             CourseLevelDomain level,
             bool isTemplate,
-            Guid? teacherId = null,
-            Guid? sourceTemplateId = null,
-            Guid? gradeLevelId = null,
-            Guid? categoryId = null,
-            string? description = null,
-            string? thumbnail = null)
+            Guid createdByUserId,
+            Guid? teacherId,
+            Guid? sourceTemplateId,
+            Guid? gradeLevelId,
+            Guid? categoryId,
+            string? description,
+            string? thumbnail)
         {
             ValidateCodeAndTitle(code, title);
+
+            if (createdByUserId == Guid.Empty)
+                throw new ArgumentException("CreatedByUserId is required.");
+
+            if (isTemplate && teacherId != null)
+                throw new InvalidOperationException("Template must not have Teacher.");
+
+            if (!isTemplate && teacherId == null)
+                throw new InvalidOperationException("Course must have Teacher.");
 
             Id = Guid.NewGuid();
             Code = code.Trim();
@@ -71,21 +88,77 @@ namespace EduAISystem.Domain.Entities
             TeacherId = teacherId;
             SourceTemplateId = sourceTemplateId;
 
+            CreatedByUserId = createdByUserId;
+
             Status = CourseStatusDomain.Draft;
             IsActive = true;
 
             CreatedAt = DateTime.UtcNow;
             UpdatedAt = DateTime.UtcNow;
         }
-
         // =========================
-        // CREATE TEMPLATE
+        // REHYDRATE (FOR REPOSITORY)
+        // =========================
+        internal static CourseDomain Rehydrate(
+    Guid id,
+    string code,
+    string title,
+    string slug,
+    Guid subjectId,
+    Guid createdByUserId,
+    Guid? teacherId,
+    Guid? sourceTemplateId,
+    Guid? gradeLevelId,
+    Guid? categoryId,
+    CourseLevelDomain level,
+    string language,
+    int totalLessons,
+    int totalDuration,
+    CourseStatusDomain status,
+    bool isActive,
+    bool isTemplate,
+    DateTime createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
+    string? description,
+    string? thumbnail
+)
+        {
+            return new CourseDomain
+            {
+                Id = id,
+                Code = code,
+                Title = title,
+                Slug = slug,
+                SubjectId = subjectId,
+                CreatedByUserId = createdByUserId,
+                TeacherId = teacherId,
+                SourceTemplateId = sourceTemplateId,
+                GradeLevelId = gradeLevelId,
+                CategoryId = categoryId,
+                Level = level,
+                Language = language,
+                TotalLessons = totalLessons,
+                TotalDuration = totalDuration,
+                Status = status,
+                IsActive = isActive,
+                IsTemplate = isTemplate,
+                CreatedAt = createdAt,
+                UpdatedAt = updatedAt,
+                DeletedAt = deletedAt,
+                Description = description,
+                Thumbnail = thumbnail
+            };
+        }
+        // =========================
+        // CREATE TEMPLATE (MANAGER)
         // =========================
         public static CourseDomain CreateTemplate(
             string code,
             string title,
             Guid subjectId,
             CourseLevelDomain level,
+            Guid createdByUserId,          // 🔥 Manager
             Guid? gradeLevelId = null,
             Guid? categoryId = null,
             string? description = null,
@@ -97,18 +170,23 @@ namespace EduAISystem.Domain.Entities
                 subjectId,
                 level,
                 isTemplate: true,
+                createdByUserId: createdByUserId,
+                teacherId: null,
+                sourceTemplateId: null,
                 gradeLevelId: gradeLevelId,
                 categoryId: categoryId,
                 description: description,
-                thumbnail: thumbnail);
+                thumbnail: thumbnail
+            );
         }
 
         // =========================
-        // CLONE FROM TEMPLATE
+        // CLONE FROM TEMPLATE (ASSIGN TEACHER)
         // =========================
         public static CourseDomain CloneFromTemplate(
             CourseDomain template,
             Guid teacherId,
+            Guid createdByUserId,          // 🔥 Manager / System
             string newCode)
         {
             if (!template.IsTemplate)
@@ -123,12 +201,14 @@ namespace EduAISystem.Domain.Entities
                 template.SubjectId,
                 template.Level,
                 isTemplate: false,
+                createdByUserId: createdByUserId,
                 teacherId: teacherId,
                 sourceTemplateId: template.Id,
                 gradeLevelId: template.GradeLevelId,
                 categoryId: template.CategoryId,
                 description: template.Description,
-                thumbnail: template.Thumbnail);
+                thumbnail: template.Thumbnail
+            );
         }
 
         // =========================
@@ -235,6 +315,7 @@ namespace EduAISystem.Domain.Entities
                    && !string.IsNullOrWhiteSpace(Description)
                    && !string.IsNullOrWhiteSpace(Thumbnail);
         }
+
         // =========================
         // ENROLL VALIDATION
         // =========================

@@ -16,6 +16,7 @@ namespace EduAISystem.Application.Features.Courses.DTOs.Request
         public Guid? CategoryId { get; set; }
         public string? Description { get; set; }
         public string? Thumbnail { get; set; }
+        public Guid CreatedByUserId { get; set; }
         public CourseLevelDomain Level { get; set; }
     }
 }

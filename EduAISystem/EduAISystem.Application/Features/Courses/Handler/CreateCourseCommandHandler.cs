@@ -1,4 +1,5 @@
 using EduAISystem.Application.Abstractions.Persistence;
+using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Application.Features.Courses.Commands;
 using EduAISystem.Application.Features.Courses.DTOs.Response;
 using EduAISystem.Domain.Entities;
@@ -6,25 +7,44 @@ using MediatR;
 
 namespace EduAISystem.Application.Features.Courses.Handler
 {
-    public class CreateCourseCommandHandler : IRequestHandler<CreateCourseCommand, CourseDetailResponseDto>
+    public class CreateCourseCommandHandler
+        : IRequestHandler<CreateCourseCommand, CourseDetailResponseDto>
     {
         private readonly ICourseRepository _courseRepository;
+        private readonly ICurrentUserService _currentUser;
 
-        public CreateCourseCommandHandler(ICourseRepository courseRepository)
+        public CreateCourseCommandHandler(
+            ICourseRepository courseRepository,
+            ICurrentUserService currentUser)
         {
             _courseRepository = courseRepository;
+            _currentUser = currentUser;
         }
 
-        public async Task<CourseDetailResponseDto> Handle(CreateCourseCommand request, CancellationToken cancellationToken)
+        public async Task<CourseDetailResponseDto> Handle(
+            CreateCourseCommand request,
+            CancellationToken cancellationToken)
         {
             var dto = request.Request;
 
-            var course = CourseDomain.CreateTemplate(request.Request.Code,request.Request.Title,request.Request.SubjectId,request.Request.Level,request.Request.GradeLevelId,request.Request.CategoryId,request.Request.Description,request.Request.Thumbnail);
+            var createdByUserId = _currentUser.UserId; //  Manager
+
+            var course = CourseDomain.CreateTemplate(
+                code: dto.Code,
+                title: dto.Title,
+                subjectId: dto.SubjectId,
+                level: dto.Level,
+                createdByUserId: createdByUserId,
+                gradeLevelId: dto.GradeLevelId,
+                categoryId: dto.CategoryId,
+                description: dto.Description,
+                thumbnail: dto.Thumbnail
+            );
 
             await _courseRepository.AddAsync(course, cancellationToken);
 
-            // Reload to ensure SubjectName and other info are filled
-            var saved = await _courseRepository.GetByIdAsync(course.Id, cancellationToken) ?? course;
+            var saved = await _courseRepository
+                .GetByIdAsync(course.Id, cancellationToken) ?? course;
 
             return new CourseDetailResponseDto
             {
@@ -38,7 +58,6 @@ namespace EduAISystem.Application.Features.Courses.Handler
                 GradeLevelId = saved.GradeLevelId,
                 TeacherId = saved.TeacherId,
                 CategoryId = saved.CategoryId,
-                //Level = saved.Level,
                 Language = saved.Language,
                 TotalLessons = saved.TotalLessons,
                 TotalDuration = saved.TotalDuration,
@@ -50,4 +69,3 @@ namespace EduAISystem.Application.Features.Courses.Handler
         }
     }
 }
-

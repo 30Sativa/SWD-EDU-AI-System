@@ -48,6 +48,7 @@ public partial class Course
     public bool IsTemplate { get; set; }
 
     public Guid? SourceTemplateId { get; set; }
+    public Guid CreatedByUserId { get; set; }   
 
     public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
 
@@ -70,4 +71,5 @@ public partial class Course
     public virtual Subject Subject { get; set; } = null!;
 
     public virtual Teacher? Teacher { get; set; }
+    public virtual User CreatedByUser { get; set; }
 }

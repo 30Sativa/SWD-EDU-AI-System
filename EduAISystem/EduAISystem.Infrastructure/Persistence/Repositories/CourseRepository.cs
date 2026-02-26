@@ -91,19 +91,37 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 _ => CourseLevelDomain.Beginner
             };
 
-            // Rebuild using factory
-            var domain = CourseDomain.CreateTemplate(
-                c.Code,
-                c.Title,
-                c.SubjectId,
-                levelEnum,
-                c.GradeLevelId,
-                c.CategoryId,
-                c.Description,
-                c.Thumbnail
-            );
+            var statusEnum = c.Status switch
+            {
+                "Published" => CourseStatusDomain.Published,
+                "Archived" => CourseStatusDomain.Archived,
+                _ => CourseStatusDomain.Draft
+            };
 
-            return domain;
+            return CourseDomain.Rehydrate(
+                id: c.Id,
+                code: c.Code,
+                title: c.Title,
+                slug: c.Slug,
+                subjectId: c.SubjectId,
+                createdByUserId: c.CreatedByUserId,
+                teacherId: c.TeacherId,
+                sourceTemplateId: c.SourceTemplateId,
+                gradeLevelId: c.GradeLevelId,
+                categoryId: c.CategoryId,
+                level: levelEnum,
+                language: c.Language,
+                totalLessons: c.TotalLessons ?? 0,
+                totalDuration: c.TotalDuration ?? 0,
+                status: statusEnum,
+                isActive: c.IsActive ?? true,
+                isTemplate: c.IsTemplate,
+                createdAt: c.CreatedAt ?? DateTime.UtcNow,
+                updatedAt: c.UpdatedAt,
+                deletedAt: c.DeletedAt,
+                description: c.Description,
+                thumbnail: c.Thumbnail
+            );
         }
 
         private static Course MapToEntity(CourseDomain d)
@@ -118,9 +136,10 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 Thumbnail = d.Thumbnail,
                 SubjectId = d.SubjectId,
                 GradeLevelId = d.GradeLevelId,
+                CreatedByUserId = d.CreatedByUserId,
                 TeacherId = d.TeacherId,
                 CategoryId = d.CategoryId,
-                Level = CourseLevelToString(d.Level), // FIX
+                Level = CourseLevelToString(d.Level), 
                 Language = d.Language,
                 TotalLessons = d.TotalLessons,
                 TotalDuration = d.TotalDuration,
