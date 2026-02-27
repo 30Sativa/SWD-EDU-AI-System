@@ -35,10 +35,10 @@ export default function StudentHeader() {
     }, []);
 
     const navItems = [
-        { label: 'Tổng quan', path: 'dashboard' },
-        { label: 'Khóa học', path: 'courses' },
-        { label: 'Bài kiểm tra', path: 'quizzes' },
-        { label: 'Tiến độ', path: 'progress' },
+        { label: 'Tổng quan', path: '/dashboard/student' },
+        { label: 'Khóa học', path: '/dashboard/student/courses' },
+        { label: 'Bài kiểm tra', path: '/dashboard/student/quizzes' },
+        { label: 'Tiến độ', path: '/dashboard/student/progress' },
     ];
 
     const getInitials = (name) => {
@@ -68,15 +68,14 @@ export default function StudentHeader() {
                 {/* Navigation - Perfectly Centered, Absolute */}
                 <nav className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-2">
                     {navItems.map((item) => {
-                        const fullPath = item.path === 'dashboard' ? BASE_PATH : `${BASE_PATH}/${item.path}`;
-                        const isActive = item.path === 'dashboard'
-                            ? location.pathname === BASE_PATH
-                            : location.pathname.startsWith(fullPath);
+                        const isActive = item.path === '/dashboard/student'
+                            ? location.pathname === item.path
+                            : location.pathname.startsWith(item.path);
 
                         return (
                             <Link
                                 key={item.label}
-                                to={fullPath}
+                                to={item.path}
                                 className={`font-medium text-sm px-2 py-1 mx-2 border-b-2 transition-all duration-200 ${isActive
                                     ? 'text-blue-600 border-blue-600'
                                     : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-600'

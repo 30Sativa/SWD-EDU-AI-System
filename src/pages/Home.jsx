@@ -108,10 +108,10 @@ function HeroSection() {
               {/* Teacher quote overlay */}
               <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-2xl bg-white/95 shadow-lg px-4 py-3 opacity-0 translate-y-3 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
                 <p className="text-xs md:text-sm text-gray-700 mb-1">
-                  “Nền tảng giúp giáo viên dễ dàng theo sát tiến độ và nắm bắt được lực học của từng học sinh.”
+                  “Nền tảng giúp học sinh dễ dàng theo sát tiến độ và nắm bắt được lực học của mình.”
                 </p>
                 <p className="text-xs md:text-sm font-semibold text-gray-900">
-                  Cô Hương – Giáo viên Ngữ Văn
+                  Không gian học tập – Bạn Minh Hương
                 </p>
               </div>
             </div>

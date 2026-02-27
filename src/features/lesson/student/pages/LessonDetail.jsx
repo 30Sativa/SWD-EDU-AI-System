@@ -208,25 +208,25 @@ export default function LessonDetail() {
                 <div className="flex items-center gap-5">
                     <Link
                         to={`/dashboard/student/courses/${lessonInfo.courseId}`}
-                        className="w-10 h-10 flex items-center justify-center hover:bg-gray-100/80 rounded-full text-gray-500 hover:text-gray-900 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center hover:bg-slate-100/80 rounded-full text-slate-500 hover:text-slate-900 transition-colors"
                         title="Quay lại khóa học"
                     >
                         <ArrowLeft size={22} />
                     </Link>
-                    <div className="h-8 w-px bg-gray-200/60"></div>
+                    <div className="h-8 w-px bg-slate-200/60"></div>
                     <div>
-                        <h1 className="text-base font-bold text-gray-900 leading-tight">{lessonInfo.lessonTitle}</h1>
-                        <p className="text-xs text-gray-500 font-medium mt-0.5">{lessonInfo.lessonSubtitle}</p>
+                        <h1 className="text-base font-bold text-slate-900 leading-tight">{lessonInfo.lessonTitle}</h1>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">{lessonInfo.lessonSubtitle}</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="hidden md:flex items-center gap-3 bg-gray-50/50 px-4 py-2 rounded-full border border-gray-200/60">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tiến độ</span>
-                        <div className="w-24 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                    <div className="hidden md:flex items-center gap-3 bg-slate-50/50 px-4 py-2 rounded-full border border-slate-200/60">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Tiến độ</span>
+                        <div className="w-24 bg-slate-200 rounded-full h-1.5 overflow-hidden">
                             <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${lessonInfo.progress}%` }}></div>
                         </div>
-                        <span className="text-xs font-bold text-gray-900">{lessonInfo.progress}%</span>
+                        <span className="text-xs font-semibold text-slate-900">{lessonInfo.progress}%</span>
                     </div>
                 </div>
             </div>
@@ -236,11 +236,11 @@ export default function LessonDetail() {
 
                 {/* 2.1 Left Sidebar - Curriculum */}
                 <div
-                    className={`${isLeftSidebarOpen ? 'w-80 translate-x-0 border-r' : 'w-0 -translate-x-full border-none'} transition-all duration-300 ease-in-out bg-white border-gray-200 flex flex-col flex-shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}
+                    className={`${isLeftSidebarOpen ? 'w-80 translate-x-0 border-r' : 'w-0 -translate-x-full border-none'} transition-all duration-300 ease-in-out bg-white border-slate-200 flex flex-col flex-shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}
                 >
-                    <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-                        <h2 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Nội Dung Bài Học</h2>
-                        <button onClick={() => setIsLeftSidebarOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
+                    <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                        <h2 className="font-semibold text-slate-900 text-sm uppercase tracking-wide">Nội Dung Bài Học</h2>
+                        <button onClick={() => setIsLeftSidebarOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
                             <PanelLeftClose size={18} />
                         </button>
                     </div>
@@ -248,26 +248,26 @@ export default function LessonDetail() {
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                         {/* Search Input */}
                         <div className="relative mb-4">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
                                 type="text"
                                 placeholder="Tìm bài học..."
-                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm font-medium text-gray-900 border-0 focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all placeholder:text-gray-400"
+                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 rounded-xl text-sm font-medium text-slate-900 border-0 focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all placeholder:text-slate-400"
                             />
                         </div>
 
                         {courseSections.map((section) => (
-                            <div key={section.id} className="border border-gray-100 rounded-xl overflow-hidden bg-white">
+                            <div key={section.id} className="border border-slate-100 rounded-xl overflow-hidden bg-white">
                                 <button
                                     onClick={() => !section.isLocked && toggleSection(section.id)}
-                                    className={`w-full p-4 flex items-center justify-between bg-gray-50/50 hover:bg-gray-50 transition-colors ${section.isLocked ? 'opacity-60 cursor-not-allowed' : ''
+                                    className={`w-full p-4 flex items-center justify-between bg-slate-50/50 hover:bg-slate-50 transition-colors ${section.isLocked ? 'opacity-60 cursor-not-allowed' : ''
                                         }`}
                                 >
-                                    <span className="font-bold text-xs text-gray-600 uppercase tracking-wide truncate flex-1 text-left">
+                                    <span className="font-semibold text-xs text-slate-600 uppercase tracking-wide truncate flex-1 text-left">
                                         {section.title}
                                     </span>
                                     {!section.isLocked && (
-                                        expandedSections.includes(section.id) ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />
+                                        expandedSections.includes(section.id) ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />
                                     )}
                                 </button>
 
@@ -282,7 +282,7 @@ export default function LessonDetail() {
                                                         ? `/dashboard/student/quizzes/quiz-ch${section.id}-${lesson.id}`
                                                         : '#'
                                                     }
-                                                    className={`flex items-start gap-3.5 p-3.5 hover:bg-blue-50/60 transition-colors border-b border-gray-50 last:border-0 ${lesson.isCurrent ? 'bg-blue-50/80 border-l-[3px] border-l-blue-600 pl-[11px]' : 'border-l-[3px] border-l-transparent pl-[11px]'
+                                                    className={`flex items-start gap-3.5 p-3.5 hover:bg-blue-50/60 transition-colors border-b border-slate-50 last:border-0 ${lesson.isCurrent ? 'bg-blue-50/80 border-l-[3px] border-l-blue-600 pl-[11px]' : 'border-l-[3px] border-l-transparent pl-[11px]'
                                                         }`}
                                                 >
                                                     <div className="mt-0.5">
@@ -293,17 +293,17 @@ export default function LessonDetail() {
                                                         ) : isQuiz ? (
                                                             <ListChecks size={18} className="text-amber-500" />
                                                         ) : (
-                                                            <Circle size={18} className="text-gray-300" />
+                                                            <Circle size={18} className="text-slate-300" />
                                                         )}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                            <p className={`text-sm ${lesson.isCurrent ? 'font-bold text-blue-700' : 'font-medium text-gray-700'}`}>
+                                                            <p className={`text-sm ${lesson.isCurrent ? 'font-bold text-blue-700' : 'font-medium text-slate-700'}`}>
                                                                 {lesson.title}
                                                             </p>
-                                                            {isQuiz && <span className="text-[9px] uppercase font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-sm">Quiz</span>}
+                                                            {isQuiz && <span className="text-[9px] uppercase font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-sm">Quiz</span>}
                                                         </div>
-                                                        <span className="text-[11px] font-medium text-gray-400 block">{lesson.duration} • {isQuiz ? 'Bài kiểm tra' : 'Video'}</span>
+                                                        <span className="text-[11px] font-medium text-slate-400 block">{lesson.duration} • {isQuiz ? 'Bài kiểm tra' : 'Video'}</span>
                                                     </div>
                                                 </Link>
                                             );
@@ -324,7 +324,7 @@ export default function LessonDetail() {
                             {!isLeftSidebarOpen && (
                                 <button
                                     onClick={() => setIsLeftSidebarOpen(true)}
-                                    className="bg-white/90 backdrop-blur p-2.5 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-100 text-gray-500 hover:text-blue-600 hover:scale-105 transition-all group"
+                                    className="bg-white/90 backdrop-blur p-2.5 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-slate-100 text-slate-500 hover:text-blue-600 hover:scale-105 transition-all group"
                                     title="Hiện danh sách bài học"
                                 >
                                     <PanelLeft size={20} />
@@ -354,14 +354,14 @@ export default function LessonDetail() {
                         <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
 
                             {/* Video Player Section */}
-                            <div className="group relative rounded-2xl overflow-hidden bg-black aspect-video shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-gray-900/10 ring-1 ring-gray-900/5">
-                                <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+                            <div className="group relative rounded-2xl overflow-hidden bg-black aspect-video shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-900/10 ring-1 ring-slate-900/5">
+                                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
                                     <button
                                         onClick={() => setIsPlaying(!isPlaying)}
                                         className="w-20 h-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 active:scale-95"
                                     >
                                         <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl pl-1">
-                                            {isPlaying ? <Pause className="text-gray-900 fill-gray-900" size={28} /> : <Play className="text-gray-900 fill-gray-900" size={28} />}
+                                            {isPlaying ? <Pause className="text-slate-900 fill-slate-900" size={28} /> : <Play className="text-slate-900 fill-slate-900" size={28} />}
                                         </div>
                                     </button>
                                 </div>
@@ -388,8 +388,8 @@ export default function LessonDetail() {
                             </div>
 
                             {/* Tabs & Content */}
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="flex border-b border-gray-100 px-6 pt-2">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                                <div className="flex border-b border-slate-100 px-6 pt-2">
                                     {tabs.map((tab) => {
                                         const Icon = tab.icon;
                                         const isActive = activeTab === tab.id;
@@ -397,9 +397,9 @@ export default function LessonDetail() {
                                             <button
                                                 key={tab.id}
                                                 onClick={() => setActiveTab(tab.id)}
-                                                className={`flex items-center gap-2.5 px-6 py-4 text-sm font-bold border-b-[3px] transition-all ${isActive
+                                                className={`flex items-center gap-2.5 px-6 py-4 text-sm font-semibold border-b-[3px] transition-all ${isActive
                                                     ? 'border-blue-600 text-blue-600'
-                                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
+                                                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
                                                     }`}
                                             >
                                                 <Icon size={18} className={isActive ? 'stroke-[2.5px]' : 'stroke-2'} />
@@ -416,20 +416,20 @@ export default function LessonDetail() {
                                             {contentSections.map(section => (
                                                 <div key={section.id} className="relative pl-8">
                                                     <div className="absolute left-0 top-1 w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm shadow-sm">{section.icon}</div>
-                                                    <h3 className="text-xl font-bold text-gray-900 mb-4">
+                                                    <h3 className="text-xl font-bold text-slate-900 mb-4">
                                                         {section.title}
                                                     </h3>
-                                                    <p className="text-gray-600 leading-7 mb-6 text-[15px]">{section.content}</p>
+                                                    <p className="text-slate-600 leading-7 mb-6 text-[15px]">{section.content}</p>
 
                                                     {section.subsections?.map((sub, idx) => (
-                                                        <div key={idx} className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-2xl p-6 border border-blue-100/50 mb-4">
-                                                            <h4 className="font-bold text-blue-900 mb-4 text-sm uppercase tracking-wide">{sub.title}</h4>
+                                                        <div key={idx} className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-xl p-5 border border-blue-100/50 mb-4">
+                                                            <h4 className="font-semibold text-blue-900 mb-4 text-sm uppercase tracking-wide">{sub.title}</h4>
                                                             <ul className="space-y-3">
                                                                 {sub.items.map((item, i) => (
-                                                                    <li key={i} className="text-gray-700 text-[15px] flex items-start gap-3">
+                                                                    <li key={i} className="text-slate-700 text-[15px] flex items-start gap-3">
                                                                         <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
                                                                         <span>
-                                                                            <strong className="text-gray-900 font-bold">{item.label}</strong> {item.text}
+                                                                            <strong className="text-slate-900 font-semibold">{item.label}</strong> {item.text}
                                                                         </span>
                                                                     </li>
                                                                 ))}
@@ -438,23 +438,23 @@ export default function LessonDetail() {
                                                     ))}
 
                                                     {section.examples?.map((ex, idx) => (
-                                                        <div key={idx} className={`mt-6 p-5 rounded-2xl border-l-[6px] shadow-sm ${ex.type === 'info' ? 'bg-blue-50 border-blue-500' : 'bg-amber-50 border-amber-500'
+                                                        <div key={idx} className={`mt-6 p-5 rounded-xl border-l-[6px] shadow-sm ${ex.type === 'info' ? 'bg-blue-50 border-blue-500' : 'bg-amber-50 border-amber-500'
                                                             }`}>
-                                                            <h4 className={`text-xs font-bold uppercase mb-2 ${ex.type === 'info' ? 'text-blue-800' : 'text-amber-800'
+                                                            <h4 className={`text-xs font-semibold uppercase mb-2 ${ex.type === 'info' ? 'text-blue-800' : 'text-amber-800'
                                                                 }`}>{ex.title}</h4>
-                                                            <p className="text-sm font-medium text-gray-800 leading-relaxed">{ex.description}</p>
+                                                            <p className="text-sm font-medium text-slate-800 leading-relaxed">{ex.description}</p>
                                                         </div>
                                                     ))}
                                                 </div>
                                             ))}
 
                                             {/* Navigation Footer */}
-                                            <div className="flex items-center justify-between pt-10 mt-10 border-t border-gray-100">
-                                                <button className="flex items-center gap-2 px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all font-bold text-sm">
+                                            <div className="flex items-center justify-between pt-10 mt-10 border-t border-slate-100">
+                                                <button className="flex items-center gap-2 px-5 py-2.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all font-semibold text-sm">
                                                     <ArrowLeft size={18} />
                                                     Bài Trước
                                                 </button>
-                                                <button className="flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all hover:-translate-y-0.5 active:scale-95">
+                                                <button className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all hover:-translate-y-0.5">
                                                     Hoàn Thành & Tiếp Tục
                                                     <ChevronRight size={18} />
                                                 </button>
@@ -462,12 +462,12 @@ export default function LessonDetail() {
                                         </div>
                                     )}
                                     {activeTab !== 'content' && (
-                                        <div className="flex flex-col items-center justify-center py-24 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100">
-                                            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-6">
-                                                <Settings className="text-gray-400" size={28} />
+                                        <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-100">
+                                            <div className="w-16 h-16 bg-slate-100 rounded-xl flex items-center justify-center mb-6">
+                                                <Settings className="text-slate-400" size={28} />
                                             </div>
-                                            <h3 className="text-gray-900 font-bold text-lg mb-2">Đang cập nhật</h3>
-                                            <p className="text-gray-500 text-sm">Nội dung {activeTab} sẽ sớm được bổ sung.</p>
+                                            <h3 className="text-slate-900 font-semibold text-lg mb-2">Đang cập nhật</h3>
+                                            <p className="text-slate-500 text-sm">Nội dung {activeTab} sẽ sớm được bổ sung.</p>
                                         </div>
                                     )}
                                 </div>
@@ -478,37 +478,37 @@ export default function LessonDetail() {
 
                 {/* 2.3 Right Sidebar - AI Assistant */}
                 <div
-                    className={`${isRightSidebarOpen ? 'w-[400px] translate-x-0 border-l' : 'w-0 translate-x-full border-none'} transition-all duration-300 ease-in-out bg-white border-gray-200 flex flex-col flex-shrink-0 z-30 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]`}
+                    className={`${isRightSidebarOpen ? 'w-[400px] translate-x-0 border-l' : 'w-0 translate-x-full border-none'} transition-all duration-300 ease-in-out bg-white border-slate-200 flex flex-col flex-shrink-0 z-30 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]`}
                 >
-                    <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                    <div className="p-5 border-b border-slate-100 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
                                 <Bot size={18} />
                             </div>
                             <div>
-                                <h2 className="font-bold text-gray-900 text-sm">Trợ Lý AI</h2>
+                                <h2 className="font-semibold text-slate-900 text-sm">Trợ Lý AI</h2>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Online</span>
+                                    <span className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">Online</span>
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => setIsRightSidebarOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
+                        <button onClick={() => setIsRightSidebarOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
                             <PanelRightClose size={18} />
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-gray-50/30 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50/30 custom-scrollbar">
                         {chatMessages.map((msg) => (
                             <div key={msg.id} className={`flex gap-4 ${msg.type === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-white ${msg.type === 'user' ? 'bg-indigo-100' : 'bg-white'
                                     }`}>
-                                    {msg.type === 'user' ? <span className="text-xs font-bold text-indigo-600">You</span> : <Bot size={16} className="text-blue-600" />}
+                                    {msg.type === 'user' ? <span className="text-xs font-semibold text-indigo-600">You</span> : <Bot size={16} className="text-blue-600" />}
                                 </div>
                                 <div className={`max-w-[85%] space-y-3 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
                                     <div className={`p-4 rounded-2xl text-[14px] leading-relaxed shadow-sm ${msg.type === 'user'
                                         ? 'bg-blue-600 text-white rounded-tr-sm'
-                                        : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
+                                        : 'bg-white text-slate-800 border border-slate-100 rounded-tl-sm'
                                         }`}>
                                         {msg.text}
                                     </div>
@@ -528,7 +528,7 @@ export default function LessonDetail() {
                     </div>
 
                     {/* Chat Input */}
-                    <div className="p-5 border-t border-gray-200 bg-white">
+                    <div className="p-5 border-t border-slate-200 bg-white">
                         <div className="relative shadow-sm rounded-xl">
                             <textarea
                                 value={inputMessage}
@@ -540,33 +540,33 @@ export default function LessonDetail() {
                                     }
                                 }}
                                 placeholder="Hỏi gì đó đi..."
-                                className="w-full pl-4 pr-12 py-3.5 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all text-sm resize-none custom-scrollbar"
+                                className="w-full pl-4 pr-12 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all text-sm resize-none custom-scrollbar"
                                 rows="1"
                                 style={{ minHeight: '52px', maxHeight: '120px' }}
                             />
                             <button
                                 onClick={handleSendMessage}
                                 disabled={!inputMessage.trim()}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl hover:bg-blue-700 transition-all active:scale-95"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl hover:bg-blue-700 transition-all active:scale-95"
                             >
                                 <Send size={16} />
                             </button>
                         </div>
 
                         {/* Materials Quick Access */}
-                        <div className="mt-5 pt-4 border-t border-gray-100">
+                        <div className="mt-5 pt-4 border-t border-slate-100">
                             <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tài liệu đính kèm</h4>
-                                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">2 file</span>
+                                <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Tài liệu đính kèm</h4>
+                                <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">2 file</span>
                             </div>
                             <div className="space-y-2">
                                 {lessonMaterials.map((mat) => (
                                     <a key={mat.id} href="#" className="flex items-center gap-3 p-2.5 hover:bg-blue-50/50 border border-transparent hover:border-blue-100 rounded-xl group transition-all">
-                                        <div className="w-8 h-8 bg-white border border-gray-100 text-red-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                                        <div className="w-8 h-8 bg-white border border-slate-100 text-red-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                                             <FileText size={16} />
                                         </div>
-                                        <span className="text-xs font-bold text-gray-600 group-hover:text-blue-700 truncate flex-1">{mat.title}</span>
-                                        <Download size={14} className="text-gray-300 group-hover:text-blue-500" />
+                                        <span className="text-xs font-semibold text-slate-600 group-hover:text-blue-700 truncate flex-1">{mat.title}</span>
+                                        <Download size={14} className="text-slate-300 group-hover:text-blue-500" />
                                     </a>
                                 ))}
                             </div>
