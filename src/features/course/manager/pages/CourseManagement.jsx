@@ -27,6 +27,9 @@ import {
     Tooltip
 } from 'antd';
 import { getCourses } from '../../api/courseApi';
+import { getSubjects } from '../../../subject/api/subjectApi';
+import { getGradeLevels } from '../../../grade/api/gradeApi';
+import { getCourseCategories } from '../../../category/api/categoryApi';
 
 export default function CourseManagement() {
     const navigate = useNavigate();
@@ -34,6 +37,45 @@ export default function CourseManagement() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+
+    // Data maps for ID-to-Name resolution
+    const [subjectsMap, setSubjectsMap] = useState({});
+    const [gradesMap, setGradesMap] = useState({});
+    const [categoriesMap, setCategoriesMap] = useState({});
+
+    // Fetch dependency data
+    const fetchDependencies = useCallback(async () => {
+        try {
+            const [subjectsRes, gradesRes, categoriesRes] = await Promise.allSettled([
+                getSubjects(),
+                getGradeLevels(),
+                getCourseCategories({ pageSize: 100 })
+            ]);
+
+            const extract = (res) => {
+                if (res.status === 'fulfilled') {
+                    const data = res.value?.data?.items || res.value?.items || res.value?.data || res.value || [];
+                    return Array.isArray(data) ? data : [];
+                }
+                console.warn('Failed to fetch dependency data:', res.reason);
+                return [];
+            };
+
+            const subjectsData = extract(subjectsRes);
+            const gradesData = extract(gradesRes);
+            const categoriesData = extract(categoriesRes);
+
+            const sMap = {}; subjectsData.forEach(item => sMap[item.id] = item.name || item.title);
+            const gMap = {}; gradesData.forEach(item => gMap[item.id] = item.name || item.title);
+            const cMap = {}; categoriesData.forEach(item => cMap[item.id] = item.name || item.title);
+
+            setSubjectsMap(sMap);
+            setGradesMap(gMap);
+            setCategoriesMap(cMap);
+        } catch (error) {
+            console.error('Lỗi khi tải dữ liệu phụ trợ:', error);
+        }
+    }, []);
 
     const fetchCourses = useCallback(async () => {
         try {
@@ -50,8 +92,9 @@ export default function CourseManagement() {
     }, []);
 
     useEffect(() => {
+        fetchDependencies();
         fetchCourses();
-    }, [fetchCourses]);
+    }, [fetchDependencies, fetchCourses]);
 
     const filteredCourses = courses.filter(course => {
         const matchesSearch = (course.title || course.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -101,36 +144,63 @@ export default function CourseManagement() {
         {
             title: 'PHÂN LOẠI',
             key: 'level',
-            render: (_, record) => (
-                <div className="flex flex-col gap-1">
-                    <Tag className="rounded font-bold border-none bg-blue-50 text-blue-600 px-2 py-0 text-[11px] w-fit">
-                        {record.level || 'Chưa định nghĩa'}
-                    </Tag>
-                    <span className="text-xs text-slate-500 font-medium px-1 flex items-center gap-1">
-                        <Layers size={12} className="text-[#0487e2]" />
-                        {record.subjectName || 'Khối lớp N/A'}
-                    </span>
-                </div>
-            )
+            render: (_, record) => {
+
+                const categoryName = record.categoryName || record.CategoryName || record.category?.name || categoriesMap[record.categoryId] || categoriesMap[record.CategoryId] || 'Chưa định nghĩa';
+
+                const gradeId = record.gradeLevelId || record.GradeLevelId || record.gradeId || record.GradeId;
+                const gradeName = record.gradeName || record.GradeName || record.gradeLevelName || record.GradeLevelName ||
+                    record.grade?.name || record.gradeLevel?.name ||
+                    gradesMap[gradeId] || (gradeId ? `ID: ${gradeId.slice(0, 8)}...` : 'Khối lớp N/A');
+
+                const subjectId = record.subjectId || record.SubjectId;
+                const subjectName = record.subjectName || record.SubjectName || record.subject?.name || subjectsMap[subjectId] || '';
+
+                const levels = { 1: 'Cơ bản', 2: 'Trung bình', 3: 'Nâng cao' };
+                const levelDisplay = levels[record.level] || record.levelName || record.LevelName || (record.level ? `Cấp độ ${record.level}` : 'Chưa định nghĩa');
+
+                return (
+                    <div className="flex flex-col gap-1">
+                        <Tag className="rounded font-bold border-none bg-blue-50 text-blue-600 px-2 py-0 text-[11px] w-fit">
+                            {levelDisplay}
+                        </Tag>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-xs text-slate-500 font-medium px-1 flex items-center gap-1">
+                                <Layers size={12} className="text-[#0487e2]" />
+                                {gradeName}
+                            </span>
+                            {subjectName && (
+                                <span className="text-[10px] text-slate-400 font-medium px-1 italic">
+                                    Môn: {subjectName}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
         },
         {
             title: 'THỐNG KÊ',
             key: 'metrics',
             render: (_, record) => (
-                <div className="space-y-1">
-                    <div className="flex items-center gap-3">
-                        <div className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                            <Users size={14} className="text-slate-400" />
-                            {record.enrollmentCount || 0}
+                <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-slate-500">
+                            <Layers size={12} />
                         </div>
-                        <div className="text-xs font-bold text-amber-500 flex items-center gap-1">
-                            <CheckCircle2 size={14} fill="currentColor" className="text-amber-100" />
-                            {record.rating || '0.0'}
-                        </div>
+                        <span className="text-xs font-bold text-slate-600">
+                            {record.totalSections || record.TotalSections || record.totalSection || record.TotalSection ||
+                                record.sectionCount || record.SectionCount || record.sections?.length || 0} Chương
+                        </span>
                     </div>
-                    <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-                        <Clock size={12} />
-                        {record.totalLessons || 0} bài • {Math.floor(record.totalDuration / 60) || 0}h {(record.totalDuration % 60) || 0}m
+                    <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded bg-blue-50 flex items-center justify-center text-[#0487e2]">
+                            <BookOpen size={12} />
+                        </div>
+                        <span className="text-xs font-bold text-slate-700">
+                            {record.totalLessons || record.TotalLessons || record.totalLesson || record.TotalLesson ||
+                                record.lessonCount || record.LessonCount || record.lessons?.length || 0} Bài học
+                        </span>
                     </div>
                 </div>
             )
@@ -190,14 +260,13 @@ export default function CourseManagement() {
                         <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Quản lý Khóa học</h1>
                         <p className="text-slate-500 text-sm mt-1 font-medium">Quản lý chuyên sâu các chương trình đào tạo của hệ thống.</p>
                     </div>
-
                     <Button
                         type="primary"
                         icon={<Plus size={18} />}
                         onClick={() => navigate('/dashboard/manager/courses/create')}
-                        className="bg-[#0487e2] hover:bg-[#0374c4] h-11 px-6 rounded-lg font-bold shadow-md border-none flex items-center gap-2"
+                        className="bg-[#0487e2] hover:bg-[#0463ca] h-11 px-6 rounded-lg font-bold shadow-md border-none flex items-center gap-2"
                     >
-                        Tạo Khóa học mới
+                        Tạo Template mới
                     </Button>
                 </header>
 

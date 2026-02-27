@@ -195,14 +195,7 @@ export default function CourseManagement() {
             <p className="text-slate-500 text-sm mt-1 font-medium">Quản lý các khóa học và nội dung giảng dạy của bạn.</p>
           </div>
 
-          <Button
-            type="primary"
-            icon={<Plus size={18} />}
-            onClick={() => navigate('/dashboard/teacher/courses/create')}
-            className="bg-[#0487e2] hover:bg-[#0374c4] h-11 px-6 rounded-lg font-bold shadow-md border-none flex items-center gap-2"
-          >
-            Tạo Khóa học mới
-          </Button>
+
         </header>
 
         {/* Main Content Card */}

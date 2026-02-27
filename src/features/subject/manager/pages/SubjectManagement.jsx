@@ -205,44 +205,47 @@ export default function SubjectManagement() {
                         {filteredData.map((item) => (
                             <div
                                 key={item.id}
-                                className="group bg-white rounded-xl p-5 border border-slate-200 hover:border-[#0487e2] hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col justify-between h-full relative"
+                                className="group bg-white rounded-2xl p-5 border border-slate-200 hover:border-[#0487e2] hover:shadow-xl hover:shadow-[#0487e2]/5 transition-all duration-300 cursor-pointer flex flex-col justify-between h-full relative overflow-hidden"
                                 onClick={() => navigate(`/dashboard/manager/subjects/${item.id}`)}
                             >
-                                <div>
-                                    <div className="flex justify-between items-start mb-4">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-slate-50 to-transparent -z-0 opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500 rounded-bl-full pointer-events-none" />
+
+                                <div className="relative z-10 w-full mb-auto pb-4 border-b border-slate-100/80 group-hover:border-blue-100 transition-colors">
+                                    <div className="flex items-start gap-4">
                                         <div
-                                            className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl font-bold shadow-sm"
+                                            className="w-14 h-14 rounded-[14px] flex items-center justify-center text-white text-2xl font-black shadow-md shrink-0 ring-4 ring-white"
                                             style={{ backgroundColor: item.color || '#0487e2' }}
                                         >
                                             {item.name?.charAt(0)}
                                         </div>
-                                        <div className="flex flex-col items-end gap-1">
-                                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded">
-                                                {item.code}
-                                            </span>
-                                            <Tag color={item.isActive ? 'success' : 'default'} className="m-0 border-none px-1.5 py-0 text-[9px] font-bold uppercase">
-                                                {item.isActive ? 'Đã xuất bản' : 'Bản nháp'}
-                                            </Tag>
+                                        <div className="flex-1 min-w-0 pt-0.5">
+                                            <h3 className="text-base sm:text-lg font-bold text-slate-800 group-hover:text-[#0487e2] transition-colors leading-tight line-clamp-2">
+                                                {item.name}
+                                            </h3>
+                                            <p className="text-[11px] text-slate-400 font-semibold tracking-wide uppercase truncate mt-1.5 flex items-center gap-1.5">
+                                                {item.nameEn || 'Tên tiếng Anh N/A'}
+                                            </p>
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-1 mb-4">
-                                        <h3 className="text-lg font-bold text-slate-800 group-hover:text-[#0487e2] transition-colors line-clamp-1">
-                                            {item.name}
-                                        </h3>
-                                        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider truncate">
-                                            {item.nameEn || 'ENGLISH NAME N/A'}
-                                        </p>
                                     </div>
                                 </div>
 
-                                <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-end">
+                                <div className="relative z-10 mt-4 flex items-center justify-between w-full">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-[11px] font-mono font-bold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md">
+                                            {item.code}
+                                        </span>
+                                        <div className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase flex items-center gap-1.5 ${item.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-500'}`}>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${item.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                                            {item.isActive ? 'Công khai' : 'Bản nháp'}
+                                        </div>
+                                    </div>
+
                                     <Button
                                         size="small"
                                         type="text"
-                                        icon={<Edit size={14} />}
+                                        icon={<Edit size={16} />}
                                         onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/manager/subjects/${item.id}`, { state: { isEditing: true } }); }}
-                                        className="text-slate-400 hover:text-[#0487e2] hover:bg-transparent"
+                                        className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ml-2"
                                     />
                                 </div>
                             </div>
