@@ -125,7 +125,7 @@ export default function CategoryManagement() {
             <div className="max-w-7xl mx-auto space-y-6">
                 <header className="flex flex-row justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Quản lý Danh mục (Category)</h1>
+                        <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Quản lý Danh mục</h1>
                         <p className="text-slate-500 text-sm mt-1 font-medium">Bố trí và phân loại hệ thống chương trình đào tạo.</p>
                     </div>
                     <Button

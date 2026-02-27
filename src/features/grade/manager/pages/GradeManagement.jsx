@@ -19,7 +19,7 @@ import { getUsers, ROLE_ENUM } from '../../../user/api/userApi';
 import { getTerms } from '../../../term/api/termApi';
 
 export default function GradeManagement() {
-    const [activeTab, setActiveTab] = useState('1'); // '1': Grades, '2': Classes
+    const [activeTab, setActiveTab] = useState('2'); // '1': Grades, '2': Classes
 
     // Common State
     const [loading, setLoading] = useState(true);
@@ -550,20 +550,20 @@ export default function GradeManagement() {
                             onChange={setActiveTab}
                             items={[
                                 {
-                                    key: '1',
-                                    label: (
-                                        <span className="flex items-center gap-2 px-1">
-                                            <Layers size={16} />
-                                            Danh sách Khối
-                                        </span>
-                                    ),
-                                },
-                                {
                                     key: '2',
                                     label: (
                                         <span className="flex items-center gap-2 px-1">
                                             <BookOpen size={16} />
                                             Danh sách Lớp học
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    key: '1',
+                                    label: (
+                                        <span className="flex items-center gap-2 px-1">
+                                            <Layers size={16} />
+                                            Danh sách Khối
                                         </span>
                                     ),
                                 }

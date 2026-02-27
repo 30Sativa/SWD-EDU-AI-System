@@ -26,9 +26,13 @@ import {
   Select,
   Empty,
   Tooltip,
-  Popconfirm
+  Popconfirm,
+  Modal,
+  Form,
+  Radio
 } from 'antd';
-import { getMyCourses } from '../../api/courseApi';
+import { getMyCourses, getCourseTemplates, createTeacherCourse, cloneTeacherCourse } from '../../api/courseApi';
+import { getSubjects } from '../../../subject/api/subjectApi';
 
 export default function CourseManagement() {
   const navigate = useNavigate();
@@ -36,6 +40,14 @@ export default function CourseManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Create Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [createType, setCreateType] = useState('template'); // 'template' or 'scratch'
+  const [templates, setTemplates] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [form] = Form.useForm();
 
   const fetchCourses = useCallback(async () => {
     try {
@@ -51,9 +63,51 @@ export default function CourseManagement() {
     }
   }, []);
 
+  const fetchDependencies = async () => {
+    try {
+      const [templatesRes, subjectsRes] = await Promise.all([
+        getCourseTemplates(),
+        getSubjects()
+      ]);
+      setTemplates(templatesRes?.data?.items || templatesRes?.items || templatesRes?.data || []);
+      setSubjects(subjectsRes?.data?.items || subjectsRes?.items || subjectsRes?.data || []);
+    } catch (error) {
+      console.error('Lỗi khi tải dữ liệu template/subject:', error);
+    }
+  };
+
   useEffect(() => {
     fetchCourses();
+    fetchDependencies();
   }, [fetchCourses]);
+
+  const handleCreateSubmit = async (values) => {
+    try {
+      setSubmitting(true);
+      if (createType === 'template') {
+        const payload = { templateId: values.templateId };
+        await cloneTeacherCourse(payload);
+        message.success('Clone khóa học từ template thành công!');
+      } else {
+        const payload = {
+          title: values.title,
+          code: values.code,
+          subjectId: values.subjectId,
+          description: values.description || ""
+        };
+        await createTeacherCourse(payload);
+        message.success('Tạo khóa học mới thành công!');
+      }
+      setIsModalOpen(false);
+      form.resetFields();
+      fetchCourses();
+    } catch (error) {
+      console.error('Creation error:', error);
+      message.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo khóa học');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const filteredCourses = courses.filter(course => {
     const matchesSearch = (course.title || course.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -195,7 +249,18 @@ export default function CourseManagement() {
             <p className="text-slate-500 text-sm mt-1 font-medium">Quản lý các khóa học và nội dung giảng dạy của bạn.</p>
           </div>
 
-
+          <Button
+            type="primary"
+            icon={<Plus size={18} />}
+            onClick={() => {
+              form.resetFields();
+              setCreateType('template');
+              setIsModalOpen(true);
+            }}
+            className="bg-[#0487e2] hover:bg-[#0374c4] h-11 px-6 rounded-lg font-bold shadow-md border-none flex items-center"
+          >
+            Tạo Khóa học
+          </Button>
         </header>
 
         {/* Main Content Card */}
@@ -270,6 +335,92 @@ export default function CourseManagement() {
           )}
         </div>
       </div>
+
+      {/* Create Course Modal */}
+      <Modal
+        title={null}
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        footer={null}
+        centered
+        width={500}
+      >
+        <div className="pt-4 px-2">
+          <div className="mb-6 text-center">
+            <div className="w-12 h-12 bg-blue-50 text-[#0487e2] rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <BookOpen size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800">Tạo Khóa Học Mới</h3>
+            <p className="text-slate-500 text-sm mt-1">Khởi tạo nhanh khóa học để bắt đầu thiết kế bài giảng</p>
+          </div>
+
+          <div className="mb-6 bg-slate-50 p-2 rounded-xl flex justify-center">
+            <Radio.Group
+              value={createType}
+              onChange={e => setCreateType(e.target.value)}
+              buttonStyle="solid"
+              className="w-full flex"
+            >
+              <Radio.Button value="template" className="flex-1 text-center h-10 leading-[38px] rounded-lg">Dùng Template</Radio.Button>
+              <Radio.Button value="scratch" className="flex-1 text-center h-10 leading-[38px] rounded-lg">Tạo mới hoàn toàn</Radio.Button>
+            </Radio.Group>
+          </div>
+
+          <Form form={form} layout="vertical" onFinish={handleCreateSubmit} className="space-y-4">
+            {createType === 'template' ? (
+              <>
+                <Form.Item
+                  name="templateId"
+                  label="Chọn Template Khóa Học"
+                  rules={[{ required: true, message: 'Vui lòng chọn template!' }]}
+                >
+                  <Select
+                    placeholder="Chọn template có sẵn..."
+                    className="h-11"
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {templates.map(t => (
+                      <Select.Option key={t.id} value={t.id}>{t.title} ({t.code})</Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+                <div className="bg-amber-50 border border-amber-100 p-3 rounded-lg text-sm text-amber-700 flex gap-2">
+                  Hệ thống sẽ clone toàn bộ khung sườn rỗng (Draft) sang khóa học mới của bạn.
+                </div>
+              </>
+            ) : (
+              <>
+                <Form.Item name="title" label="Tên Khóa Học" rules={[{ required: true, message: 'Vui lòng nhập tên khóa học' }]}>
+                  <Input className="h-11 rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" placeholder="VD: Hóa hữu cơ 12" />
+                </Form.Item>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Form.Item name="code" label="Mã Khóa" rules={[{ required: true, message: 'Nhập mã khóa' }]}>
+                    <Input className="h-11 rounded-lg uppercase bg-slate-50 border-transparent hover:bg-white focus:bg-white" placeholder="VD: HOA12" />
+                  </Form.Item>
+                  <Form.Item name="subjectId" label="Môn Học" rules={[{ required: true, message: 'Chọn môn học' }]}>
+                    <Select placeholder="Chọn môn..." className="h-11 [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent hover:[&>.ant-select-selector]:!bg-white">
+                      {subjects.map(s => <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>)}
+                    </Select>
+                  </Form.Item>
+                </div>
+
+                <Form.Item name="description" label="Mô tả ngắn">
+                  <Input.TextArea rows={3} className="rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white" placeholder="Mô tả mục tiêu khóa học..." />
+                </Form.Item>
+              </>
+            )}
+
+            <div className="flex gap-3 pt-6 border-t border-slate-100 mt-2">
+              <Button className="flex-1 h-11 rounded-xl font-semibold border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => setIsModalOpen(false)}>Hủy bỏ</Button>
+              <Button type="primary" htmlType="submit" loading={submitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold shadow-lg shadow-blue-200 border-none">
+                {createType === 'template' ? 'Clone Khóa Học' : 'Khởi Tạo'}
+              </Button>
+            </div>
+          </Form>
+        </div>
+      </Modal>
     </div>
   );
 }
