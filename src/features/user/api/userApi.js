@@ -63,3 +63,13 @@ export const getCurrentUser = () => {
     return axiosClient.get('/api/users/me');
 };
 
+export const importUsers = (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axiosClient.post('/api/admin/users/import', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+};
+
