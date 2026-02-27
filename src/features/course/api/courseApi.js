@@ -1,6 +1,6 @@
 import axiosClient from "../../../lib/axiosClient";
 
-export const getCourses = async (params) => {
+export const getCourseTemplates = async (params) => {
     const response = await axiosClient.get("/api/manager/courses/templates", { params });
     return response;
 };
@@ -24,7 +24,5 @@ export const scanCourseTemplate = async (id, formData) => {
 };
 
 export const saveCourseStructure = async (id, data) => {
-    // If data is wrapped in { sections: [...] }, we pass it as is. 
-    // If the server expects the array directly, we might need to adjust.
     return await axiosClient.post(`/api/manager/courses/${id}/save-structure`, data);
 };

@@ -26,7 +26,7 @@ import {
     Empty,
     Tooltip
 } from 'antd';
-import { getCourses } from '../../api/courseApi';
+import { getCourseTemplates } from '../../api/courseApi';
 import { getSubjects } from '../../../subject/api/subjectApi';
 import { getGradeLevels } from '../../../grade/api/gradeApi';
 import { getCourseCategories } from '../../../category/api/categoryApi';
@@ -80,7 +80,7 @@ export default function CourseManagement() {
     const fetchCourses = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await getCourses();
+            const res = await getCourseTemplates();
             const data = res?.data?.items || res?.items || res?.data || res || [];
             setCourses(Array.isArray(data) ? data : []);
         } catch (error) {
