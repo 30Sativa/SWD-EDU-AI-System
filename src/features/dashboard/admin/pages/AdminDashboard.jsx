@@ -22,7 +22,7 @@ import { Spin } from 'antd';
 
 import { getUsers, ROLE_ENUM, getRoleName } from '../../../../features/user/api/userApi';
 import { getSubjects } from '../../../../features/subject/api/subjectApi';
-import { getCourses } from '../../../../features/course/api/courseApi';
+import { getCourseTemplates } from '../../../../features/course/api/courseApi';
 
 // Giả lập dữ liệu chart cho các chỉ số hệ thống để đồng bộ UI
 const chartData = [
@@ -73,9 +73,9 @@ export default function AdminDashboard() {
         };
 
         const [usersResult, subjectsResult, coursesResult] = await Promise.allSettled([
-          getUsers({ Page: 1, PageSize: 9999 }), // Use PascalCase as seen in UserManagement
+          getUsers({ Page: 1, PageSize: 100 }), // Changed from 9999 to 100 to avoid 400 error
           getSubjects(),
-          getCourses()
+          getCourseTemplates()
         ]);
 
         // Process Users
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
       bgBadge: 'bg-gray-100 text-gray-500'
     },
     {
-      label: 'Tổng Khóa học',
+      label: 'Tổng Khung Khóa học',
       value: stats.totalCourses.toLocaleString(),
       change: '+8%',
       trend: 'up',

@@ -19,3 +19,7 @@ export const createSection = async (courseId, data) => {
     const response = await axiosClient.post(`/api/courses/${courseId}/sections`, data);
     return response;
 };
+
+export const getCourseTemplates = async (params) => {
+    return axiosClient.get("/api/manager/courses/templates", { params });
+};

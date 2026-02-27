@@ -21,7 +21,7 @@ import ScrollToTop from './ScrollToTop';
 import Header from '../../features/dashboard/components/Header';
 
 const MENU_ITEMS = [
-  { label: 'Bảng điều khiển', icon: LayoutDashboard, path: 'dashboard', allowedRoles: ['admin', 'teacher', 'student', 'manager'] },
+  { label: 'Tổng quan', icon: LayoutDashboard, path: 'dashboard', allowedRoles: ['admin', 'teacher', 'student', 'manager'] },
   { label: 'Vai trò & Quyền', icon: Lock, path: 'roles-permissions', allowedRoles: ['admin'] },
   { label: 'Người dùng', icon: Users, path: 'users', allowedRoles: ['admin'] },
   { label: 'Thông báo', icon: Bell, path: 'notifications', allowedRoles: ['admin'] },
