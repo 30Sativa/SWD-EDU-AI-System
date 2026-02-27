@@ -96,17 +96,17 @@ export default function QuizList() {
     );
 
     return (
-        <div className="bg-[#f8fafc] pb-12">
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="p-8 bg-slate-50 pb-12 font-sans">
+            <div className="max-w-7xl mx-auto">
 
                 {/* Header section */}
-                <div className="mb-10">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                <div className="mb-8">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
                         <div>
-                            <h1 className="text-3xl font-black text-slate-900">Danh sách bài kiểm tra</h1>
-                            <p className="text-slate-500 font-medium mt-1">Tổng hợp các bài kiểm tra 1 tiết, học kỳ và đánh giá năng lực mới nhất.</p>
+                            <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Danh sách bài kiểm tra</h1>
+                            <p className="text-slate-500 text-sm font-medium mt-1">Tổng hợp các bài kiểm tra 1 tiết, học kỳ và đánh giá năng lực mới nhất.</p>
                         </div>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 shadow-sm hover:shadow-md transition-all">
+                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 shadow-sm hover:shadow-md transition-all">
                             <Calendar size={18} className="text-blue-500" />
                             Gần đây nhất
                         </button>
@@ -120,7 +120,7 @@ export default function QuizList() {
                             placeholder="Tìm kiếm bài kiểm tra theo tên, chủ đề hoặc giáo viên..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-[1.25rem] focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500 transition-all shadow-sm"
+                            className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500 transition-all shadow-sm"
                         />
                     </div>
                 </div>
@@ -129,16 +129,16 @@ export default function QuizList() {
 
                     {/* Sidebar Filters */}
                     <aside className="w-full lg:w-72 flex-shrink-0 space-y-6">
-                        <div className="premium-card p-6 shadow-sm sticky top-24">
-                            <div className="flex items-center justify-between mb-8">
-                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Bộ lọc bài thi</h3>
-                                <button className="text-xs font-bold text-blue-600 hover:text-blue-700 underline underline-offset-4">Xóa hết</button>
+                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm sticky top-24">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Bộ lọc bài thi</h3>
+                                <button className="text-xs font-semibold text-blue-600 hover:text-blue-700">Xóa hết</button>
                             </div>
 
                             <div className="space-y-6">
                                 {/* Môn học */}
                                 <div className="space-y-3">
-                                    <label className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                                         <LayoutGrid size={16} className="text-blue-500" />
                                         MÔN HỌC
                                     </label>
@@ -155,7 +155,7 @@ export default function QuizList() {
 
                                 {/* Chủ đề */}
                                 <div className="space-y-3">
-                                    <label className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                                         <ClipboardList size={16} className="text-blue-500" />
                                         CHỦ ĐỀ
                                     </label>
@@ -172,7 +172,7 @@ export default function QuizList() {
 
                                 {/* Trạng thái */}
                                 <div className="space-y-3">
-                                    <label className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                                         <Clock3 size={16} className="text-blue-500" />
                                         TRẠNG THÁI
                                     </label>
@@ -197,20 +197,20 @@ export default function QuizList() {
 
                                 {/* Hình thức */}
                                 <div className="space-y-3">
-                                    <label className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                                         <BookOpen size={16} className="text-blue-500" />
                                         HÌNH THỨC
                                     </label>
                                     <div className="flex bg-slate-100 p-1 rounded-xl">
                                         <button
                                             onClick={() => setQuizType('trac-nghiem')}
-                                            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${quizType === 'trac-nghiem' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${quizType === 'trac-nghiem' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                         >
                                             Trắc nghiệm
                                         </button>
                                         <button
                                             onClick={() => setQuizType('tu-luan')}
-                                            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${quizType === 'tu-luan' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${quizType === 'tu-luan' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                         >
                                             Tự luận
                                         </button>
@@ -225,22 +225,22 @@ export default function QuizList() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {filteredQuizzes.length > 0 ? (
                                 filteredQuizzes.map((quiz) => (
-                                    <div key={quiz.id} className="premium-card overflow-hidden group">
-                                        <div className="p-7 flex-1">
+                                    <div key={quiz.id} className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm group">
+                                        <div className="p-6 flex-1">
                                             {/* Quiz Tag */}
                                             <div className="mb-4">
-                                                <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${getTypeStyles(quiz.typeColor)} uppercase tracking-wider`}>
+                                                <span className={`text-[10px] font-semibold px-3 py-1 rounded-full ${getTypeStyles(quiz.typeColor)} uppercase tracking-wider`}>
                                                     {quiz.type}
                                                 </span>
                                             </div>
 
                                             {/* Title */}
-                                            <h3 className="text-xl font-black text-slate-900 mb-6 group-hover:text-blue-600 transition-colors leading-snug line-clamp-2 min-h-[3.5rem]">
+                                            <h3 className="text-lg font-bold text-slate-900 mb-5 group-hover:text-blue-600 transition-colors">
                                                 {quiz.title}
                                             </h3>
 
                                             {/* Info Rows */}
-                                            <div className="space-y-4">
+                                            <div className="space-y-3">
                                                 <div className="flex items-center gap-8">
                                                     <div className="flex items-center gap-2 text-slate-500">
                                                         <Clock size={16} className="text-slate-400" />
@@ -265,20 +265,20 @@ export default function QuizList() {
                                         </div>
 
                                         {/* Card Footer */}
-                                        <div className="px-7 py-5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+                                        <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <div className={`w-2 h-2 rounded-full ${getStatusDotColor(quiz.status)} shadow-sm`}></div>
-                                                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{quiz.statusText}</span>
+                                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{quiz.statusText}</span>
                                             </div>
 
                                             {quiz.status === 'completed' ? (
-                                                <button className="px-5 py-2.5 bg-slate-200 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-300 transition-all active:scale-95">
+                                                <button className="px-5 py-2.5 bg-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-300 transition-all">
                                                     Kết quả
                                                 </button>
                                             ) : (
                                                 <Link
                                                     to={`/dashboard/student/quizzes/${quiz.id}`}
-                                                    className="btn-primary px-6"
+                                                    className="px-6 py-2.5 bg-[#0487e2] hover:bg-[#0463ca] text-white font-semibold rounded-lg transition-all"
                                                 >
                                                     Làm bài
                                                 </Link>
@@ -301,7 +301,7 @@ export default function QuizList() {
                             {[1, 2, 3, '...', 12].map((page, idx) => (
                                 <button
                                     key={idx}
-                                    className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${page === 1 ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-white hover:shadow-sm hover:text-blue-600'}`}
+                                    className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-semibold transition-all ${page === 1 ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-white hover:shadow-sm hover:text-blue-600'}`}
                                 >
                                     {page}
                                 </button>

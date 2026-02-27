@@ -39,22 +39,21 @@ import {
 export default function StudentProgress() {
     // Mock data for charts
     const weeklyActivityData = [
-        { day: 'T2', hours: 4.5 },
+        { day: 'T2', hours: 14.5 },
         { day: 'T3', hours: 5.2 },
-        { day: 'T4', hours: 3.8 },
-        { day: 'T5', hours: 6.5 },
+        { day: 'T4', hours: 8.8 },
+        { day: 'T5', hours: 18.5 },
         { day: 'T6', hours: 4.2 },
-        { day: 'T7', hours: 7.0 },
-        { day: 'CN', hours: 2.5 },
+        { day: 'T7', hours: 12.0 },
+        { day: 'CN', hours: 6.5 },
     ];
 
     const skillData = [
-        { subject: 'Toán học', A: 85, fullMark: 100 },
-        { subject: 'Vật lí', A: 90, fullMark: 100 },
-        { subject: 'Ngữ văn', A: 65, fullMark: 100 },
-        { subject: 'Hóa học', A: 75, fullMark: 100 },
-        { subject: 'Tiếng Anh', A: 80, fullMark: 100 },
-        { subject: 'Sinh học', A: 55, fullMark: 100 },
+        { subject: 'Toán', A: 85, fullMark: 100 },
+        { subject: 'Lý', A: 90, fullMark: 100 },
+        { subject: 'Hóa', A: 75, fullMark: 100 },
+        { subject: 'Văn', A: 80, fullMark: 100 },
+        { subject: 'Anh', A: 70, fullMark: 100 },
     ];
 
     const scoreTrendData = [
@@ -67,10 +66,10 @@ export default function StudentProgress() {
     ];
 
     const stats = [
-        { label: 'Tổng khóa học', value: '08', icon: BookOpen, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'Đã hoàn thành', value: '03', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { label: 'Đang học', value: '04', icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
-        { label: 'Còn lại', value: '01', icon: Hourglass, color: 'text-slate-500', bg: 'bg-slate-50' },
+        { label: 'TỔNG KHÓA HỌC', value: '08', icon: BookOpen, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { label: 'ĐÃ HOÀN THÀNH', value: '03', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { label: 'ĐANG HỌC', value: '04', icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { label: 'CẦN ÔN TẬP', value: '02', icon: Hourglass, color: 'text-orange-600', bg: 'bg-orange-50' },
     ];
 
     const subjects = [
@@ -81,8 +80,8 @@ export default function StudentProgress() {
             lessons: '24/36',
             quizzes: '12/15',
             hours: '42 Giờ học',
-            iconColor: 'bg-blue-100 text-blue-600',
-            icon: 'Σ'
+            iconColor: 'bg-slate-100 text-slate-400',
+            icon: 'ψ'
         },
         {
             id: 2,
@@ -91,25 +90,16 @@ export default function StudentProgress() {
             lessons: '12/30',
             quizzes: '4/10',
             hours: '28 Giờ học',
-            iconColor: 'bg-orange-100 text-orange-600',
+            image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=200',
             icon: '✎'
-        },
-        {
-            id: 3,
-            name: 'Vật lí 11',
-            progress: 85,
-            lessons: '28/32',
-            quizzes: '9/10',
-            hours: '36 Giờ học',
-            iconColor: 'bg-indigo-100 text-indigo-600',
-            icon: '⚗'
         }
     ];
 
     const achievements = [
-        { title: 'Chăm chỉ', desc: 'Học 7 ngày liên tiếp', icon: Zap, color: 'text-orange-500', bg: 'bg-orange-50' },
-        { title: 'Thủ khoa', desc: 'Đạt điểm 10 môn Toán', icon: Star, color: 'text-yellow-500', bg: 'bg-yellow-50' },
-        { title: 'Vượt khó', desc: 'Hoàn thành bài tập khó', icon: Medal, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { title: 'CHĂM CHỈ', icon: Zap, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { title: 'THỦ KHOA', icon: Star, color: 'text-orange-500', bg: 'bg-orange-50' },
+        { title: 'VƯỢT KHÓ', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+        { title: 'KHÓA', icon: Lock, color: 'text-slate-300', bg: 'bg-slate-50', locked: true },
     ];
 
     const weeklyPath = [
@@ -120,266 +110,234 @@ export default function StudentProgress() {
         { week: 'Tuần 5', status: 'locked' },
         { week: 'Tuần 6', status: 'locked' },
         { week: 'Tuần 7', status: 'locked' },
-        { week: 'Tuần 8', status: 'locked' },
     ];
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] pb-20">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-
+        <div className="min-h-screen bg-[#f8fafc] pb-20 font-sans">
+            <div className="max-w-6xl mx-auto px-6 py-10">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-                    <div>
-                        <h1 className="text-3xl font-black text-slate-900 mb-2">Tiến độ học tập của bạn</h1>
-                        <p className="text-slate-500 font-medium">Theo dõi hành trình học tập và phát triển bản thân mỗi ngày.</p>
-                    </div>
-                    <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 rounded-xl font-bold text-sm">
-                            <Zap size={18} fill="currentColor" />
-                            <span>Streak: 12 ngày</span>
-                        </div>
-                    </div>
+                <div className="mb-10">
+                    <h1 className="text-2xl font-bold tracking-tight text-[#0463ca] mb-1">TRUNG TÂM PHÂN TÍCH HỌC TẬP</h1>
+                    <p className="text-slate-500 text-sm font-medium">Dữ liệu chi tiết về hành trình chinh phục tri thức của bạn.</p>
                 </div>
 
-                {/* Stat Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    {stats.map((stat, i) => (
-                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center transition-transform group-hover:scale-110`}>
-                                    <stat.icon size={20} />
+                {/* Hero section */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+                    {/* Performance Card */}
+                    <div className="lg:col-span-2 space-y-8">
+                        <div className="bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] rounded-3xl p-10 text-white relative overflow-hidden shadow-xl shadow-blue-100 flex flex-col justify-between h-[300px]">
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-2 mb-6">
+                                    <div className="p-2 bg-white/20 rounded-full">
+                                        <TrendingUp size={16} className="text-white" />
+                                    </div>
+                                    <span className="text-xs font-bold uppercase tracking-widest text-white/80">CẢI THIỆN PHONG ĐỘ</span>
                                 </div>
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stat.label}</span>
+                                <h2 className="text-3xl font-bold mb-4">Điểm trung bình tăng 0.8</h2>
+                                <p className="text-blue-100 text-sm font-medium max-w-sm">Bạn đang có sự bứt phá đáng kể trong 6 tháng qua. Tiếp tục duy trì đà tăng trưởng này nhé!</p>
                             </div>
-                            <h3 className="text-4xl font-black text-slate-900">{stat.value}</h3>
-                        </div>
-                    ))}
-                </div>
 
-                {/* Analytics Section - Charts Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                    {/* Weekly Activity Bar Chart */}
-                    <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <h3 className="text-xl font-black text-slate-900 mb-1">Thời gian học tập</h3>
-                                <p className="text-slate-400 text-sm font-medium">Lượng thời gian em dành ra mỗi ngày trong tuần qua</p>
+                            <div className="relative z-10">
+                                <button className="px-8 py-3 bg-white text-[#1d4ed8] font-bold rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 text-sm uppercase tracking-wide">
+                                    Xem chi tiết bài thi
+                                </button>
                             </div>
-                            <div className="flex items-center gap-2 text-blue-600 bg-blue-50 px-3 py-1.5 rounded-xl text-xs font-bold">
-                                <TrendingUp size={14} /> 15% vs tuần trước
+
+                            {/* Background Chart Overlay */}
+                            <div className="absolute bottom-0 right-[-20px] w-1/2 h-1/2 opacity-40">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={scoreTrendData}>
+                                        <Area type="monotone" dataKey="score" stroke="#fff" fill="#fff" fillOpacity={0.4} strokeWidth={4} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
                             </div>
                         </div>
-                        <div className="h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={weeklyActivityData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis
-                                        dataKey="day"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
-                                        dy={10}
-                                    />
-                                    <YAxis
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
-                                    />
-                                    <Tooltip
-                                        cursor={{ fill: '#f8fafc' }}
-                                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                                    />
-                                    <Bar
-                                        dataKey="hours"
-                                        fill="#3b82f6"
-                                        radius={[8, 8, 0, 0]}
-                                        barSize={32}
-                                    />
-                                </BarChart>
-                            </ResponsiveContainer>
+
+                        {/* Recent Achievements */}
+                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                                <Trophy size={16} className="text-[#0487e2]" /> THÀNH TỰU MỚI
+                            </h3>
+                            <div className="grid grid-cols-4 gap-4">
+                                {achievements.map((ach, i) => (
+                                    <div key={i} className="flex flex-col items-center gap-2">
+                                        <div className={`w-14 h-14 rounded-2xl ${ach.bg} ${ach.color} flex items-center justify-center transition-all hover:scale-110 shadow-sm`}>
+                                            <ach.icon size={28} />
+                                        </div>
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${ach.locked ? 'text-slate-300' : 'text-slate-900'}`}>{ach.title}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
                     {/* Skill Radar Chart */}
-                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                        <div className="mb-6">
-                            <h3 className="text-xl font-black text-slate-900 mb-1">Nghiên cứu kỹ năng</h3>
-                            <p className="text-slate-400 text-sm font-medium">Bản đồ thế mạnh các môn học</p>
-                        </div>
-                        <div className="h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
-                                    <PolarGrid stroke="#f1f5f9" />
-                                    <PolarAngleAxis
-                                        dataKey="subject"
-                                        tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
-                                    />
-                                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                    <Radar
-                                        name="Level"
-                                        dataKey="A"
-                                        stroke="#6366f1"
-                                        fill="#6366f1"
-                                        fillOpacity={0.15}
-                                    />
-                                </RadarChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-slate-50">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-bold text-slate-400">ĐIỂM TRUNG BÌNH</span>
-                                <span className="text-sm font-black text-indigo-600">8.2 / 10</span>
+                    <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">BẢN ĐỒ KỸ NĂNG</h3>
+                                <div className="text-slate-300"><Target size={18} /></div>
                             </div>
+                            <div className="h-[240px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillData}>
+                                        <PolarGrid stroke="#e2e8f0" />
+                                        <PolarAngleAxis
+                                            dataKey="subject"
+                                            tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                                        />
+                                        <Radar
+                                            name="Kỹ năng"
+                                            dataKey="A"
+                                            stroke="#3b82f6"
+                                            fill="#3b82f6"
+                                            fillOpacity={0.15}
+                                            strokeWidth={3}
+                                        />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                        <div className="text-center mt-6">
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Overall average score</p>
+                            <p className="text-5xl font-bold text-[#1d4ed8]">8.5</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Motivation Banner & Achievements */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                    <div className="lg:col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl shadow-blue-100">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                        <div className="relative z-10 space-y-4">
-                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                                <Target size={24} className="text-white" />
+                {/* Dashboard Middle Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                    {/* Activity Bar Chart */}
+                    <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">THỜI GIAN HỌC TẬP</h3>
+                            <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-[10px] font-bold">
+                                <TrendingUp size={12} /> +12%
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-black mb-2">Tiếp tục duy trì phong độ!</h3>
-                                <p className="text-blue-100 font-medium">Em đang hoàn thành 65% nội dung Toán học 11. Chỉ còn một chút nữa thôi bài kiểm tra định kỳ sẽ đến!</p>
-                            </div>
-                            <button className="px-8 py-3.5 bg-white text-blue-600 font-extrabold rounded-2xl shadow-lg transition-all hover:-translate-y-1 active:scale-95">
-                                Học tiếp ngay
-                            </button>
                         </div>
-                        <div className="relative z-10 w-48 h-48 flex items-center justify-center">
-                            {/* Score visualization in banner */}
+                        <div className="h-[180px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={scoreTrendData}>
-                                    <defs>
-                                        <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#fff" stopOpacity={0.8} />
-                                            <stop offset="95%" stopColor="#fff" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <Area type="monotone" dataKey="score" stroke="#fff" fillOpacity={1} fill="url(#colorScore)" strokeWidth={3} />
-                                </AreaChart>
+                                <BarChart data={weeklyActivityData}>
+                                    <XAxis
+                                        dataKey="day"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                        dy={10}
+                                    />
+                                    <Bar
+                                        dataKey="hours"
+                                        fill="#f8fafc"
+                                        radius={[4, 4, 4, 4]}
+                                        hover={{ fill: '#3b82f6' }}
+                                        barSize={20}
+                                    />
+                                </BarChart>
                             </ResponsiveContainer>
                         </div>
+                        <p className="text-slate-400 text-[10px] font-bold mt-4 uppercase">Tuần này: 18 giờ 45 phút</p>
                     </div>
 
-                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                        <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2">
-                            <Trophy size={22} className="text-orange-500" /> Thành tựu mới
-                        </h3>
-                        <div className="space-y-4">
-                            {achievements.map((ach, i) => (
-                                <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-all hover:bg-white hover:shadow-md group">
-                                    <div className={`w-12 h-12 rounded-xl ${ach.bg} ${ach.color} flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110`}>
-                                        <ach.icon size={22} />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 text-sm">{ach.title}</h4>
-                                        <p className="text-xs text-slate-400 font-medium">{ach.desc}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <button className="w-full mt-6 py-3 border-2 border-slate-100 text-slate-400 font-bold rounded-2xl hover:bg-slate-50 hover:text-slate-600 transition-all text-sm uppercase tracking-widest">
-                            Xem tất cả danh hiệu
-                        </button>
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-6">
+                        {stats.map((stat, i) => (
+                            <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between group hover:shadow-md transition-all">
+                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{stat.label}</span>
+                                <h3 className="text-3xl font-bold text-slate-900 mt-2">{stat.value}</h3>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
-                {/* Progress By Subject */}
+                {/* Course Progress Detail */}
                 <div className="mb-12">
-                    <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-2xl font-black text-slate-900">Chi tiết theo môn học</h2>
-                        <button className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1">
-                            Xem báo cáo đầy đủ <ChevronRight size={16} />
+                    <div className="flex justify-between items-center mb-8">
+                        <h2 className="text-2xl font-bold tracking-tight text-[#0463ca]">Tiến độ chi tiết</h2>
+                        <button className="text-sm font-semibold text-[#0487e2] hover:text-[#0463ca] flex items-center gap-1 group transition-colors">
+                            Xem tất cả <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {subjects.map((subject) => (
-                            <div key={subject.id} className="bg-white p-4 sm:p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-6 group hover:shadow-md transition-all">
-                                <div className={`w-14 h-14 rounded-2x flex flex-shrink-0 items-center justify-center text-2xl font-black rounded-2xl ${subject.iconColor}`}>
-                                    {subject.icon}
+                            <div key={subject.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-6 group hover:shadow-lg transition-all transform hover:-translate-y-1">
+                                <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center bg-slate-50 text-2xl">
+                                    {subject.image ? (
+                                        <img src={subject.image} alt={subject.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-slate-300 font-bold">{subject.icon}</span>
+                                    )}
                                 </div>
-
-                                <div className="flex-1 w-full space-y-4 text-center md:text-left">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                        <h3 className="text-xl font-bold text-slate-900">{subject.name}</h3>
-                                        <span className="text-sm font-bold text-blue-600">{subject.progress}% hoàn thành</span>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h4 className="text-lg font-bold text-slate-900">{subject.name}</h4>
+                                        <span className="text-xs font-bold text-[#1d4ed8]">{subject.progress}%</span>
                                     </div>
-
-                                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-4">
                                         <div
-                                            className="bg-blue-600 h-full rounded-full transition-all duration-1000"
+                                            className="h-full bg-[#1d4ed8] rounded-full transition-all duration-1000"
                                             style={{ width: `${subject.progress}%` }}
-                                        ></div>
+                                        />
                                     </div>
-
-                                    <div className="flex flex-wrap justify-center md:justify-start items-center gap-6 text-slate-400">
-                                        <div className="flex items-center gap-2">
-                                            <Book size={14} />
-                                            <span className="text-xs font-bold uppercase tracking-wider">{subject.lessons} Bài học</span>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-1.5 text-slate-400">
+                                            <BookOpen size={14} />
+                                            <span className="text-[10px] font-bold uppercase tracking-wide">{subject.lessons} Bài học</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1.5 text-slate-400">
                                             <ClipboardList size={14} />
-                                            <span className="text-xs font-bold uppercase tracking-wider">{subject.quizzes} Bài kiểm tra</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Clock size={14} />
-                                            <span className="text-xs font-bold uppercase tracking-wider">{subject.hours}</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-wide">{subject.quizzes} Kiểm tra</span>
                                         </div>
                                     </div>
                                 </div>
-
-                                <button className="px-6 py-3 bg-blue-50 text-blue-600 font-bold rounded-2xl hover:bg-blue-600 hover:text-white transition-all whitespace-nowrap active:scale-95">
-                                    Tiếp tục học
+                                <button className="btn-primary">
+                                    Học tiếp
                                 </button>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* Weekly Path */}
-                <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                    <div className="mb-10">
-                        <h2 className="text-2xl font-black text-slate-900 mb-1">Lộ trình học tập hàng tuần</h2>
-                        <p className="text-slate-400 font-medium">Học tập đều đặn giúp bạn ghi nhớ kiến thức tốt hơn</p>
+                {/* Weekly Journey Path */}
+                <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+                    <div className="text-center mb-12">
+                        <h2 className="text-2xl font-bold tracking-tight text-[#0463ca] mb-2 uppercase">Lộ trình học tập hàng tuần</h2>
+                        <p className="text-slate-500 text-sm font-medium">Kế hoạch chi tiết giúp bạn đạt mục tiêu học kỳ một cách khoa học và hiệu quả.</p>
                     </div>
 
-                    <div className="relative overflow-x-auto pb-6 custom-scrollbar">
-                        <div className="flex items-center justify-between min-w-[800px] px-4 relative">
-                            <div className="absolute top-[18px] left-10 right-10 h-1 bg-slate-100 -z-0"></div>
-
+                    <div className="relative pt-4 overflow-x-auto pb-10 custom-scrollbar">
+                        <div className="flex items-center min-w-[800px] gap-0 px-8">
                             {weeklyPath.map((item, i) => (
-                                <div key={i} className="flex flex-col items-center gap-6 relative z-10 w-24">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-300 ${item.status === 'completed' ? 'bg-blue-600 border-blue-50/50 text-white shadow-lg shadow-blue-100' :
-                                        item.status === 'current' ? 'bg-white border-blue-600 text-blue-600 shadow-lg scale-110 ring-4 ring-blue-50/50' :
-                                            'bg-slate-50 border-white text-slate-200'
-                                        }`}>
-                                        {item.status === 'completed' ? <Check size={20} strokeWidth={3} /> :
-                                            item.status === 'current' ? <div className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-pulse"></div> :
-                                                <Lock size={16} />}
-                                    </div>
-                                    <div className="text-center">
-                                        <p className={`text-xs font-bold mb-1 ${item.status === 'locked' ? 'text-slate-300' : 'text-slate-900'}`}>{item.week}</p>
-                                        <p className={`text-[10px] font-bold uppercase tracking-widest ${item.status === 'completed' ? 'text-blue-600' :
-                                            item.status === 'current' ? 'text-blue-700' :
-                                                'text-slate-300'
+                                <React.Fragment key={i}>
+                                    <div className="flex flex-col items-center gap-4 relative z-10 w-28 shrink-0">
+                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center border-4 transition-all duration-300 ${item.status === 'completed' ? 'bg-[#3b82f6] border-white text-white shadow-lg' :
+                                            item.status === 'current' ? 'bg-white border-[#3b82f6] text-[#3b82f6] shadow-lg ring-8 ring-blue-50' :
+                                                'bg-[#f1f5f9] border-white text-[#cbd5e1]'
                                             }`}>
-                                            {item.status === 'completed' ? 'Hoàn thành' :
-                                                item.status === 'current' ? 'Đang học' :
-                                                    'Chưa bắt đầu'}
-                                        </p>
+                                            {item.status === 'completed' ? <Check size={22} strokeWidth={3} /> :
+                                                item.status === 'current' ? <div className="w-3 h-3 bg-[#3b82f6] rounded-full"></div> :
+                                                    <Lock size={18} />}
+                                        </div>
+                                        <div className="text-center">
+                                            <p className={`text-xs font-black mb-1 ${item.status === 'locked' ? 'text-slate-300' : 'text-slate-900'}`}>{item.week}</p>
+                                            <p className={`text-[9px] font-bold uppercase tracking-widest ${item.status === 'completed' ? 'text-blue-600' :
+                                                item.status === 'current' ? 'text-[#3b82f6]' :
+                                                    'text-slate-300'
+                                                }`}>
+                                                {item.status === 'completed' ? 'XONG' :
+                                                    item.status === 'current' ? 'ĐANG HỌC' :
+                                                        'CHƯA MỞ'}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
+                                    {i < weeklyPath.length - 1 && (
+                                        <div className={`flex-1 h-1.5 min-w-[40px] rounded-full mx-[-10px] z-0 ${item.status === 'completed' ? 'bg-[#3b82f6]' : 'bg-[#f1f5f9]'}`} />
+                                    )}
+                                </React.Fragment>
                             ))}
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     );

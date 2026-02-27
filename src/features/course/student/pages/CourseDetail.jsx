@@ -104,7 +104,7 @@ export default function CourseDetail() {
     };
 
     return (
-        <div className="p-8 md:p-12 min-h-screen">
+        <div className="p-8 bg-slate-50 min-h-screen font-sans">
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -112,61 +112,57 @@ export default function CourseDetail() {
                     <div className="lg:col-span-2 space-y-6">
 
                         {/* Course Header */}
-                        <div className="premium-card p-8 bg-gradient-to-r from-white to-blue-50/20">
-                            <div className="flex flex-col md:flex-row items-start md:items-center gap-8 mb-8">
-                                <div className="w-24 h-24 rounded-[2rem] bg-white text-blue-600 flex items-center justify-center flex-shrink-0 shadow-xl shadow-blue-100/50 border border-blue-50">
-                                    <BookOpen size={42} />
+                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                            <div className="flex items-start gap-4 mb-6">
+                                <div className="w-20 h-20 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                    <BookOpen size={36} className="text-blue-600" />
                                 </div>
-                                <div className="flex-1 space-y-3">
-                                    <span className="inline-block px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-[0.2em] shadow-lg shadow-blue-100">
+                                <div className="flex-1">
+                                    <span className="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full mb-2">
                                         {courseInfo.tag}
                                     </span>
-                                    <h1 className="text-3xl font-black text-slate-900 leading-tight">{courseInfo.title}</h1>
-                                    <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-slate-400">
-                                        <span className="flex items-center gap-2">
-                                            <User size={18} className="text-blue-500" /> {courseInfo.instructor}
+                                    <h1 className="text-2xl font-bold text-slate-900 mb-2">{courseInfo.title}</h1>
+                                    <div className="flex items-center gap-4 text-sm text-slate-600">
+                                        <span className="flex items-center gap-1.5">
+                                            <User size={16} /> GV: {courseInfo.instructor}
                                         </span>
-                                        <span className="flex items-center gap-2">
-                                            <Clock size={18} className="text-blue-500" />
+                                        <span className="flex items-center gap-1.5">
+                                            <Clock size={16} />
                                             {courseInfo.totalHours} tiết học
                                         </span>
                                     </div>
                                 </div>
-                                <button className="btn-primary py-4 px-8 self-stretch md:self-center">
-                                    <PlayCircle size={20} />
+                                <button className="px-5 py-2.5 bg-[#0487e2] hover:bg-[#0463ca] text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2 shadow-sm">
+                                    <PlayCircle size={18} />
                                     Vào Học Ngay
                                 </button>
                             </div>
 
                             {/* Progress Bar */}
-                            <div className="pt-8 border-t border-slate-100">
-                                <div className="flex justify-between items-center mb-4">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Tiến Độ Học Kỳ</span>
-                                    <span className="text-xs font-black text-slate-900 bg-slate-100 px-3 py-1 rounded-lg">
-                                        {courseInfo.completedLessons} / {courseInfo.totalLessons} BÀI
-                                    </span>
+                            <div className="pt-4 border-t border-slate-100">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Tiến Độ Học Kỳ</span>
+                                    <span className="text-sm text-slate-600">{courseInfo.completedLessons}/{courseInfo.totalLessons} bài đã học</span>
                                 </div>
-                                <div className="mb-6">
-                                    <div className="text-4xl font-black text-slate-900 mb-4">{courseInfo.progress}%</div>
-                                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                                        <div className="bg-blue-600 h-full rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(37,99,235,0.3)]" style={{ width: `${courseInfo.progress}%` }}></div>
+                                <div className="mb-3">
+                                    <div className="text-2xl font-bold text-slate-900 mb-2">{courseInfo.progress}% Hoàn thành</div>
+                                    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                                        <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${courseInfo.progress}%` }}></div>
                                     </div>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100/50 flex items-center gap-3">
-                                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse shadow-glow shadow-blue-400"></div>
-                                    <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">
-                                        Bài tiếp theo: <span className="text-slate-900">Giao thoa sóng (Tiết 18)</span>
-                                    </p>
-                                </div>
+                                <p className="text-xs text-blue-600 flex items-center gap-1.5">
+                                    <span className="inline-block w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                                    Bài tiếp theo: Giao thoa sóng (Tiết 18)
+                                </p>
                             </div>
                         </div>
 
                         {/* Course Curriculum */}
-                        <div className="premium-card p-8">
-                            <div className="flex justify-between items-center mb-10">
-                                <h2 className="text-2xl font-black text-slate-900">Đề Cương Môn Học</h2>
-                                <button className="text-xs font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest decoration-2 underline-offset-4 underline">
-                                    Mở Rộng
+                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold text-slate-900">Đề Cương Môn Học</h2>
+                                <button className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                                    Mở Rộng Tất Cả
                                 </button>
                             </div>
 
@@ -194,11 +190,11 @@ export default function CourseDetail() {
                                                             <Circle size={20} className="text-blue-600" />
                                                         )}
                                                     </div>
-                                                    <div className="text-left py-1">
-                                                        <h3 className="font-black text-slate-900 mb-1">{section.title}</h3>
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    <div className="text-left">
+                                                        <h3 className="font-bold text-base text-slate-900 mb-0.5">{section.title}</h3>
+                                                        <p className="text-xs text-slate-500">
                                                             {section.status} • {section.lessons} bài • {section.duration}
-                                                            {section.description && <span className="block text-blue-600 mt-1 lowercase italic first-letter:uppercase">Note: {section.description}</span>}
+                                                            {section.description && <span className="block text-indigo-600 mt-1 italic">Note: {section.description}</span>}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -280,46 +276,44 @@ export default function CourseDetail() {
                     <div className="space-y-6">
 
                         {/* Live Session Info */}
-                        <div className="premium-card p-6 bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-xl shadow-blue-100">
-                            <div className="flex items-start gap-4 mb-6">
-                                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center flex-shrink-0">
-                                    <Clock size={24} className="text-white" />
+                        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                            <div className="flex items-start gap-3 mb-4">
+                                <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    <Clock size={22} className="text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-black text-blue-100 uppercase tracking-widest mb-1">{nextClass.title}</h3>
-                                    <p className="text-lg font-black leading-tight mb-2">{nextClass.description}</p>
-                                    <div className="px-3 py-1 bg-white/10 rounded-lg inline-block text-[11px] font-black">
-                                        {nextClass.time}
-                                    </div>
+                                    <h3 className="text-sm font-bold text-slate-900 mb-1">{nextClass.title}</h3>
+                                    <p className="text-xs text-slate-600 mb-1">{nextClass.description}</p>
+                                    <p className="text-xs text-slate-700 font-medium">{nextClass.time}</p>
                                 </div>
                             </div>
-                            <button className="w-full py-3.5 bg-white text-blue-600 font-black rounded-xl text-sm hover:bg-blue-50 transition-all active:scale-95 shadow-lg">
+                            <button className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
                                 Xem Lịch Học
                             </button>
                         </div>
 
                         {/* Course Resources */}
-                        <div className="premium-card p-6">
-                            <h3 className="text-xs font-black text-slate-400 mb-6 uppercase tracking-[0.2em]">Tài Liệu Môn Học</h3>
-                            <div className="space-y-3">
+                        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                            <h3 className="text-xs font-semibold text-slate-700 mb-4 uppercase tracking-wider">Tài Liệu Môn Học</h3>
+                            <div className="space-y-2">
                                 {resources.map((resource) => {
                                     const Icon = resource.icon;
                                     return (
                                         <button
                                             key={resource.id}
-                                            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-50 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all text-left group"
+                                            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors text-left group"
                                         >
-                                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm transition-colors group-hover:text-blue-600">
-                                                <Icon size={20} />
+                                            <div className="w-9 h-9 rounded-lg bg-slate-100 group-hover:bg-blue-50 flex items-center justify-center flex-shrink-0 transition-colors">
+                                                <Icon size={18} className="text-slate-600 group-hover:text-blue-600 transition-colors" />
                                             </div>
-                                            <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors">{resource.title}</span>
+                                            <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">{resource.title}</span>
                                         </button>
                                     );
                                 })}
                             </div>
                         </div>
 
-                        <div className="bg-yellow-50 rounded-xl p-5 border border-yellow-100">
+                        <div className="bg-yellow-50 rounded-2xl p-5 border border-yellow-100">
                             <h3 className="text-sm font-bold text-yellow-800 mb-2">Lưu ý của Giáo viên</h3>
                             <p className="text-xs text-yellow-700 leading-relaxed">
                                 Các em nhớ hoàn thành bài tập trắc nghiệm chương 1 trước thứ Sáu tuần này để thầy tổng hợp điểm cộng nhé.

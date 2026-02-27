@@ -88,15 +88,15 @@ export default function StudentDashboard() {
   }, []);
 
   return (
-    <div className="space-y-12 pb-16">
+    <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-800">
 
       {/* Header / Welcome Banner */}
-      <div className="premium-card p-8 flex flex-col md:flex-row md:items-center justify-between gap-8 bg-gradient-to-r from-white to-blue-50/20">
+      <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-8">
         <div className="space-y-1">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">
             Chào quay trở lại, <span className="text-[#0463ca]">{userName}</span>! 👋
           </h1>
-          <p className="text-slate-500 font-medium">
+          <p className="text-slate-500 text-sm font-medium">
             Em đã hoàn thành <span className="text-[#0487e2] font-bold">85%</span> mục tiêu học tập trong tuần này.
           </p>
         </div>
@@ -115,14 +115,14 @@ export default function StudentDashboard() {
         {stats.map((item, idx) => (
           <div
             key={idx}
-            className="premium-card p-6 flex items-center gap-5 group hover:-translate-y-1"
+            className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-5 group hover:-translate-y-1"
           >
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm">
               <item.icon size={22} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-1">{item.label}</p>
-              <p className="text-2xl font-extrabold text-slate-900">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{item.label}</p>
+              <p className="text-2xl font-bold text-slate-900">
                 {item.value}
               </p>
             </div>
@@ -131,15 +131,15 @@ export default function StudentDashboard() {
       </div>
 
       {/* 📊 Study Chart */}
-      <div className="premium-card p-8">
-        <div className="flex justify-between items-center mb-10">
+      <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm">
+        <div className="flex justify-between items-center mb-8">
           <div>
             <h3 className="text-lg font-bold text-[#0463ca] mb-1">
               Thời gian học tập
             </h3>
-            <p className="text-slate-500 text-xs font-medium tracking-tight">Phân tích nỗ lực của em trong 7 ngày qua</p>
+            <p className="text-slate-500 text-xs font-medium">Phân tích nỗ lực của em trong 7 ngày qua</p>
           </div>
-          <span className="text-[10px] font-bold text-[#0487e2] bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 uppercase tracking-widest">7 ngày qua</span>
+          <span className="text-xs font-semibold text-[#0487e2] bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">7 ngày qua</span>
         </div>
 
         <div className="h-[280px] w-full overflow-hidden">
@@ -182,7 +182,7 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* Continue Learning */}
         <div className="lg:col-span-2 space-y-6">
@@ -192,7 +192,7 @@ export default function StudentDashboard() {
             </h2>
             <Link
               to="/dashboard/student/courses"
-              className="text-xs font-bold text-[#0487e2] hover:text-[#0463ca] flex items-center gap-1 group/link uppercase tracking-widest transition-colors"
+              className="text-sm font-semibold text-[#0487e2] hover:text-[#0463ca] flex items-center gap-1 transition-colors"
             >
               Xem tất cả <ArrowRight size={14} className="transition-transform group-hover/link:translate-x-1" />
             </Link>
@@ -201,7 +201,7 @@ export default function StudentDashboard() {
           {continueLearning.map((item) => (
             <div
               key={item.id}
-              className="premium-card overflow-hidden group/item"
+              className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm group/item"
             >
               <div className="flex flex-col sm:flex-row">
                 <img
@@ -211,15 +211,15 @@ export default function StudentDashboard() {
                 />
 
                 <div className="flex-1 p-6">
-                  <h3 className="text-base font-bold text-slate-900 mb-1 group-hover/item:text-[#0463ca] transition-colors leading-tight">
+                  <h3 className="text-base font-bold text-slate-900 mb-1 group-hover/item:text-[#0463ca] transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-xs text-slate-400 font-medium mb-8">
+                  <p className="text-xs text-slate-500 font-medium mb-6">
                     Bài học tiếp: <span className="text-slate-600">{item.lesson}</span>
                   </p>
 
                   <div className="space-y-3">
-                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                    <div className="flex justify-between text-xs font-semibold">
                       <span className="text-[#0463ca]">{item.progress}% hoàn thành</span>
                       <span className="text-slate-400">{item.lastAccessed}</span>
                     </div>
@@ -240,22 +240,22 @@ export default function StudentDashboard() {
         <div className="space-y-8">
 
           {/* Schedule */}
-          <div className="premium-card p-6">
-            <h3 className="text-sm font-bold text-[#0463ca] mb-6 flex items-center gap-2 uppercase tracking-widest">
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+            <h3 className="text-sm font-bold text-[#0463ca] mb-6 flex items-center gap-2">
               <Calendar size={18} />
               Lịch sắp tới
             </h3>
 
             <div className="space-y-5">
               {upcomingDeadlines.map((item, idx) => (
-                <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100/50">
-                  <p className="text-sm font-black text-slate-800 mb-1">
+                <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                  <p className="text-sm font-semibold text-slate-800 mb-1">
                     {item.title}
                   </p>
                   <p className="text-xs text-slate-500 font-medium mb-2">
                     {item.course}
                   </p>
-                  <p className="text-xs font-black text-blue-600">
+                  <p className="text-xs font-semibold text-blue-600">
                     {item.date}
                   </p>
                 </div>
@@ -265,7 +265,7 @@ export default function StudentDashboard() {
 
           {/* Weekly Goal */}
           <div className="bg-gradient-to-br from-[#0487e2] to-[#0463ca] rounded-2xl p-7 text-white shadow-lg shadow-blue-100">
-            <h3 className="text-sm font-bold mb-6 uppercase tracking-[0.2em] text-blue-50">
+            <h3 className="text-sm font-bold mb-6">
               Mục tiêu tuần
             </h3>
 
@@ -284,7 +284,7 @@ export default function StudentDashboard() {
 function Progress({ label, value, percent, light }) {
   return (
     <div className="space-y-2">
-      <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+      <div className="flex justify-between text-xs font-semibold">
         <span className={light ? "text-blue-100" : "text-slate-400"}>{label}</span>
         <span className={light ? "text-white" : "text-slate-900"}>{value}</span>
       </div>

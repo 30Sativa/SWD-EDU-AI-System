@@ -191,342 +191,343 @@ export default function CoursesList() {
     };
 
     return (
-        <div className="px-6 py-10 md:px-12 max-w-7xl mx-auto min-h-screen">
-            <div className="mb-12 space-y-2">
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-                    Khóa học của bạn
-                </h1>
-                <p className="text-slate-500 font-medium text-lg">
-                    Khám phá lộ trình học tập tối ưu được thiết kế riêng cho chương trình THPT.
-                </p>
-            </div>
+        <div className="p-8 bg-slate-50 min-h-screen font-sans">
+            <div className="max-w-7xl mx-auto">
+                <div className="mb-10 space-y-2">
+                    <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">
+                        Khóa học của bạn
+                    </h1>
+                    <p className="text-slate-500 text-sm font-medium">
+                        Khám phá lộ trình học tập tối ưu được thiết kế riêng cho chương trình THPT.
+                    </p>
+                </div>
 
-            <div className="flex flex-col lg:flex-row gap-6">
-                {/* Sidebar filter */}
-                <aside className="w-full lg:w-72 xl:w-80 flex-shrink-0">
-                    <div className="premium-card p-6 sticky top-24 shadow-sm border-slate-200">
-                        <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                                Bộ lọc
-                            </h2>
-                            <button
-                                type="button"
-                                onClick={resetFilters}
-                                className="text-xs font-bold text-blue-600 hover:text-blue-700 underline underline-offset-4 decoration-2"
-                            >
-                                Xóa hết
-                            </button>
+                <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Sidebar filter */}
+                    <aside className="w-full lg:w-72 xl:w-80 flex-shrink-0">
+                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm sticky top-24">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                    Bộ lọc
+                                </h2>
+                                <button
+                                    type="button"
+                                    onClick={resetFilters}
+                                    className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                                >
+                                    Xóa hết
+                                </button>
+                            </div>
+
+                            <div className="space-y-5 text-sm">
+                                <div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-xs font-semibold text-slate-800 uppercase tracking-wider">Khối lớp</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {grades.map((item) => (
+                                            <button
+                                                key={item}
+                                                type="button"
+                                                onClick={() => handleFilterChange(setSelectedGrade)(item)}
+                                                className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${selectedGrade === item
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                    : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'
+                                                    }`}
+                                            >
+                                                {item}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="h-px bg-slate-100" />
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-semibold text-slate-900">Môn học</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {subjects.map((item) => (
+                                            <button
+                                                key={item}
+                                                type="button"
+                                                onClick={() => handleFilterChange(setSelectedSubject)(item)}
+                                                className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${selectedSubject === item
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                    : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'
+                                                    }`}
+                                            >
+                                                {item}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="h-px bg-slate-100" />
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-semibold text-slate-900">Trạng thái</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {statuses.map((item) => (
+                                            <button
+                                                key={item}
+                                                type="button"
+                                                onClick={() => handleFilterChange(setSelectedStatus)(item)}
+                                                className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${selectedStatus === item
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                    : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'
+                                                    }`}
+                                            >
+                                                {item}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="h-px bg-slate-100" />
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-semibold text-slate-900">Hình thức</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {types.map((item) => (
+                                            <button
+                                                key={item}
+                                                type="button"
+                                                onClick={() => handleFilterChange(setSelectedType)(item)}
+                                                className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${selectedType === item
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                    : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'
+                                                    }`}
+                                            >
+                                                {item}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                    </aside>
 
-                        <div className="space-y-5 text-sm">
-                            <div>
-                                <div className="flex items-center justify-between mb-3">
-                                    <span className="text-xs font-bold text-slate-800 uppercase tracking-widest">Khối lớp</span>
-                                    <span className="text-[10px] font-bold text-slate-300 tracking-tight">CHỌN 1</span>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {grades.map((item) => (
-                                        <button
-                                            key={item}
-                                            type="button"
-                                            onClick={() => handleFilterChange(setSelectedGrade)(item)}
-                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${selectedGrade === item
-                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
-                                                }`}
-                                        >
-                                            {item}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="h-px bg-gray-100" />
-
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="font-semibold text-gray-900">Môn học</span>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {subjects.map((item) => (
-                                        <button
-                                            key={item}
-                                            type="button"
-                                            onClick={() => handleFilterChange(setSelectedSubject)(item)}
-                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${selectedSubject === item
-                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
-                                                }`}
-                                        >
-                                            {item}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="h-px bg-gray-100" />
-
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="font-semibold text-gray-900">Trạng thái</span>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {statuses.map((item) => (
-                                        <button
-                                            key={item}
-                                            type="button"
-                                            onClick={() => handleFilterChange(setSelectedStatus)(item)}
-                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${selectedStatus === item
-                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
-                                                }`}
-                                        >
-                                            {item}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="h-px bg-gray-100" />
-
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="font-semibold text-gray-900">Hình thức</span>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {types.map((item) => (
-                                        <button
-                                            key={item}
-                                            type="button"
-                                            onClick={() => handleFilterChange(setSelectedType)(item)}
-                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${selectedType === item
-                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
-                                                }`}
-                                        >
-                                            {item}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </aside>
-
-                {/* Main content */}
-                <main className="flex-1">
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 mb-4">
-                        <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
-                            <div className="relative flex-1 max-w-xl group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="Tìm kiếm khóa học, môn học, giáo viên..."
-                                    className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500 text-sm shadow-sm"
-                                    value={searchTerm}
-                                    onChange={(e) => {
-                                        setSearchTerm(e.target.value);
-                                        setCurrentPage(1);
-                                    }}
-                                />
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <div className="relative min-w-[200px]">
-                                    <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-                                    <select
-                                        className="w-full pl-9 pr-9 py-2.5 bg-gray-50 border border-gray-200 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500 cursor-pointer text-[10px] md:text-xs font-bold text-slate-700 uppercase tracking-widest"
-                                        value={sortBy}
+                    {/* Main content */}
+                    <main className="flex-1">
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-5 mb-6">
+                            <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+                                <div className="relative flex-1 max-w-xl group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Search className="h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Tìm kiếm khóa học, môn học, giáo viên..."
+                                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500 text-sm shadow-sm"
+                                        value={searchTerm}
                                         onChange={(e) => {
-                                            setSortBy(e.target.value);
+                                            setSearchTerm(e.target.value);
                                             setCurrentPage(1);
                                         }}
-                                    >
-                                        <option value="default">Sắp xếp: Phù hợp chương trình</option>
-                                        <option value="name">Tên (A-Z)</option>
-                                        <option value="progress">Tiến độ cao nhất</option>
-                                    </select>
-                                    <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 rotate-90 pointer-events-none" size={14} />
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <div className="relative min-w-[200px]">
+                                        <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                                        <select
+                                            className="w-full pl-9 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500 cursor-pointer text-xs font-semibold text-slate-700"
+                                            value={sortBy}
+                                            onChange={(e) => {
+                                                setSortBy(e.target.value);
+                                                setCurrentPage(1);
+                                            }}
+                                        >
+                                            <option value="default">Sắp xếp: Phù hợp chương trình</option>
+                                            <option value="name">Tên (A-Z)</option>
+                                            <option value="progress">Tiến độ cao nhất</option>
+                                        </select>
+                                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 rotate-90 pointer-events-none" size={14} />
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Courses grid */}
-                    {paginatedCourses.length > 0 ? (
-                        <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-                                {paginatedCourses.map((course) => (
-                                    <Link
-                                        key={course.id}
-                                        to={`/dashboard/student/courses/${course.id}`}
-                                        className="group"
-                                    >
-                                        <article className="premium-card overflow-hidden h-full flex flex-col">
-                                            <div className="relative h-40 md:h-44 lg:h-48 overflow-hidden">
-                                                <img
-                                                    src={course.image}
-                                                    alt={course.title}
-                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                                    loading="lazy"
-                                                />
-                                                <div className="absolute top-3 left-3 flex items-center gap-2">
-                                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.14em] bg-blue-600 text-white shadow-sm">
-                                                        {course.grade}
-                                                    </span>
-                                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.14em] bg-white/95 text-blue-700 shadow-sm">
-                                                        {course.subject}
-                                                    </span>
-                                                </div>
-                                                {course.badge && (
-                                                    <div className="absolute top-3 right-3">
-                                                        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.15em] bg-orange-500 text-white shadow-sm">
-                                                            {course.badge}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex-1 flex flex-col p-4 md:p-5 gap-3">
-                                                <div className="space-y-1">
-                                                    <h3 className="text-sm md:text-base font-semibold text-gray-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
-                                                        {course.title}
-                                                    </h3>
-                                                    <p className="text-xs text-gray-500 flex items-center gap-2">
-                                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-[10px] font-semibold text-gray-600">
-                                                            GV
-                                                        </span>
-                                                        <span>{course.instructor}</span>
-                                                    </p>
-                                                </div>
-
-                                                <div className="grid grid-cols-3 gap-2 rounded-xl bg-gray-50/80 border border-gray-100 px-3 py-3 text-[11px]">
-                                                    <div>
-                                                        <p className="text-[10px] uppercase tracking-[0.12em] text-gray-400 mb-0.5">
-                                                            Thời lượng
-                                                        </p>
-                                                        <p className="font-semibold text-gray-900 flex items-center gap-1">
-                                                            <Clock size={13} className="text-gray-400" /> {course.totalHours}h
-                                                        </p>
-                                                    </div>
-                                                    <div className="border-l border-gray-200 pl-2">
-                                                        <p className="text-[10px] uppercase tracking-[0.12em] text-gray-400 mb-0.5">
-                                                            Sĩ số
-                                                        </p>
-                                                        <p className="font-semibold text-gray-900 flex items-center gap-1">
-                                                            <Users size={13} className="text-gray-400" /> {course.students}
-                                                        </p>
-                                                    </div>
-                                                    <div className="border-l border-gray-200 pl-2">
-                                                        <p className="text-[9px] md:text-[10px] uppercase tracking-[0.12em] text-gray-400 mb-0.5">
-                                                            Đánh giá
-                                                        </p>
-                                                        <p className="font-bold text-slate-900 flex items-center gap-1">
-                                                            <Star size={12} className="text-amber-400 fill-amber-400" />{' '}
-                                                            {course.rating}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center justify-between text-[11px]">
-                                                        <span className="uppercase tracking-[0.16em] text-gray-400 font-semibold">
-                                                            Tiến độ
-                                                        </span>
-                                                        <span className="font-semibold text-blue-600">
-                                                            {course.progress}%
-                                                        </span>
-                                                    </div>
-                                                    <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                                                        <div
-                                                            className={`h-full rounded-full transition-all duration-700 ease-out ${course.progress >= 80
-                                                                ? 'bg-emerald-500'
-                                                                : course.progress >= 40
-                                                                    ? 'bg-blue-500'
-                                                                    : 'bg-amber-500'
-                                                                }`}
-                                                            style={{ width: `${course.progress}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <div className="pt-2 mt-auto flex items-center justify-between border-t border-gray-100">
-                                                    <p className="text-[11px] text-gray-500">
-                                                        Tiếp theo:{' '}
-                                                        <span className="font-medium text-gray-800">
-                                                            {course.nextLesson}
-                                                        </span>
-                                                    </p>
-                                                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 group-hover:underline">
-                                                        Vào học
-                                                        <ChevronRight size={14} />
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </article>
-                                    </Link>
-                                ))}
-                            </div>
-
-                            {/* Pagination */}
-                            <div className="flex items-center justify-center gap-2 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => handleChangePage(safeCurrentPage - 1)}
-                                    disabled={safeCurrentPage === 1}
-                                    className="px-3 py-2 rounded-full border border-gray-200 text-xs font-medium text-gray-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
-                                >
-                                    Trước
-                                </button>
-                                {Array.from({ length: totalPages }).map((_, index) => {
-                                    const pageNumber = index + 1;
-                                    const isActive = pageNumber === safeCurrentPage;
-                                    return (
-                                        <button
-                                            key={pageNumber}
-                                            type="button"
-                                            onClick={() => handleChangePage(pageNumber)}
-                                            className={`w-8 h-8 rounded-full text-xs font-semibold flex items-center justify-center transition-all ${isActive
-                                                ? 'bg-blue-600 text-white shadow-sm'
-                                                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                                                }`}
+                        {/* Courses grid */}
+                        {paginatedCourses.length > 0 ? (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {paginatedCourses.map((course) => (
+                                        <Link
+                                            key={course.id}
+                                            to={`/dashboard/student/courses/${course.id}`}
+                                            className="group"
                                         >
-                                            {pageNumber}
-                                        </button>
-                                    );
-                                })}
+                                            <article className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm h-full flex flex-col">
+                                                <div className="relative h-40 md:h-44 lg:h-48 overflow-hidden">
+                                                    <img
+                                                        src={course.image}
+                                                        alt={course.title}
+                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                        loading="lazy"
+                                                    />
+                                                    <div className="absolute top-3 left-3 flex items-center gap-2">
+                                                        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-blue-600 text-white shadow-sm">
+                                                            {course.grade}
+                                                        </span>
+                                                        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-white/95 text-blue-700 shadow-sm">
+                                                            {course.subject}
+                                                        </span>
+                                                    </div>
+                                                    {course.badge && (
+                                                        <div className="absolute top-3 right-3">
+                                                            <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-orange-500 text-white shadow-sm">
+                                                                {course.badge}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex-1 flex flex-col p-4 md:p-5 gap-3">
+                                                    <div className="space-y-1">
+                                                        <h3 className="text-sm md:text-base font-semibold text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
+                                                            {course.title}
+                                                        </h3>
+                                                        <p className="text-xs text-slate-500 flex items-center gap-2">
+                                                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600">
+                                                                GV
+                                                            </span>
+                                                            <span>{course.instructor}</span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50/80 border border-slate-100 px-3 py-3 text-[11px]">
+                                                        <div>
+                                                            <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-0.5">
+                                                                Thời lượng
+                                                            </p>
+                                                            <p className="font-semibold text-slate-900 flex items-center gap-1">
+                                                                <Clock size={13} className="text-slate-400" /> {course.totalHours}h
+                                                            </p>
+                                                        </div>
+                                                        <div className="border-l border-slate-200 pl-2">
+                                                            <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-0.5">
+                                                                Sĩ số
+                                                            </p>
+                                                            <p className="font-semibold text-slate-900 flex items-center gap-1">
+                                                                <Users size={13} className="text-slate-400" /> {course.students}
+                                                            </p>
+                                                        </div>
+                                                        <div className="border-l border-slate-200 pl-2">
+                                                            <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-0.5">
+                                                                Đánh giá
+                                                            </p>
+                                                            <p className="font-semibold text-slate-900 flex items-center gap-1">
+                                                                <Star size={12} className="text-amber-400 fill-amber-400" />{' '}
+                                                                {course.rating}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center justify-between text-[11px]">
+                                                            <span className="uppercase tracking-wider text-slate-400 font-semibold">
+                                                                Tiến độ
+                                                            </span>
+                                                            <span className="font-semibold text-blue-600">
+                                                                {course.progress}%
+                                                            </span>
+                                                        </div>
+                                                        <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                                            <div
+                                                                className={`h-full rounded-full transition-all duration-700 ease-out ${course.progress >= 80
+                                                                    ? 'bg-emerald-500'
+                                                                    : course.progress >= 40
+                                                                        ? 'bg-blue-500'
+                                                                        : 'bg-amber-500'
+                                                                    }`}
+                                                                style={{ width: `${course.progress}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="pt-2 mt-auto flex items-center justify-between border-t border-slate-100">
+                                                        <p className="text-[11px] text-slate-500">
+                                                            Tiếp theo:{' '}
+                                                            <span className="font-medium text-slate-800">
+                                                                {course.nextLesson}
+                                                            </span>
+                                                        </p>
+                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 group-hover:underline">
+                                                            Vào học
+                                                            <ChevronRight size={14} />
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        </Link>
+                                    ))}
+                                </div>
+
+                                {/* Pagination */}
+                                <div className="flex items-center justify-center gap-2 mt-8">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleChangePage(safeCurrentPage - 1)}
+                                        disabled={safeCurrentPage === 1}
+                                        className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                                    >
+                                        Trước
+                                    </button>
+                                    {Array.from({ length: totalPages }).map((_, index) => {
+                                        const pageNumber = index + 1;
+                                        const isActive = pageNumber === safeCurrentPage;
+                                        return (
+                                            <button
+                                                key={pageNumber}
+                                                type="button"
+                                                onClick={() => handleChangePage(pageNumber)}
+                                                className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all ${isActive
+                                                    ? 'bg-blue-600 text-white shadow-sm'
+                                                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                {pageNumber}
+                                            </button>
+                                        );
+                                    })}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleChangePage(safeCurrentPage + 1)}
+                                        disabled={safeCurrentPage === totalPages}
+                                        className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                                    >
+                                        Sau
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="min-h-[360px] flex flex-col items-center justify-center bg-white rounded-2xl border-2 border-dashed border-slate-200">
+                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                    <Search className="text-slate-300" size={32} />
+                                </div>
+                                <h3 className="text-lg font-semibold text-slate-900 mb-1">Không tìm thấy khóa học</h3>
+                                <p className="text-sm text-slate-500 max-w-sm text-center mb-5">
+                                    Hãy thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh lại bộ lọc để tìm được khóa học phù hợp
+                                    với bạn.
+                                </p>
                                 <button
                                     type="button"
-                                    onClick={() => handleChangePage(safeCurrentPage + 1)}
-                                    disabled={safeCurrentPage === totalPages}
-                                    className="px-3 py-2 rounded-full border border-gray-200 text-xs font-medium text-gray-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+                                    onClick={resetFilters}
+                                    className="px-5 py-2.5 bg-[#0487e2] text-white font-semibold rounded-lg hover:bg-[#0463ca] transition-all"
                                 >
-                                    Sau
+                                    Xóa tất cả bộ lọc
                                 </button>
                             </div>
-                        </>
-                    ) : (
-                        <div className="min-h-[360px] flex flex-col items-center justify-center bg-white rounded-2xl border-2 border-dashed border-gray-200">
-                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                <Search className="text-gray-300" size={32} />
-                            </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-1">Không tìm thấy khóa học</h3>
-                            <p className="text-sm text-gray-500 max-w-sm text-center mb-5">
-                                Hãy thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh lại bộ lọc để tìm được khóa học phù hợp
-                                với bạn.
-                            </p>
-                            <button
-                                type="button"
-                                onClick={resetFilters}
-                                className="btn-primary"
-                            >
-                                Xóa tất cả bộ lọc
-                            </button>
-                        </div>
-                    )}
-                </main>
+                        )}
+                    </main>
+                </div>
             </div>
         </div>
     );

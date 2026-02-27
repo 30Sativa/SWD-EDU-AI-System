@@ -6,11 +6,11 @@ import ScrollToTop from './ScrollToTop';
 
 export default function StudentLayout() {
     return (
-        <div className="flex flex-col min-h-screen bg-[#f8fafc]">
+        <div className="flex flex-col min-h-screen bg-[#F8FAFC]"> {/* Slightly cooler gray background */}
             <ScrollToTop />
             <StudentHeader />
 
-            <main className="flex-grow w-full max-w-7xl mx-auto px-6 md:px-12 py-10 animate-in fade-in duration-700">
+            <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
                 <Outlet />
             </main>
 

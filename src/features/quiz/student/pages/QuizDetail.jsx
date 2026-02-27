@@ -168,14 +168,14 @@ export default function QuizDetail() {
 
     if (mode === 'start') {
         return (
-            <div className="fixed inset-0 bg-[#f8fafc] flex items-center justify-center p-4 z-[9999] overflow-y-auto custom-scrollbar">
+            <div className="fixed inset-0 bg-slate-50 flex items-center justify-center p-4 z-[9999] overflow-y-auto custom-scrollbar">
                 {scrollbarStyle}
-                <div className="max-w-3xl w-full bg-white rounded-[2.5rem] shadow-xl border border-slate-100 p-8 md:p-12 text-center relative overflow-hidden animate-in zoom-in duration-300 my-auto">
+                <div className="max-w-3xl w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-8 md:p-12 text-center relative overflow-hidden animate-in zoom-in duration-300 my-auto">
                     <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-                    <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <div className="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-inner">
                         <ClipboardList className="text-blue-600" size={32} />
                     </div>
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">{quiz.title}</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">{quiz.title}</h1>
                     <p className="text-slate-500 font-medium mb-10">Vui lòng đọc kỹ thông tin trước khi bắt đầu bài làm.</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
                         {[
@@ -184,10 +184,10 @@ export default function QuizDetail() {
                             { label: 'SỐ CÂU', value: `${quiz.totalQuestions} câu`, icon: ClipboardList },
                             { label: 'HÌNH THỨC', value: quiz.type, icon: BookOpen },
                         ].map((stat, i) => (
-                            <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                                 <stat.icon className="text-blue-600 mx-auto mb-2 opacity-80" size={20} />
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                                <p className="text-sm font-bold text-slate-900">{stat.value}</p>
+                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{stat.label}</p>
+                                <p className="text-sm font-semibold text-slate-900">{stat.value}</p>
                             </div>
                         ))}
                     </div>
@@ -200,8 +200,8 @@ export default function QuizDetail() {
                         </ul>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <button onClick={() => navigate('/dashboard/student/quizzes')} className="w-full sm:w-auto px-8 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all active:scale-95">Quay lại</button>
-                        <button onClick={() => setMode('taking')} className="w-full sm:w-auto px-12 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all hover:-translate-y-1 active:scale-95 text-lg">Bắt đầu làm bài</button>
+                        <button onClick={() => navigate('/dashboard/student/quizzes')} className="w-full sm:w-auto px-8 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl transition-all">Quay lại</button>
+                        <button onClick={() => setMode('taking')} className="w-full sm:w-auto px-12 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-200 transition-all hover:-translate-y-1 text-lg">Bắt đầu làm bài</button>
                     </div>
                     <p className="mt-6 text-slate-400 text-xs font-medium">Bằng cách nhấn bắt đầu, đồng hồ đếm ngược sẽ khởi chạy ngay lập tức.</p>
                 </div>
@@ -212,7 +212,7 @@ export default function QuizDetail() {
     if (mode === 'completed') {
         const result = calculateScore();
         return (
-            <div className="min-h-screen bg-[#f8fafc] overflow-y-auto custom-scrollbar relative">
+            <div className="min-h-screen bg-slate-50 overflow-y-auto custom-scrollbar relative">
                 {scrollbarStyle}
                 <div className="max-w-5xl mx-auto px-6 py-12 space-y-12">
                     {/* Breadcrumbs */}
@@ -223,7 +223,7 @@ export default function QuizDetail() {
                     </div>
 
                     {/* Result Summary Card */}
-                    <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12 relative overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full -translate-y-1/2 translate-x-1/2 -z-0"></div>
 
                         <div className="relative z-10 flex flex-col items-center md:flex-row gap-12">
@@ -241,15 +241,15 @@ export default function QuizDetail() {
                                     />
                                 </svg>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-5xl font-black text-slate-900 leading-none">{result.score}</span>
-                                    <span className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">/ 10</span>
+                                    <span className="text-5xl font-bold text-slate-900 leading-none">{result.score}</span>
+                                    <span className="text-sm font-semibold text-slate-400 mt-1 uppercase tracking-wider">/ 10</span>
                                 </div>
                             </div>
 
                             {/* Info Section */}
                             <div className="flex-1 text-center md:text-left space-y-6">
                                 <div>
-                                    <h1 className="text-3xl font-black text-slate-900 mb-2">Chúc mừng! Bạn đã hoàn thành bài thi</h1>
+                                    <h1 className="text-2xl font-bold text-slate-900 mb-2">Chúc mừng! Bạn đã hoàn thành bài thi</h1>
                                     <p className="text-slate-500 font-medium">Kỳ thi đánh giá năng lực THPT - Môn Toán (Mã đề: 102)</p>
                                 </div>
 
@@ -260,9 +260,9 @@ export default function QuizDetail() {
                                         { label: 'CÂU ĐÚNG', value: `${result.correct}/${result.total}`, icon: CheckCircle2 },
                                         { label: 'XẾP HẠNG', value: '#12', icon: Trophy },
                                     ].map((stat, i) => (
-                                        <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                                            <p className={`text-sm font-extrabold ${stat.color || 'text-slate-900'}`}>{stat.value}</p>
+                                        <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{stat.label}</p>
+                                            <p className={`text-sm font-semibold ${stat.color || 'text-slate-900'}`}>{stat.value}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -288,7 +288,7 @@ export default function QuizDetail() {
                     {/* Review Section */}
                     <div ref={reviewRef} className="space-y-8 pb-12">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
+                            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3">
                                 <BookOpen size={28} className="text-blue-600" />
                                 Review Câu hỏi
                             </h2>
@@ -306,7 +306,7 @@ export default function QuizDetail() {
                             {quiz.questions.slice(0, 3).map((q, idx) => {
                                 const isCorrect = answers[idx] === q.correctAnswer;
                                 return (
-                                    <div key={idx} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden p-8 md:p-10 space-y-6 transition-all hover:shadow-md">
+                                    <div key={idx} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden p-6 md:p-8 space-y-5 transition-all hover:shadow-md">
                                         <div className="flex items-center justify-between border-b border-slate-50 pb-6">
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-2">
@@ -339,7 +339,7 @@ export default function QuizDetail() {
                                                         {isAnswer && <CheckCircle2 className="text-emerald-500" size={20} />}
                                                         {isSelected && !isAnswer && (
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-[10px] font-black uppercase tracking-widest">Lựa chọn của bạn</span>
+                                                                <span className="text-[10px] font-semibold uppercase tracking-wider">Lựa chọn của bạn</span>
                                                                 <XCircle className="text-red-500" size={20} />
                                                             </div>
                                                         )}
@@ -348,10 +348,10 @@ export default function QuizDetail() {
                                             })}
                                         </div>
 
-                                        <div className="mt-4 p-6 bg-slate-50/80 rounded-2xl border border-slate-100 relative overflow-hidden">
+                                        <div className="mt-4 p-5 bg-slate-50/80 rounded-xl border border-slate-100 relative overflow-hidden">
                                             <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600/20"></div>
                                             <p className="text-sm italic text-slate-600 leading-relaxed font-medium">
-                                                <span className="font-black text-slate-900 not-italic mr-2">Giải thích:</span>
+                                                <span className="font-bold text-slate-900 not-italic mr-2">Giải thích:</span>
                                                 {q.explanation}
                                             </p>
                                         </div>
@@ -545,9 +545,9 @@ export default function QuizDetail() {
                 <div className="h-full max-w-[1600px] mx-auto px-4 sm:px-6 flex gap-8">
                     <div className="flex-1 flex flex-col h-full overflow-hidden">
                         <div className="flex-1 overflow-y-auto custom-scrollbar pt-6 pb-4 sm:pt-8 pr-2">
-                            <div className="bg-white rounded-[2rem] p-6 sm:p-10 md:p-12 shadow-sm border border-slate-200 relative mb-6">
-                                <div className="flex items-center justify-between mb-8">
-                                    <span className="px-4 py-1.5 bg-blue-100 text-blue-700 font-bold rounded-full text-sm">Câu {currentQuestion + 1} / {quiz.totalQuestions}</span>
+                            <div className="bg-white rounded-xl p-6 sm:p-8 md:p-10 shadow-sm border border-slate-200 relative mb-6">
+                                <div className="flex items-center justify-between mb-6">
+                                    <span className="px-4 py-1.5 bg-blue-100 text-blue-700 font-semibold rounded-full text-sm">Câu {currentQuestion + 1} / {quiz.totalQuestions}</span>
                                     <button className="text-slate-300 hover:text-blue-600 transition-colors"><Flag size={20} /></button>
                                 </div>
                                 <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 leading-snug mb-8 sm:mb-10">{quiz.questions[currentQuestion].text}</p>
@@ -570,10 +570,10 @@ export default function QuizDetail() {
                             <button onClick={() => setCurrentQuestion(Math.min(quiz.totalQuestions - 1, currentQuestion + 1))} disabled={currentQuestion === quiz.totalQuestions - 1} className={`flex items-center gap-2 px-6 sm:px-8 py-2.5 bg-blue-600/10 text-blue-700 font-bold rounded-2xl transition-all ${currentQuestion === quiz.totalQuestions - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-blue-600/20'}`}><span className="hidden sm:inline">Câu tiếp</span><ChevronRight size={20} /></button>
                         </div>
                     </div>
-                    <div className="w-80 h-full overflow-y-auto py-8 custom-scrollbar hidden lg:flex flex-col gap-6 flex-shrink-0">
-                        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200">
-                            <h3 className="flex items-center gap-2 text-slate-800 font-bold mb-6"><LayoutGrid size={20} className="text-blue-600" /> Bản đồ câu hỏi</h3>
-                            <div className="grid grid-cols-5 gap-3 mb-8">
+                    <div className="w-80 h-full overflow-y-auto py-6 custom-scrollbar hidden lg:flex flex-col gap-6 flex-shrink-0">
+                        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+                            <h3 className="flex items-center gap-2 text-slate-800 font-semibold mb-5"><LayoutGrid size={20} className="text-blue-600" /> Bản đồ câu hỏi</h3>
+                            <div className="grid grid-cols-5 gap-2 mb-6">
                                 {quiz.questions.map((_, i) => (
                                     <button key={i} onClick={() => setCurrentQuestion(i)} className={`w-full aspect-square flex items-center justify-center rounded-xl text-sm font-bold border-2 transition-all ${currentQuestion === i ? 'border-blue-600 text-blue-600 bg-blue-50 ring-2 ring-blue-100' : answers[i] ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100' : 'border-slate-50 bg-slate-50/50 text-slate-400 hover:border-slate-200'}`}>{i + 1}</button>
                                 ))}
@@ -584,8 +584,8 @@ export default function QuizDetail() {
                                 <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-slate-100 border-2 border-transparent"></div><span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Chưa làm</span></div>
                             </div>
                         </div>
-                        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-6 text-white shadow-lg shadow-blue-100">
-                            <h4 className="text-white/80 font-bold text-[11px] uppercase tracking-widest mb-3 flex items-center gap-2"><AlertCircle size={16} /> Mẹo làm bài</h4>
+                        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl p-5 text-white shadow-lg shadow-blue-100">
+                            <h4 className="text-white/80 font-semibold text-xs uppercase tracking-wider mb-3 flex items-center gap-2"><AlertCircle size={16} /> Mẹo làm bài</h4>
                             <p className="text-white text-sm leading-relaxed font-medium">Đừng dành quá nhiều thời gian cho một câu hỏi khó. Hãy đánh dấu lại và quay lại sau khi đã xong các câu dễ.</p>
                         </div>
                         <div className="mt-auto pt-8 pb-4"><p className="text-[10px] text-slate-300 font-bold text-center uppercase tracking-[0.2em]">© 2024 EDU-AI Platform</p></div>
