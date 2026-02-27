@@ -191,38 +191,38 @@ export default function CoursesList() {
     };
 
     return (
-        <div className="px-6 py-6 md:px-8 md:py-8 max-w-7xl mx-auto min-h-screen font-sans">
-            <div className="mb-6 md:mb-8 flex flex-col gap-2">
-                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
+        <div className="px-6 py-10 md:px-12 max-w-7xl mx-auto min-h-screen">
+            <div className="mb-12 space-y-2">
+                <h1 className="text-4xl font-black text-slate-900 tracking-tight">
                     Khóa học của bạn
                 </h1>
-                <p className="text-sm md:text-base text-gray-500">
-                    Tìm thấy các khóa học phù hợp nhất với bạn, sắp xếp theo chương trình THPT.
+                <p className="text-slate-500 font-medium text-lg">
+                    Khám phá lộ trình học tập tối ưu được thiết kế riêng cho chương trình THPT.
                 </p>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Sidebar filter */}
-                <aside className="w-full lg:w-64 xl:w-72 flex-shrink-0">
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sticky top-20">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-[0.18em]">
+                <aside className="w-full lg:w-72 xl:w-80 flex-shrink-0">
+                    <div className="premium-card p-6 sticky top-24 shadow-sm border-slate-200">
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
                                 Bộ lọc
                             </h2>
                             <button
                                 type="button"
                                 onClick={resetFilters}
-                                className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                                className="text-xs font-bold text-blue-600 hover:text-blue-700 underline underline-offset-4 decoration-2"
                             >
-                                Xóa bộ lọc
+                                Xóa hết
                             </button>
                         </div>
 
                         <div className="space-y-5 text-sm">
                             <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="font-semibold text-gray-900">Khối lớp</span>
-                                    <span className="text-[11px] text-gray-400">Chọn 1</span>
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-xs font-bold text-slate-800 uppercase tracking-widest">Khối lớp</span>
+                                    <span className="text-[10px] font-bold text-slate-300 tracking-tight">CHỌN 1</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {grades.map((item) => (
@@ -230,11 +230,10 @@ export default function CoursesList() {
                                             key={item}
                                             type="button"
                                             onClick={() => handleFilterChange(setSelectedGrade)(item)}
-                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                                                selectedGrade === item
-                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                    : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
-                                            }`}
+                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${selectedGrade === item
+                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
+                                                }`}
                                         >
                                             {item}
                                         </button>
@@ -254,11 +253,10 @@ export default function CoursesList() {
                                             key={item}
                                             type="button"
                                             onClick={() => handleFilterChange(setSelectedSubject)(item)}
-                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                                                selectedSubject === item
-                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                    : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
-                                            }`}
+                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${selectedSubject === item
+                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
+                                                }`}
                                         >
                                             {item}
                                         </button>
@@ -278,11 +276,10 @@ export default function CoursesList() {
                                             key={item}
                                             type="button"
                                             onClick={() => handleFilterChange(setSelectedStatus)(item)}
-                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                                                selectedStatus === item
-                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                    : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
-                                            }`}
+                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${selectedStatus === item
+                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
+                                                }`}
                                         >
                                             {item}
                                         </button>
@@ -302,11 +299,10 @@ export default function CoursesList() {
                                             key={item}
                                             type="button"
                                             onClick={() => handleFilterChange(setSelectedType)(item)}
-                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                                                selectedType === item
-                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                    : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
-                                            }`}
+                                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${selectedType === item
+                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
+                                                }`}
                                         >
                                             {item}
                                         </button>
@@ -338,10 +334,10 @@ export default function CoursesList() {
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <div className="relative min-w-[190px]">
-                                    <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                <div className="relative min-w-[200px]">
+                                    <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
                                     <select
-                                        className="w-full pl-9 pr-9 py-2.5 bg-gray-50 border border-gray-200 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500 cursor-pointer text-xs md:text-sm font-medium"
+                                        className="w-full pl-9 pr-9 py-2.5 bg-gray-50 border border-gray-200 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500 cursor-pointer text-[10px] md:text-xs font-bold text-slate-700 uppercase tracking-widest"
                                         value={sortBy}
                                         onChange={(e) => {
                                             setSortBy(e.target.value);
@@ -368,7 +364,7 @@ export default function CoursesList() {
                                         to={`/dashboard/student/courses/${course.id}`}
                                         className="group"
                                     >
-                                        <article className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-[0_18px_50px_rgba(15,23,42,0.14)] hover:border-blue-200 transition-all duration-300 flex flex-col h-full">
+                                        <article className="premium-card overflow-hidden h-full flex flex-col">
                                             <div className="relative h-40 md:h-44 lg:h-48 overflow-hidden">
                                                 <img
                                                     src={course.image}
@@ -424,11 +420,11 @@ export default function CoursesList() {
                                                         </p>
                                                     </div>
                                                     <div className="border-l border-gray-200 pl-2">
-                                                        <p className="text-[10px] uppercase tracking-[0.12em] text-gray-400 mb-0.5">
+                                                        <p className="text-[9px] md:text-[10px] uppercase tracking-[0.12em] text-gray-400 mb-0.5">
                                                             Đánh giá
                                                         </p>
-                                                        <p className="font-semibold text-gray-900 flex items-center gap-1">
-                                                            <Star size={13} className="text-yellow-500 fill-yellow-500" />{' '}
+                                                        <p className="font-bold text-slate-900 flex items-center gap-1">
+                                                            <Star size={12} className="text-amber-400 fill-amber-400" />{' '}
                                                             {course.rating}
                                                         </p>
                                                     </div>
@@ -445,13 +441,12 @@ export default function CoursesList() {
                                                     </div>
                                                     <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
                                                         <div
-                                                            className={`h-full rounded-full transition-all duration-700 ease-out ${
-                                                                course.progress >= 80
-                                                                    ? 'bg-emerald-500'
-                                                                    : course.progress >= 40
+                                                            className={`h-full rounded-full transition-all duration-700 ease-out ${course.progress >= 80
+                                                                ? 'bg-emerald-500'
+                                                                : course.progress >= 40
                                                                     ? 'bg-blue-500'
                                                                     : 'bg-amber-500'
-                                                            }`}
+                                                                }`}
                                                             style={{ width: `${course.progress}%` }}
                                                         />
                                                     </div>
@@ -493,11 +488,10 @@ export default function CoursesList() {
                                             key={pageNumber}
                                             type="button"
                                             onClick={() => handleChangePage(pageNumber)}
-                                            className={`w-8 h-8 rounded-full text-xs font-semibold flex items-center justify-center transition-all ${
-                                                isActive
-                                                    ? 'bg-blue-600 text-white shadow-sm'
-                                                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                                            }`}
+                                            className={`w-8 h-8 rounded-full text-xs font-semibold flex items-center justify-center transition-all ${isActive
+                                                ? 'bg-blue-600 text-white shadow-sm'
+                                                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                                }`}
                                         >
                                             {pageNumber}
                                         </button>
@@ -526,7 +520,7 @@ export default function CoursesList() {
                             <button
                                 type="button"
                                 onClick={resetFilters}
-                                className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs md:text-sm font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all active:scale-95"
+                                className="btn-primary"
                             >
                                 Xóa tất cả bộ lọc
                             </button>

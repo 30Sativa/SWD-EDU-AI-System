@@ -88,40 +88,41 @@ export default function StudentDashboard() {
   }, []);
 
   return (
-    <div className="space-y-10 pb-12">
+    <div className="space-y-12 pb-16">
 
-      {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#0463ca]">
-            Chào, {userName}
+      {/* Header / Welcome Banner */}
+      <div className="premium-card p-8 flex flex-col md:flex-row md:items-center justify-between gap-8 bg-gradient-to-r from-white to-blue-50/20">
+        <div className="space-y-1">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900">
+            Chào quay trở lại, <span className="text-[#0463ca]">{userName}</span>! 👋
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Bạn đã hoàn thành 85% mục tiêu tuần
+          <p className="text-slate-500 font-medium">
+            Em đã hoàn thành <span className="text-[#0487e2] font-bold">85%</span> mục tiêu học tập trong tuần này.
           </p>
         </div>
 
         <Link
           to="/dashboard/student/courses"
-          className="inline-flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-xl
-                      bg-[#0487e2] text-white hover:bg-[#0463ca] transition"
+          className="btn-primary"
         >
-          Vào học tiếp
-          <ArrowRight size={16} />
+          Tiếp tục hành trình
+          <ArrowRight size={18} />
         </Link>
       </div>
 
-      {/* Stats */}
+      {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {stats.map((item, idx) => (
           <div
             key={idx}
-            className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4"
+            className="premium-card p-6 flex items-center gap-5 group hover:-translate-y-1"
           >
-            <item.icon size={18} className="text-[#0487e2]" />
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm">
+              <item.icon size={22} />
+            </div>
             <div>
-              <p className="text-sm text-gray-500">{item.label}</p>
-              <p className="text-xl font-semibold text-gray-900">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-1">{item.label}</p>
+              <p className="text-2xl font-extrabold text-slate-900">
                 {item.value}
               </p>
             </div>
@@ -129,16 +130,19 @@ export default function StudentDashboard() {
         ))}
       </div>
 
-      {/* 📊 Study Chart (UPDATED) */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-base font-bold text-gray-900">
-            Thời gian học tập
-          </h3>
-          <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded-md">7 ngày qua</span>
+      {/* 📊 Study Chart */}
+      <div className="premium-card p-8">
+        <div className="flex justify-between items-center mb-10">
+          <div>
+            <h3 className="text-lg font-bold text-[#0463ca] mb-1">
+              Thời gian học tập
+            </h3>
+            <p className="text-slate-500 text-xs font-medium tracking-tight">Phân tích nỗ lực của em trong 7 ngày qua</p>
+          </div>
+          <span className="text-[10px] font-bold text-[#0487e2] bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 uppercase tracking-widest">7 ngày qua</span>
         </div>
 
-        <div className="h-[240px] w-full overflow-hidden">
+        <div className="h-[280px] w-full overflow-hidden">
           <ResponsiveContainer width="99%" height="100%" minWidth={0}>
             <AreaChart data={studyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
@@ -183,21 +187,21 @@ export default function StudentDashboard() {
         {/* Continue Learning */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-xl font-bold text-slate-900">
               Tiếp tục học
             </h2>
             <Link
               to="/dashboard/student/courses"
-              className="text-sm text-[#0487e2] hover:text-[#0463ca] flex items-center gap-1"
+              className="text-xs font-bold text-[#0487e2] hover:text-[#0463ca] flex items-center gap-1 group/link uppercase tracking-widest transition-colors"
             >
-              Xem tất cả <ArrowRight size={14} />
+              Xem tất cả <ArrowRight size={14} className="transition-transform group-hover/link:translate-x-1" />
             </Link>
           </div>
 
           {continueLearning.map((item) => (
             <div
               key={item.id}
-              className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-sm transition"
+              className="premium-card overflow-hidden group/item"
             >
               <div className="flex flex-col sm:flex-row">
                 <img
@@ -206,22 +210,22 @@ export default function StudentDashboard() {
                   className="w-full sm:w-44 h-36 object-cover"
                 />
 
-                <div className="flex-1 p-5">
-                  <h3 className="font-semibold text-gray-900 mb-1">
+                <div className="flex-1 p-6">
+                  <h3 className="text-base font-bold text-slate-900 mb-1 group-hover/item:text-[#0463ca] transition-colors leading-tight">
                     {item.title}
                   </h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    {item.lesson}
+                  <p className="text-xs text-slate-400 font-medium mb-8">
+                    Bài học tiếp: <span className="text-slate-600">{item.lesson}</span>
                   </p>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-gray-400">
-                      <span>{item.progress}% hoàn thành</span>
-                      <span>{item.lastAccessed}</span>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                      <span className="text-[#0463ca]">{item.progress}% hoàn thành</span>
+                      <span className="text-slate-400">{item.lastAccessed}</span>
                     </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full">
+                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-[#0487e2] rounded-full"
+                        className="h-full bg-[#0487e2] rounded-full transition-all duration-1000"
                         style={{ width: `${item.progress}%` }}
                       />
                     </div>
@@ -233,25 +237,25 @@ export default function StudentDashboard() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-8">
 
           {/* Schedule */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Calendar size={16} className="text-[#0487e2]" />
+          <div className="premium-card p-6">
+            <h3 className="text-sm font-bold text-[#0463ca] mb-6 flex items-center gap-2 uppercase tracking-widest">
+              <Calendar size={18} />
               Lịch sắp tới
             </h3>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               {upcomingDeadlines.map((item, idx) => (
-                <div key={idx}>
-                  <p className="text-sm font-medium text-gray-900">
+                <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100/50">
+                  <p className="text-sm font-black text-slate-800 mb-1">
                     {item.title}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-slate-500 font-medium mb-2">
                     {item.course}
                   </p>
-                  <p className="text-xs text-[#0487e2] mt-1">
+                  <p className="text-xs font-black text-blue-600">
                     {item.date}
                   </p>
                 </div>
@@ -260,14 +264,14 @@ export default function StudentDashboard() {
           </div>
 
           {/* Weekly Goal */}
-          <div className="bg-[#e0f2fe] rounded-2xl p-6 border border-[#b0d6f5]">
-            <h3 className="font-semibold text-gray-900 mb-4">
+          <div className="bg-gradient-to-br from-[#0487e2] to-[#0463ca] rounded-2xl p-7 text-white shadow-lg shadow-blue-100">
+            <h3 className="text-sm font-bold mb-6 uppercase tracking-[0.2em] text-blue-50">
               Mục tiêu tuần
             </h3>
 
-            <div className="space-y-4">
-              <Progress label="Bài học" value="4 / 5" percent={80} />
-              <Progress label="Thời gian học" value="12.5 / 15h" percent={83} />
+            <div className="space-y-6">
+              <Progress label="Bài học" value="4 / 5" percent={80} light />
+              <Progress label="Thời gian học" value="12.5 / 15h" percent={83} light />
             </div>
           </div>
 
@@ -277,16 +281,16 @@ export default function StudentDashboard() {
   );
 }
 
-function Progress({ label, value, percent }) {
+function Progress({ label, value, percent, light }) {
   return (
-    <div>
-      <div className="flex justify-between text-xs text-gray-500 mb-1">
-        <span>{label}</span>
-        <span className="text-gray-900 font-medium">{value}</span>
+    <div className="space-y-2">
+      <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+        <span className={light ? "text-blue-100" : "text-slate-400"}>{label}</span>
+        <span className={light ? "text-white" : "text-slate-900"}>{value}</span>
       </div>
-      <div className="h-1.5 bg-[#e0f2fe] rounded-full">
+      <div className={`h-2 rounded-full overflow-hidden ${light ? "bg-white/20" : "bg-slate-100"}`}>
         <div
-          className="h-full bg-[#0487e2] rounded-full"
+          className={`h-full rounded-full transition-all duration-1000 ${light ? "bg-white" : "bg-blue-600"}`}
           style={{ width: `${percent}%` }}
         />
       </div>

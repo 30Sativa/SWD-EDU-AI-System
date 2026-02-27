@@ -35,10 +35,10 @@ export default function StudentHeader() {
     }, []);
 
     const navItems = [
-        { label: 'Tổng quan', path: 'dashboard' },
-        { label: 'Khóa học', path: 'courses' },
-        { label: 'Bài kiểm tra', path: 'quizzes' },
-        { label: 'Tiến độ', path: 'progress' },
+        { label: 'Tổng quan', path: '/dashboard/student' },
+        { label: 'Khóa học', path: '/dashboard/student/courses' },
+        { label: 'Bài kiểm tra', path: '/dashboard/student/quizzes' },
+        { label: 'Tiến độ', path: '/dashboard/student/progress' },
     ];
 
     const getInitials = (name) => {
@@ -57,29 +57,30 @@ export default function StudentHeader() {
     return (
         <header className="h-16 w-full bg-white border-b border-gray-200/60 shadow-sm sticky top-0 z-50">
             <div className="h-full w-full px-8 relative flex items-center justify-between">
-                <div className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                    <GraduationCap size={28} className="flex-shrink-0 text-blue-600" />
+                <div className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-100 italic">
+                        <GraduationCap size={24} />
+                    </div>
                     <div>
-                        <h1 className="text-base font-bold leading-none text-gray-900">EDU-AI Classroom</h1>
-                        <p className="text-[10px] text-gray-500 mt-1">Học tập đơn giản hơn</p>
+                        <h1 className="text-lg font-black leading-none text-slate-900 tracking-tight uppercase italic">EDU-AI</h1>
+                        <p className="text-[10px] font-black tracking-widest text-blue-600 uppercase mt-0.5">LEARNING PATH</p>
                     </div>
                 </div>
 
-                {/* Navigation - Perfectly Centered, Absolute */}
-                <nav className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-2">
+                {/* Navigation - Premium Pill Style */}
+                <nav className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center bg-slate-100/50 p-1 rounded-2xl border border-slate-200/50">
                     {navItems.map((item) => {
-                        const fullPath = item.path === 'dashboard' ? BASE_PATH : `${BASE_PATH}/${item.path}`;
-                        const isActive = item.path === 'dashboard'
-                            ? location.pathname === BASE_PATH
-                            : location.pathname.startsWith(fullPath);
+                        const isActive = item.path === '/dashboard/student'
+                            ? location.pathname === item.path
+                            : location.pathname.startsWith(item.path);
 
                         return (
                             <Link
                                 key={item.label}
-                                to={fullPath}
-                                className={`font-medium text-sm px-2 py-1 mx-2 border-b-2 transition-all duration-200 ${isActive
-                                    ? 'text-blue-600 border-blue-600'
-                                    : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-600'
+                                to={item.path}
+                                className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${isActive
+                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
+                                    : 'text-slate-500 hover:text-slate-900'
                                     }`}
                             >
                                 {item.label}
@@ -104,10 +105,10 @@ export default function StudentHeader() {
 
                     <Link to={`${BASE_PATH}/profile`} className="flex items-center gap-3 cursor-pointer group no-underline">
                         <div className="text-right hidden sm:block">
-                            <p className="text-sm font-bold text-gray-800 leading-none group-hover:text-blue-600 transition-colors">{user.name}</p>
-                            <p className="text-[11px] text-gray-500 mt-0.5 font-medium">{user.role}</p>
+                            <p className="text-sm font-black text-slate-800 leading-none group-hover:text-blue-600 transition-colors uppercase tracking-tight">{user.name}</p>
+                            <p className="text-[10px] text-blue-500 mt-0.5 font-bold uppercase tracking-widest">{user.role}</p>
                         </div>
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-white group-hover:ring-blue-100 transition-all">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-blue-100 ring-2 ring-white group-hover:ring-blue-100 transition-all">
                             {getInitials(user.name)}
                         </div>
                     </Link>

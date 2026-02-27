@@ -1,1 +1,77 @@
 @import "tailwindcss";
+
+/* EDU-AI Global Design System - Reconciled (Student & Manager) */
+@layer base {
+    :root {
+        /* Primary Colors (Manager Aligned) */
+        --brand-primary: #0487e2;
+        --brand-dark: #0463ca;
+        --brand-light: #e0f2fe;
+
+        /* Semantic Colors */
+        --bg-main: #f8fafc;
+        /* slate-50 */
+        --text-main: #1e293b;
+        /* slate-800 */
+        --text-heading: #0f172a;
+        /* slate-900 */
+        --text-muted: #64748b;
+        /* slate-500 */
+
+        /* UI Tokens */
+        --radius-standard: 0.75rem;
+        /* rounded-xl */
+        --radius-premium: 1rem;
+        /* rounded-2xl */
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+
+    body {
+        @apply font-sans antialiased text-slate-800 bg-slate-50;
+        font-feature-settings: "cv02", "cv03", "cv11";
+    }
+
+    /* Standardizing Headings to match Manager side */
+    h1,
+    .h1 {
+        @apply text-2xl md:text-3xl font-extrabold tracking-tight text-[#0463ca];
+    }
+
+    h2,
+    .h2 {
+        @apply text-xl md:text-2xl font-bold tracking-tight text-slate-900;
+    }
+
+    h3,
+    .h3 {
+        @apply text-lg font-bold tracking-tight text-slate-800;
+    }
+}
+
+@layer components {
+
+    /* Aligned Premium Card Pattern (Manager uses rounded-xl) */
+    .premium-card {
+        @apply bg-white rounded-xl border border-slate-200 shadow-[0_2px_15px_-3px_rgba(0, 0, 0, 0.05)] hover:shadow-md transition-all duration-300;
+    }
+
+    /* Aligned Button Pattern to match Manager Dashboard */
+    .btn-primary {
+        @apply px-5 py-2.5 bg-[#0487e2] text-white font-semibold rounded-lg hover:bg-[#0463ca] transition-all active:scale-95 flex items-center justify-center gap-2 shadow-md shadow-[#0487e2]/20;
+    }
+
+    /* Custom Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        @apply bg-transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        @apply bg-slate-200 rounded-full hover:bg-slate-300;
+    }
+}
