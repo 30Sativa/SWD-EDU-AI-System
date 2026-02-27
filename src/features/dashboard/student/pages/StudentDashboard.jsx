@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getCurrentUser } from '../../../user/api/userApi';
 import {
   ArrowRight,
   Calendar,
@@ -68,6 +69,24 @@ const upcomingDeadlines = [
 ];
 
 export default function StudentDashboard() {
+  const [userName, setUserName] = useState(localStorage.getItem('userName') || 'User');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await getCurrentUser();
+        const userData = response?.data || response;
+        if (userData?.userName) {
+          setUserName(userData.userName);
+          localStorage.setItem('userName', userData.userName);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    };
+    fetchUser();
+  }, []);
+
   return (
     <div className="space-y-10 pb-12">
 
@@ -75,7 +94,7 @@ export default function StudentDashboard() {
       <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[#0463ca]">
-            Chào, Ngọc
+            Chào, {userName}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Bạn đã hoàn thành 85% mục tiêu tuần
