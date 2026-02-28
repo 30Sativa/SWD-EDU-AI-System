@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
     BookOpen,
@@ -17,10 +17,36 @@ import {
     User,
     ListChecks
 } from 'lucide-react';
+import { getClassDetail } from '../../../classes/api/classApi';
+import { Spin, message } from 'antd';
 
 export default function CourseDetail() {
     const { courseId } = useParams();
-    const [expandedSections, setExpandedSections] = useState([1, 2]);
+    const [expandedSections, setExpandedSections] = useState([1]);
+    const [loading, setLoading] = useState(true);
+    const [courseData, setCourseData] = useState(null);
+
+    useEffect(() => {
+        const fetchDetail = async () => {
+            setLoading(true);
+            try {
+                const res = await getClassDetail(courseId);
+                const data = res?.data || res;
+                setCourseData(data);
+
+                // Mở section đầu tiên mặc định
+                if (data.sections && data.sections.length > 0) {
+                    setExpandedSections([data.sections[0].id]);
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải chi tiết khóa học:", error);
+                message.error("Không thể tải thông tin khóa học");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchDetail();
+    }, [courseId]);
 
     const toggleSection = (sectionId) => {
         if (expandedSections.includes(sectionId)) {
@@ -30,77 +56,60 @@ export default function CourseDetail() {
         }
     };
 
+    if (loading) return (
+        <div className="flex flex-col justify-center items-center h-[70vh] gap-4">
+            <Spin size="large" />
+            <p className="text-slate-500 font-medium">Đang chuẩn bị bài học cho bạn...</p>
+        </div>
+    );
+
+    if (!courseData) return (
+        <div className="text-center py-24 bg-white rounded-3xl border border-dashed border-slate-200 m-8">
+            <BookOpen size={64} className="mx-auto text-slate-200 mb-4" />
+            <h3 className="text-xl font-bold text-slate-900">Không tìm thấy khóa học</h3>
+            <p className="text-slate-500">Dữ liệu có thể đã bị xóa hoặc bạn không có quyền truy cập.</p>
+        </div>
+    );
+
     const courseInfo = {
-        title: 'Vật Lý 12 - Luyện Thi THPT',
-        instructor: 'Cô Trần Thị Mai',
-        totalHours: 60,
-        progress: 40,
-        completedLessons: 12,
-        totalLessons: 30,
-        tag: 'BAN TỰ NHIÊN'
+        title: courseData.title || courseData.name || 'Khóa học',
+        instructor: courseData.teacherName || courseData.instructor || 'Giảng viên',
+        totalHours: courseData.totalDuration ? Math.floor(courseData.totalDuration / 60) : 0,
+        progress: courseData.progress || 0,
+        completedLessons: courseData.completedLessons || 0,
+        totalLessons: courseData.totalLessons || 0,
+        tag: courseData.subjectName || courseData.categoryName || 'Môn học'
     };
 
-    const sections = [
-        {
-            id: 1,
-            title: 'Chương 1: Dao Động Cơ',
-            status: 'Đã hoàn thành',
-            lessons: 10,
-            duration: '15 tiết',
-            completed: true,
-            items: [
-                { id: 1, type: 'video', title: '1.1 Dao động điều hòa', duration: '45 p', completed: true },
-                { id: 2, type: 'video', title: '1.2 Con lắc lò xo', duration: '45 p', completed: true },
-                { id: 3, type: 'video', title: '1.3 Con lắc đơn', duration: '45 p', completed: true },
-                { id: 4, type: 'video', title: '1.4 Dao động tắt dần, dao động cưỡng bức', duration: '45 p', completed: true },
-                { id: 5, type: 'quiz', title: 'Kiểm tra 15 phút: Dao động cơ', duration: '15 p', completed: false, isNew: true }
-            ]
-        },
-        {
-            id: 2,
-            title: 'Chương 2: Sóng Cơ và Sóng Âm',
-            status: 'Đang học',
-            lessons: 8,
-            duration: '12 tiết',
-            completed: false,
-            items: [
-                { id: 1, type: 'video', title: '2.1 Sóng cơ và sự truyền sóng cơ', duration: '45 p', completed: true },
-                { id: 2, type: 'video', title: '2.2 Giao thoa sóng', duration: '45 p', completed: false, isNew: true },
-                { id: 3, type: 'quiz', title: 'Bài tập trắc nghiệm: Giao thoa sóng', duration: '20 p', completed: false },
-                { id: 4, type: 'video', title: '2.3 Sóng dừng', duration: '45 p', completed: false }
-            ]
-        },
-        {
-            id: 3,
-            title: 'Chương 3: Dòng Điện Xoay Chiều',
-            status: 'Sắp học',
-            lessons: 12,
-            duration: '18 tiết',
-            completed: false,
-            items: []
-        },
-        {
-            id: 4,
-            title: '[Bổ sung] Chuyên đề Ôn thi Đại học',
-            description: 'Nội dung nâng cao do GV biên soạn thêm',
-            status: 'Đã khóa',
-            lessons: 5,
-            duration: '10 tiết',
-            completed: false,
-            items: []
-        }
-    ];
+    // Mapping sections từ API sang format UI
+    const apiSections = courseData.sections || [];
+    const sections = apiSections.map((s, index) => ({
+        id: s.id,
+        title: s.title || `Chương ${index + 1}: ${s.name || 'Nội dung'}`,
+        status: s.isLocked ? 'Đã khóa' : s.isCompleted ? 'Đã hoàn thành' : 'Đang học',
+        lessons: s.lessonsCount || (s.items ? s.items.length : 0),
+        duration: s.duration || '---',
+        completed: s.isCompleted || false,
+        description: s.description || '',
+        items: (s.items || []).map(item => ({
+            id: item.id,
+            type: item.type?.toLowerCase() || 'video',
+            title: item.title || item.name || 'Bài học',
+            duration: item.duration || '45 p',
+            completed: item.isCompleted || false,
+            isNew: item.isNew || false
+        }))
+    }));
 
-    const resources = [
-        { id: 1, title: 'Đề cương ôn tập HK1.pdf', icon: Download },
-        { id: 2, title: 'Bảng công thức Vật Lý 12', icon: FileText },
-        { id: 3, title: 'Nhóm Zalo lớp học tập', icon: MessageSquare }
+    const resources = courseData.resources || [
+        { id: 1, title: 'Đề cương ôn tập.pdf', icon: Download },
+        { id: 2, title: 'Bảng công thức bổ trợ', icon: FileText }
     ];
 
     const nextClass = {
         title: 'Tiết học tiếp theo',
-        description: 'Chuyên đề: Bài tập Giao thoa sóng',
-        time: 'Thứ Tư, Tiết 3-4 (9:00 AM)'
+        description: courseData.nextClassTopic || 'Chuyên đề học tập tiếp theo',
+        time: courseData.nextClassTime || 'Xem lịch để biết thêm chi tiết'
     };
 
     return (

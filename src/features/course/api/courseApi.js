@@ -10,6 +10,11 @@ export const getMyCourses = async (params) => {
     return response;
 };
 
+export const getStudentMyCourses = async (params) => {
+    const response = await axiosClient.get("/api/student/courses/my", { params });
+    return response;
+};
+
 export const createSection = async (courseId, data) => {
     const response = await axiosClient.post(`/api/courses/${courseId}/sections`, data);
     return response;
@@ -25,4 +30,8 @@ export const scanCourseTemplate = async (id, formData) => {
 
 export const saveCourseStructure = async (id, data) => {
     return await axiosClient.post(`/api/manager/courses/${id}/save-structure`, data);
+};
+
+export const enrollCourse = async (courseId) => {
+    return await axiosClient.post(`/api/student/courses/${courseId}/enroll`);
 };

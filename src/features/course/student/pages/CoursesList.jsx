@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     BookOpen,
@@ -10,10 +10,19 @@ import {
     Filter,
     ArrowUpDown,
 } from 'lucide-react';
+import { getStudentMyCourses, enrollCourse } from '../../api/courseApi';
+import { getSubjects } from '../../../subject/api/subjectApi';
+import { getGradeLevels } from '../../../grade/api/gradeApi';
+import axiosClient from '../../../../lib/axiosClient';
+import { Spin, message } from 'antd';
 
 const PAGE_SIZE = 6;
 
 export default function CoursesList() {
+    const [activeTab, setActiveTab] = useState('my'); // 'my' hoặc 'discover'
+    const [allClasses, setAllClasses] = useState([]);
+    const [enrollingId, setEnrollingId] = useState(null);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('default');
     const [selectedGrade, setSelectedGrade] = useState('Tất cả');
@@ -22,146 +31,160 @@ export default function CoursesList() {
     const [selectedType, setSelectedType] = useState('Tất cả');
     const [currentPage, setCurrentPage] = useState(1);
 
-    const courses = useMemo(
-        () => [
-            {
-                id: 'math-11-advanced',
-                title: 'Toán 11 - Hàm số bậc hai và ứng dụng thực tế',
-                instructor: 'Nguyễn Văn Hùng',
-                grade: 'Lớp 11',
-                subject: 'Toán',
-                status: 'Đang học',
-                type: 'Chính khóa',
-                progress: 75,
-                lessons: 32,
-                totalHours: 45,
-                students: 40,
-                rating: 4.8,
-                nextLesson: 'Ứng dụng hàm số vào bài toán thực tế',
-                image:
-                    'https://images.unsplash.com/photo-1516031190212-da133013de50?auto=format&fit=crop&q=80&w=900',
-                badge: 'HOT',
-            },
-            {
-                id: 'vietnamese-11',
-                title: 'Ngữ văn 11 - Văn học Việt Nam hiện đại',
-                instructor: 'Phạm Thị Lan',
-                grade: 'Lớp 11',
-                subject: 'Ngữ văn',
-                status: 'Đang học',
-                type: 'Chính khóa',
-                progress: 60,
-                lessons: 28,
-                totalHours: 40,
-                students: 36,
-                rating: 4.7,
-                nextLesson: 'Văn bản nghị luận hiện đại',
-                image:
-                    'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=900',
-                badge: 'MỚI',
-            },
-            {
-                id: 'physics-11',
-                title: 'Vật lý 11 - Điện học & Quang học',
-                instructor: 'Trần Thị Mai',
-                grade: 'Lớp 11',
-                subject: 'Vật lý',
-                status: 'Chưa bắt đầu',
-                type: 'Trải nghiệm',
-                progress: 0,
-                lessons: 26,
-                totalHours: 38,
-                students: 28,
-                rating: 4.6,
-                nextLesson: 'Điện trường & Cường độ điện trường',
-                image:
-                    'https://images.unsplash.com/photo-1526498460520-4c246339dccb?auto=format&fit=crop&q=80&w=900',
-                badge: 'TRẢI NGHIỆM',
-            },
-            {
-                id: 'chem-11',
-                title: 'Hóa học 11 - Hidrocacbon & Dẫn xuất',
-                instructor: 'Lê Văn Lâm',
-                grade: 'Lớp 11',
-                subject: 'Hóa học',
-                status: 'Đang học',
-                type: 'Chính khóa',
-                progress: 45,
-                lessons: 30,
-                totalHours: 42,
-                students: 34,
-                rating: 4.5,
-                nextLesson: 'Ankan & Đồng đẳng',
-                image:
-                    'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=900',
-                badge: 'PHÙ HỢP CHƯƠNG TRÌNH',
-            },
-            {
-                id: 'it-python-11',
-                title: 'Tin học 11 - Lập trình Python cơ bản',
-                instructor: 'Nguyễn Minh Đức',
-                grade: 'Lớp 11',
-                subject: 'Tin học',
-                status: 'Đang học',
-                type: 'Trải nghiệm',
-                progress: 30,
-                lessons: 24,
-                totalHours: 35,
-                students: 52,
-                rating: 4.9,
-                nextLesson: 'Cấu trúc rẽ nhánh & vòng lặp',
-                image:
-                    'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=900',
-                badge: 'HOT',
-            },
-            {
-                id: 'english-11',
-                title: 'Tiếng Anh 11 - Ngữ pháp trọng tâm & Từ vựng',
-                instructor: 'David Nguyen',
-                grade: 'Lớp 11',
-                subject: 'Tiếng Anh',
-                status: 'Đã hoàn thành',
-                type: 'Chính khóa',
-                progress: 100,
-                lessons: 36,
-                totalHours: 48,
-                students: 40,
-                rating: 4.9,
-                nextLesson: 'Ôn tập tổng hợp',
-                image:
-                    'https://images.unsplash.com/photo-1516387938699-a93567ec168e?auto=format&fit=crop&q=80&w=900',
-                badge: 'ĐÃ HOÀN THÀNH',
-            },
-        ],
-        []
-    );
+    const [courses, setCourses] = useState([]);
+    const [subjects, setSubjects] = useState(['Tất cả']);
+    const [grades, setGrades] = useState(['Tất cả']);
+    const [loading, setLoading] = useState(true);
+    const [totalItems, setTotalItems] = useState(0);
 
-    const grades = ['Tất cả', 'Lớp 10', 'Lớp 11', 'Lớp 12'];
-    const subjects = ['Tất cả', 'Toán', 'Ngữ văn', 'Vật lý', 'Hóa học', 'Tin học', 'Tiếng Anh'];
     const statuses = ['Tất cả', 'Đang học', 'Chưa bắt đầu', 'Đã hoàn thành'];
     const types = ['Tất cả', 'Chính khóa', 'Trải nghiệm'];
 
+    useEffect(() => {
+        const fetchFilters = async () => {
+            try {
+                const [subjRes, gradeRes] = await Promise.all([
+                    getSubjects(),
+                    getGradeLevels()
+                ]);
+
+                const subjData = subjRes?.data || subjRes;
+                const gradeData = gradeRes?.data || gradeRes;
+
+                if (Array.isArray(subjData)) {
+                    setSubjects(['Tất cả', ...subjData.map(s => s.name)]);
+                }
+                if (Array.isArray(gradeData)) {
+                    setGrades(['Tất cả', ...gradeData.map(g => g.name)]);
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải bộ lọc:", error);
+            }
+        };
+        fetchFilters();
+    }, []);
+
+    const fetchMyCourses = async () => {
+        setLoading(true);
+        try {
+            const res = await getStudentMyCourses({
+                page: currentPage,
+                limit: 100
+            });
+            const data = res?.data || res;
+            const items = data.items || data || [];
+
+            const mappedItems = items.map(c => ({
+                id: c.id,
+                title: c.title || c.name || 'Khóa học',
+                instructor: c.teacherName || c.instructor || 'Giảng viên',
+                grade: c.level || c.gradeLevelName || 'Lớp 11',
+                subject: c.subjectName || 'Môn học',
+                status: c.status || (c.progress === 100 ? 'Đã hoàn thành' : c.progress > 0 ? 'Đang học' : 'Chưa bắt đầu'),
+                type: c.type || 'Chính khóa',
+                progress: c.progress || 0,
+                lessons: c.totalLessons || 0,
+                totalHours: c.totalDuration ? Math.floor(c.totalDuration / 60) : 0,
+                students: c.totalStudents || 0,
+                rating: c.rating || 4.5,
+                nextLesson: c.nextLessonName || 'Bài giảng tiếp theo',
+                image: c.thumbnail || c.thumbnailUrl || 'https://images.unsplash.com/photo-1516031190212-da133013de50?auto=format&fit=crop&q=80&w=900',
+                badge: c.progress === 100 ? 'Đã hoàn thành' : c.progress > 80 ? 'HOT' : null
+            }));
+
+            setCourses(mappedItems);
+            setTotalItems(data.totalItems || mappedItems.length);
+        } catch (error) {
+            console.error("Lỗi khi tải danh sách khóa học của tôi:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchAllClasses = async () => {
+        setLoading(true);
+        try {
+            const res = await axiosClient.get('/api/manager/classes');
+            const data = res?.data || res;
+            const items = data.items || data || [];
+
+            const mappedItems = items.map(c => ({
+                id: c.id,
+                title: c.title || c.name || 'Khóa học',
+                instructor: c.teacherName || 'Giảng viên',
+                grade: c.gradeLevelName || 'Lớp 11',
+                subject: c.subjectName || 'Môn học',
+                status: 'Có sẵn',
+                type: 'Chính khóa',
+                progress: 0,
+                lessons: 20,
+                totalHours: 40,
+                students: c.currentStudents || 0,
+                rating: 4.8,
+                nextLesson: 'Vào học để bắt đầu',
+                image: 'https://images.unsplash.com/photo-1526498460520-4c246339dccb?auto=format&fit=crop&q=80&w=900',
+                badge: 'KHÁM PHÁ',
+                isAvailable: true
+            }));
+
+            setAllClasses(mappedItems);
+        } catch (error) {
+            console.error("Lỗi khi tải danh sách khám phá:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'my') {
+            fetchMyCourses();
+        } else {
+            fetchAllClasses();
+        }
+    }, [currentPage, activeTab]);
+
+    const handleEnroll = async (e, courseId) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setEnrollingId(courseId);
+        try {
+            await enrollCourse(courseId);
+            message.success("Đăng ký khóa học thành công!");
+            setActiveTab('my');
+        } catch (error) {
+            console.error("Lỗi đăng ký:", error);
+            message.error("Đăng ký thất bại. Vui lòng thử lại.");
+        } finally {
+            setEnrollingId(null);
+        }
+    };
+
+    const displayCourses = activeTab === 'my' ? courses : allClasses;
+
     const filteredCourses = useMemo(() => {
-        const base = courses
+        return displayCourses
             .filter((course) => {
                 const matchesSearch =
                     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     course.instructor.toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesGrade = selectedGrade === 'Tất cả' || course.grade === selectedGrade;
                 const matchesSubject = selectedSubject === 'Tất cả' || course.subject === selectedSubject;
+
+                // My tab filters
                 const matchesStatus = selectedStatus === 'Tất cả' || course.status === selectedStatus;
                 const matchesType = selectedType === 'Tất cả' || course.type === selectedType;
 
-                return matchesSearch && matchesGrade && matchesSubject && matchesStatus && matchesType;
+                if (activeTab === 'my') {
+                    return matchesSearch && matchesGrade && matchesSubject && matchesStatus && matchesType;
+                }
+                return matchesSearch && matchesGrade && matchesSubject;
             })
             .sort((a, b) => {
                 if (sortBy === 'name') return a.title.localeCompare(b.title);
                 if (sortBy === 'progress') return b.progress - a.progress;
                 return 0;
             });
-
-        return base;
-    }, [courses, searchTerm, selectedGrade, selectedSubject, selectedStatus, selectedType, sortBy]);
+    }, [displayCourses, searchTerm, selectedGrade, selectedSubject, selectedStatus, selectedType, sortBy, activeTab]);
 
     const totalPages = Math.max(1, Math.ceil(filteredCourses.length / PAGE_SIZE));
     const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -193,13 +216,36 @@ export default function CoursesList() {
     return (
         <div className="p-8 bg-slate-50 min-h-screen font-sans">
             <div className="max-w-7xl mx-auto">
-                <div className="mb-10 space-y-2">
-                    <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">
-                        Khóa học của bạn
-                    </h1>
-                    <p className="text-slate-500 text-sm font-medium">
-                        Khám phá lộ trình học tập tối ưu được thiết kế riêng cho chương trình THPT.
-                    </p>
+                <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="space-y-2">
+                        <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                            Học tập <span className="text-[#0463ca]">& Khám phá</span>
+                        </h1>
+                        <p className="text-slate-500 text-sm font-medium">
+                            Khám phá lộ trình học tập tối ưu được thiết kế riêng cho chương trình THPT.
+                        </p>
+                    </div>
+
+                    <div className="flex bg-slate-100 p-1 rounded-2xl w-fit">
+                        <button
+                            onClick={() => setActiveTab('my')}
+                            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'my'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Khóa học của tôi
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('discover')}
+                            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'discover'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Khám phá mới
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-6">
@@ -454,15 +500,22 @@ export default function CoursesList() {
 
                                                     <div className="pt-2 mt-auto flex items-center justify-between border-t border-slate-100">
                                                         <p className="text-[11px] text-slate-500">
-                                                            Tiếp theo:{' '}
-                                                            <span className="font-medium text-slate-800">
-                                                                {course.nextLesson}
-                                                            </span>
+                                                            {course.isAvailable ? 'Sẵn sàng bắt đầu' : `Tiếp theo: ${course.nextLesson}`}
                                                         </p>
-                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 group-hover:underline">
-                                                            Vào học
-                                                            <ChevronRight size={14} />
-                                                        </span>
+                                                        {course.isAvailable ? (
+                                                            <button
+                                                                onClick={(e) => handleEnroll(e, course.id)}
+                                                                disabled={enrollingId === course.id}
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all disabled:opacity-50"
+                                                            >
+                                                                {enrollingId === course.id ? <Spin size="small" /> : 'Đăng ký ngay'}
+                                                            </button>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 group-hover:underline">
+                                                                Vào học
+                                                                <ChevronRight size={14} />
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </article>

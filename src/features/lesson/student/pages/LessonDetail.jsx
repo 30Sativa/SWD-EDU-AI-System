@@ -29,42 +29,65 @@ import {
     Bot,
     ListChecks
 } from 'lucide-react';
+import { getLessonDetail } from '../../api/lessonApi';
+import { getClassDetail } from '../../../classes/api/classApi';
+import { Spin, message } from 'antd';
 
 export default function LessonDetail() {
     const { courseId, lessonId } = useParams();
     const [activeTab, setActiveTab] = useState('content');
     const [isPlaying, setIsPlaying] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [lessonData, setLessonData] = useState(null);
+    const [courseData, setCourseData] = useState(null);
 
     // Sidebar States
     const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
     const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
 
-    const [expandedSections, setExpandedSections] = useState([1, 2]);
+    const [expandedSections, setExpandedSections] = useState([1]);
     const [chatMessages, setChatMessages] = useState([
         {
             id: 1,
             type: 'ai',
-            text: 'Chào em! Thầy AI đây. Em có thắc mắc gì về bài Dao động điều hòa không?',
+            text: 'Chào em! Thầy AI đây. Em có thắc mắc gì về bài học này không?',
             suggestions: [
-                'Công thức tính chu kỳ T?',
-                'Giải thích pha ban đầu φ',
-                'Vẽ đồ thị x = Acos(ωt + φ)'
+                'Tóm tắt bài học ghi nhớ?',
+                'Giải thích các công thức chính?',
+                'Ví dụ vận dụng thức tế?'
             ]
-        },
-        {
-            id: 2,
-            type: 'user',
-            text: 'Thầy giải thích giúp em ý nghĩa của tần số góc ạ?'
-        },
-        {
-            id: 3,
-            type: 'ai',
-            text: 'Tần số góc (ω - omega) cho biết tốc độ biến đổi trạng thái dao động. Nó liên hệ với chu kỳ qua công thức ω = 2π / T. Đơn vị là rad/s nhé.',
-            isTyping: false
         }
     ]);
     const [inputMessage, setInputMessage] = useState('');
     const chatEndRef = useRef(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [lessonRes, courseRes] = await Promise.all([
+                    getLessonDetail(lessonId),
+                    getClassDetail(courseId)
+                ]);
+
+                const lData = lessonRes?.data || lessonRes;
+                const cData = courseRes?.data || courseRes;
+
+                setLessonData(lData);
+                setCourseData(cData);
+
+                if (cData.sections && cData.sections.length > 0) {
+                    setExpandedSections([cData.sections[0].id]);
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu bài học:", error);
+                message.error("Không thể tải nội dung bài học");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [courseId, lessonId]);
 
     // Auto scroll chat
     useEffect(() => {
@@ -79,45 +102,51 @@ export default function LessonDetail() {
         }
     };
 
+    if (loading) return (
+        <div className="h-screen flex items-center justify-center bg-white">
+            <div className="flex flex-col items-center gap-4">
+                <Spin size="large" />
+                <p className="text-slate-500 font-medium">Đang tải nội dung bài học...</p>
+            </div>
+        </div>
+    );
+
+    if (!lessonData) return (
+        <div className="h-screen flex items-center justify-center bg-white text-center p-8">
+            <div className="max-w-md">
+                <AlertCircle size={48} className="mx-auto text-slate-200 mb-4" />
+                <h2 className="text-xl font-bold text-slate-900 mb-2">Không tìm thấy bài học</h2>
+                <p className="text-slate-500 mb-6">Xin lỗi, nội dung bài học này có thể đã bị gỡ bỏ hoặc bạn không có quyền truy cập.</p>
+                <Link to={`/dashboard/student/courses/${courseId}`} className="text-blue-600 font-bold hover:underline">Quay lại khóa học</Link>
+            </div>
+        </div>
+    );
+
     const lessonInfo = {
-        courseId: courseId || 'physics-12',
-        courseName: 'Vật Lý 12 - Luyện Thi THPT',
-        lessonTitle: 'Bài 1: Dao Động Điều Hòa',
-        lessonSubtitle: 'Chương 1: Dao Động Cơ',
-        progress: 40,
-        duration: '45:00',
-        currentTime: '15:20'
+        courseId: courseId,
+        courseName: courseData?.title || 'Khóa học',
+        lessonTitle: lessonData.title || lessonData.name || 'Bài học',
+        lessonSubtitle: lessonData.sectionName || 'Nội dung bài học',
+        progress: lessonData.progress || 0,
+        duration: lessonData.duration || '00:00',
+        videoUrl: lessonData.videoUrl || lessonData.contentUrl
     };
 
-    const courseSections = [
-        {
-            id: 1,
-            title: 'Chương 1: Dao Động Cơ',
-            lessons: [
-                { id: 1, type: 'video', title: '1.1 Dao động điều hòa', duration: '45 p', completed: false, isCurrent: true },
-                { id: 2, type: 'video', title: '1.2 Con lắc lò xo', duration: '45 p', completed: false },
-                { id: 3, type: 'video', title: '1.3 Con lắc đơn', duration: '45 p', completed: false },
-                { id: 4, type: 'video', title: '1.4 Dao động tắt dần', duration: '45 p', completed: false },
-                { id: 5, type: 'quiz', title: 'Kiểm tra 15 phút: Dao động cơ', duration: '15 p', completed: false }
-            ]
-        },
-        {
-            id: 2,
-            title: 'Chương 2: Sóng Cơ',
-            lessons: [
-                { id: 1, type: 'video', title: '2.1 Sự truyền sóng cơ', duration: '45 p', completed: false },
-                { id: 2, type: 'video', title: '2.2 Giao thoa sóng', duration: '45 p', completed: false, isNew: true },
-                { id: 3, type: 'quiz', title: 'Bài tập: Giao thoa sóng', duration: '20 p', completed: false },
-                { id: 4, type: 'video', title: '2.3 Sóng dừng', duration: '45 p', completed: false }
-            ]
-        },
-        {
-            id: 3,
-            title: 'Chương 3: Dòng Điện Xoay Chiều',
-            lessons: [],
-            isLocked: true
-        }
-    ];
+    // Mapping sections từ courseData sang format UI cho sidebar
+    const apiSections = courseData?.sections || [];
+    const courseSections = apiSections.map(s => ({
+        id: s.id,
+        title: s.title || s.name || 'Chương học',
+        lessons: (s.items || []).map(item => ({
+            id: item.id,
+            type: item.type?.toLowerCase() || 'video',
+            title: item.title || item.name || 'Bài học',
+            duration: item.duration || '45 p',
+            completed: item.isCompleted || false,
+            isCurrent: item.id === lessonId
+        })),
+        isLocked: s.isLocked || false
+    }));
 
     const tabs = [
         { id: 'content', label: 'Lý Thuyết', icon: FileText },

@@ -102,7 +102,7 @@ export default function UserManagement() {
         const mappedUsers = rawItems.map(u => ({
           id: u.id,
           // Kiểm tra đa dạng các trường hợp (camelCase, PascalCase) từ cả profile và object gốc
-          name: u.profile?.fullName || u.fullName || u.fullName || u.userName || u.userName || u.email?.split('@')[0] || 'Thành viên',
+          name: u.fullName || u.profile?.fullName || u.userName || u.email?.replace(/@.*$/, '') || 'Thành viên',
           email: u.email || u.userName || u.userName,
           role: getRoleName(u.role),
           status: u.isActive ? 'Hoạt động' : 'Tạm khóa',
@@ -213,8 +213,8 @@ export default function UserManagement() {
         // Extract values without defaulting - strictly null if missing
         const name = row.fullName || row['Họ và tên'] || row.name || row['Name'] || null;
         const email = row.email || row['Email'] || null;
-        const role = row.role || row['Vai trò'] || null;
-        const status = row.status || row['Trạng thái'] || null;
+        const role = row.role || row['Vai trò'] || 'Học sinh';
+        const status = 'Hoạt động'; // Luôn luôn là đang hoạt động theo yêu cầu
 
         if (!name) rowErrors.push("Thiếu Họ và tên");
         if (!email) rowErrors.push("Thiếu Email");
@@ -224,17 +224,8 @@ export default function UserManagement() {
         }
 
         const validRoles = ['Học sinh', 'Giáo viên', 'Quản lý', 'Quản trị viên', 'Student', 'Teacher', 'Manager', 'Admin'];
-        if (!role) {
-          rowErrors.push("Thiếu Vai trò");
-        } else if (!validRoles.includes(role)) {
+        if (role && !validRoles.includes(role)) {
           rowErrors.push("Vai trò không hợp lệ");
-        }
-
-        const validStatuses = ['Hoạt động', 'Tạm khóa'];
-        if (!status) {
-          rowErrors.push("Thiếu Trạng thái");
-        } else if (!validStatuses.includes(status)) {
-          rowErrors.push("Trạng thái không hợp lệ");
         }
 
         if (rowErrors.length > 0) {
@@ -270,22 +261,18 @@ export default function UserManagement() {
     setIsImporting(true);
     const hide = message.loading("Đang lọc và xử lý dữ liệu hợp lệ...", 0);
     try {
-      let fileToUpload = importFile;
-
-      // Nếu có dòng lỗi, tạo file mới chỉ chứa các dòng hợp lệ để gửi đi
-      if (importErrors.length > 0) {
-        const cleanData = validRows.map(r => ({
-          "Họ và tên": r.name,
-          "Email": r.email,
-          "Vai trò": r.role,
-          "Trạng thái": r.status
-        }));
-        const ws = XLSX.utils.json_to_sheet(cleanData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        fileToUpload = new File([excelBuffer], `filtered_${importFile.name}`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      }
+      // Luôn tạo file mới từ dữ liệu đã được chuẩn hóa để đảm bảo các giá trị mặc định (Học sinh, Hoạt động)
+      const cleanData = validRows.map(r => ({
+        "Họ và tên": r.name,
+        "Email": r.email,
+        "Vai trò": r.role,
+        "Trạng thái": r.status
+      }));
+      const ws = XLSX.utils.json_to_sheet(cleanData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const fileToUpload = new File([excelBuffer], `processed_${importFile.name.split('.')[0]}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
       await importUsers(fileToUpload);
       message.success(`Đã nhập thành công ${validRows.length} người dùng hợp lệ`);
@@ -321,6 +308,13 @@ export default function UserManagement() {
   // --- CRUD HANDLERS ---
   const handleCreateUser = async () => {
     if (!formData.name || !formData.email) return message.warning('Vui lòng nhập đủ thông tin');
+
+    // Ràng buộc format email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      return message.error('Định dạng email không hợp lệ (ví dụ: user@example.com)');
+    }
+
     setIsLoading(true);
     try {
       const ROLE_ID_MAP = {
@@ -401,7 +395,7 @@ export default function UserManagement() {
       const data = res.data?.data || res.data || res;
       setEditingUser(data);
       setFormData({
-        name: data.profile?.fullName || data.userName || '',
+        name: data.fullName || data.profile?.fullName || data.userName || '',
         email: data.email || '',
         role: getRoleName(data.role),
         status: data.isActive ? 'Hoạt động' : 'Tạm khóa',
@@ -455,13 +449,13 @@ export default function UserManagement() {
 
       setViewingUser({
         ...data,
-        displayName: data.profile?.fullName || data.userName || data.email?.split('@')[0],
+        displayName: data.fullName || data.profile?.fullName || data.userName || data.email?.replace(/@.*$/, ''),
         roleName: getRoleName(data.role),
         status: data.isActive ? 'Hoạt động' : 'Tạm khóa',
         joinDate: data.createdAt ? new Date(data.createdAt).toLocaleDateString('vi-VN') : '-',
         // Đảm bảo profile có các giá trị dự phòng
         profile: {
-          fullName: data.profile?.fullName || 'Chưa cập nhật',
+          fullName: data.fullName || data.profile?.fullName || 'Chưa cập nhật',
           phoneNumber: data.profile?.phoneNumber || '---',
           dateOfBirth: data.profile?.dateOfBirth ? new Date(data.profile.dateOfBirth).toLocaleDateString('vi-VN') : '---',
           gender: data.profile?.gender || '---',
@@ -753,7 +747,14 @@ export default function UserManagement() {
                 />
               </Form.Item>
 
-              <Form.Item label={<span className="font-bold text-slate-500 text-[10px] uppercase">Email</span>} required>
+              <Form.Item
+                label={<span className="font-bold text-slate-500 text-[10px] uppercase">Email</span>}
+                required
+                rules={[
+                  { required: true, message: 'Vui lòng nhập email' },
+                  { type: 'email', message: 'Email không đúng định dạng' }
+                ]}
+              >
                 <Input
                   value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })}
                   disabled={showEditModal}
@@ -837,22 +838,13 @@ export default function UserManagement() {
               )}
 
               {!showEditModal && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <Form.Item label={<span className="font-bold text-slate-500 text-[10px] uppercase">Vai trò</span>}>
                     <Select
                       value={formData.role} onChange={v => setFormData({ ...formData, role: v })}
                       className="h-10 w-full"
                     >
                       {['Học sinh', 'Giáo viên', 'Quản lý', 'Quản trị viên'].map(r => <Select.Option key={r} value={r}>{r}</Select.Option>)}
-                    </Select>
-                  </Form.Item>
-                  <Form.Item label={<span className="font-bold text-slate-500 text-[10px] uppercase">Trạng thái</span>}>
-                    <Select
-                      value={formData.status} onChange={v => setFormData({ ...formData, status: v })}
-                      className="h-10 w-full"
-                    >
-                      <Select.Option value="Hoạt động">Hoạt động</Select.Option>
-                      <Select.Option value="Tạm khóa">Tạm khóa</Select.Option>
                     </Select>
                   </Form.Item>
                 </div>

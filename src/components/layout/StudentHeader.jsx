@@ -7,7 +7,7 @@ import { getCurrentUser } from '../../features/user/api/userApi';
 export default function StudentHeader() {
     const location = useLocation();
     const navigate = useNavigate();
-    const [user, setUser] = useState({ name: 'User', role: 'Student' });
+    const [user, setUser] = useState({ name: localStorage.getItem('userFullName') || 'User', role: 'Student' });
     const BASE_PATH = '/dashboard/student';
 
     React.useEffect(() => {
@@ -15,15 +15,16 @@ export default function StudentHeader() {
             try {
                 const response = await getCurrentUser();
                 const userData = response?.data || response;
+                const displayName = userData?.fullName || userData?.profile?.fullName || userData?.userName || 'User';
                 userData && setUser({
-                    name: userData.userName || 'User',
+                    name: displayName,
                     role: userData.roleName || 'Student'
                 });
-                userData?.userName && localStorage.setItem('userName', userData.userName);
+                userData && localStorage.setItem('userFullName', displayName);
             } catch (error) {
                 console.error('Failed to fetch user profile:', error);
                 // Fallback to localStorage
-                const storedName = localStorage.getItem('userName');
+                const storedName = localStorage.getItem('userFullName');
                 const storedRole = localStorage.getItem('userRole');
                 setUser({
                     name: storedName || 'User',
@@ -49,7 +50,7 @@ export default function StudentHeader() {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('token');
         localStorage.removeItem('userRole');
-        localStorage.removeItem('userName');
+        localStorage.removeItem('userFullName');
         message.success('Đăng xuất thành công');
         navigate('/');
     };
