@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getClasses } from '../../api/classApi';
 import { Spin, Table, Button, Input, Select, Tag, Tooltip, Empty, message } from 'antd';
+import { getGradeLevels } from '../../../grade/api/gradeApi';
+import { getTerms } from '../../../term/api/termApi';
 
 function extractList(res) {
     if (!res) return [];
@@ -16,13 +18,71 @@ const ClassManagement = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [gradesMap, setGradesMap] = useState({});
+    const [termsMap, setTermsMap] = useState({});
 
     useEffect(() => {
+        const fetchDependencies = async () => {
+            try {
+                const [gradesRes, termsRes] = await Promise.all([
+                    getGradeLevels(),
+                    getTerms()
+                ]);
+
+                const gList = extractList(gradesRes);
+                const tList = extractList(termsRes);
+
+                const gMap = {};
+                gList.forEach(g => { gMap[g.id] = g.name; });
+
+                const tMap = {};
+                tList.forEach(t => { tMap[t.id] = t.name; });
+
+                setGradesMap(gMap);
+                setTermsMap(tMap);
+            } catch (err) {
+                console.error('Lỗi tải dữ liệu phụ trợ:', err);
+            }
+        };
+        fetchDependencies();
+
         const fetchClasses = async () => {
             try {
                 setLoading(true);
                 const res = await getClasses();
-                setClasses(extractList(res));
+
+                let allItems = extractList(res);
+
+                // Nếu Backend trả về lỗi 404 (Không tìm thấy endpoint getTeacherClasses)
+                // hoặc vẫn trả về mảng nhưng trong đó mình phải LỌC TAY BẰNG FRONTEND
+                // Decode JWT to get teacher ID
+                try {
+                    const token = localStorage.getItem('accessToken');
+                    if (token) {
+                        const base64Url = token.split('.')[1];
+                        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+                            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                        }).join(''));
+
+                        const decoded = JSON.parse(jsonPayload);
+                        // Get ID from MS claim or sub or id
+                        const userId = decoded?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
+                            || decoded?.nameid
+                            || decoded?.sub
+                            || decoded?.id;
+
+                        if (userId) {
+                            // Convert to lower case just in case
+                            const targetId = String(userId).toLowerCase();
+                            allItems = allItems.filter(c => String(c.teacherId).toLowerCase() === targetId);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Lỗi parse JWT từ localStorage", e);
+                }
+
+                setClasses(allItems);
             } catch (err) {
                 console.error('Lỗi tải danh sách lớp:', err);
                 message.error('Không thể tải danh sách lớp học');
@@ -75,11 +135,11 @@ const ClassManagement = () => {
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
                         <Layers size={14} className="text-slate-400" />
-                        <span>{record.gradeName || `Khối ${record.gradeLevelId || '?'}`}</span>
+                        <span>{record.gradeName || gradesMap[record.gradeLevelId] || `Khối ${record.gradeLevelId || '?'}`}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
                         <Calendar size={14} className="text-slate-400" />
-                        <span>{record.termName || 'Học kỳ -'}</span>
+                        <span>{record.termName || termsMap[record.termId] || 'Học kỳ -'}</span>
                     </div>
                 </div>
             )

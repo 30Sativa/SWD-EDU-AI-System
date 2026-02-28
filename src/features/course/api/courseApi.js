@@ -35,3 +35,21 @@ export const saveCourseStructure = async (id, data) => {
 export const enrollCourse = async (courseId) => {
     return await axiosClient.post(`/api/student/courses/${courseId}/enroll`);
 };
+
+
+export const getMyCourses = async (params) => {
+    const response = await axiosClient.get("/api/teacher/courses/my", { params });
+    return response;
+};
+
+export const createTeacherCourse = async (data) => {
+    return await axiosClient.post("/api/teacher/courses", data);
+};
+
+export const publishTeacherCourse = async (id) => {
+    return await axiosClient.post(`/api/teacher/courses/${id}/publish`);
+};
+
+export const cloneTeacherCourse = async (data) => {
+    return await axiosClient.post("/api/teacher/courses/clone", data);
+};
