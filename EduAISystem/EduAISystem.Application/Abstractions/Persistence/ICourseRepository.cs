@@ -23,11 +23,14 @@ namespace EduAISystem.Application.Abstractions.Persistence
             string? statusFilter,
             Guid? subjectId,
             bool? isDeletedFilter,
+            bool? isTemplate = null,
+            bool? isActive = null,
             CancellationToken cancellationToken = default);
 
         Task UpdateAsync(CourseDomain course, CancellationToken cancellationToken = default);
         Task<bool> ExistsByCodeAsync(string code, CancellationToken cancellationToken = default);
         Task<CourseDomain?> GetTemplateWithDetailsAsync(Guid templateId, CancellationToken cancellationToken = default);
+        Task AssignClassToCourseAsync(Guid courseId, Guid classId, CancellationToken cancellationToken = default);
     }
 }
 

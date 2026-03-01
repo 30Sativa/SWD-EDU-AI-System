@@ -211,7 +211,16 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             };
         }
 
-        public async Task<PagedResult<CourseDomain>> GetCoursesPagedAsync(int page, int pageSize, string? searchTerm, string? statusFilter, Guid? subjectId,bool? isDeletedFilter, CancellationToken cancellationToken = default)
+                public async Task<PagedResult<CourseDomain>> GetCoursesPagedAsync(
+            int page, 
+            int pageSize, 
+            string? searchTerm, 
+            string? statusFilter, 
+            Guid? subjectId,
+            bool? isDeletedFilter, 
+            bool? isTemplate = null,
+            bool? isActive = null,
+            CancellationToken cancellationToken = default)
         {
             var query = _context.Courses.AsNoTracking().AsQueryable();
 
@@ -238,6 +247,16 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             if (subjectId.HasValue)
             {
                 query = query.Where(c => c.SubjectId == subjectId);
+            }
+
+            if (isTemplate.HasValue)
+            {
+                query = query.Where(c => c.IsTemplate == isTemplate.Value);
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(c => c.IsActive == isActive.Value);
             }
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -322,6 +341,24 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 "Published" => LessonStatusDomain.Published,
                 _ => LessonStatusDomain.Draft
             };
+        }
+
+        public async Task AssignClassToCourseAsync(Guid courseId, Guid classId, CancellationToken cancellationToken = default)
+        {
+            var exists = await _context.CourseClasses
+                .AnyAsync(cc => cc.CourseId == courseId && cc.ClassId == classId, cancellationToken);
+            
+            if (exists) return;
+
+            var courseClass = new CourseClass
+            {
+                CourseId = courseId,
+                ClassId = classId,
+                AssignedAt = DateTime.UtcNow
+            };
+
+            _context.CourseClasses.Add(courseClass);
+            await _context.SaveChangesAsync(cancellationToken);
         }
     }
 }

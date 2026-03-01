@@ -79,6 +79,16 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             return Ok(ApiResponse<object>.Ok(null, "Publish thành công"));
         }
 
+        [HttpGet("templates")]
+        [SwaggerOperation(Summary = "Danh sách Template khóa học", Description = "Giáo viên xem các template có sẵn để clone")]
+        public async Task<IActionResult> GetTemplates([FromQuery] GetCoursesQuery query, CancellationToken cancellationToken)
+        {
+            query.IsTemplate = true;
+            query.IsActive = true;
+            var result = await _mediator.Send(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<CourseListItemResponseDto>>.Ok(result));
+        }
+
         private Guid? GetCurrentUserId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -86,6 +96,7 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         }
 
         [HttpPost("clone")]
+        [SwaggerOperation(Summary = "Clone từ Template", Description = "Tạo khóa học cá nhân từ khung nội dung chuẩn")]
         public async Task<IActionResult> CloneFromTemplate([FromBody] CloneTemplateCourseRequestDto dto,CancellationToken cancellationToken)
         {
             var teacherId = GetCurrentUserId();
@@ -98,6 +109,24 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
             return Ok(ApiResponse<Guid>
                 .Ok(id, "Clone khóa học thành công"));
+        }
+
+        [HttpPost("{id:guid}/classes/{classId:guid}")]
+        [SwaggerOperation(Summary = "Gán lớp vào khóa học", Description = "Giáo viên gán lớp học vào chương trình dạy (chỉ giáo viên được phân công mới thực hiện được)")]
+        public async Task<IActionResult> AssignClass(Guid id, Guid classId, CancellationToken cancellationToken)
+        {
+            var teacherId = GetCurrentUserId();
+            if (teacherId == null)
+                return Unauthorized();
+
+            var result = await _mediator.Send(new AssignClassToCourseCommand
+            {
+                CourseId = id,
+                ClassId = classId,
+                TeacherId = teacherId.Value
+            }, cancellationToken);
+
+            return Ok(ApiResponse<object>.Ok(null, "Gán lớp thành công."));
         }
     }
 }
