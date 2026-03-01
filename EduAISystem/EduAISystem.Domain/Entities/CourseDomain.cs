@@ -195,7 +195,19 @@ namespace EduAISystem.Domain.Entities
             if (teacherId == Guid.Empty)
                 throw new ArgumentException("TeacherId required.");
 
-            return new CourseDomain(
+            // Generate unique slug by adding timestamp suffix to avoid conflicts
+            var baseSlug = GenerateSlug(template.Title);
+            var uniqueSuffix = DateTime.UtcNow.Ticks.ToString("x")[..8]; // Last 8 hex chars of timestamp
+            var uniqueSlug = $"{baseSlug}-{uniqueSuffix}";
+            
+            // Ensure slug doesn't exceed max length
+            if (uniqueSlug.Length > 200)
+            {
+                var maxBaseLength = 200 - uniqueSuffix.Length - 1; // -1 for hyphen
+                uniqueSlug = $"{baseSlug[..maxBaseLength]}-{uniqueSuffix}";
+            }
+
+            var course = new CourseDomain(
                 newCode,
                 template.Title,
                 template.SubjectId,
@@ -209,6 +221,11 @@ namespace EduAISystem.Domain.Entities
                 description: template.Description,
                 thumbnail: template.Thumbnail
             );
+
+            // Override slug with unique version
+            course.SetSlug(uniqueSlug);
+
+            return course;
         }
 
         // =========================
@@ -307,6 +324,15 @@ namespace EduAISystem.Domain.Entities
             var slug = title.Trim().ToLowerInvariant();
             slug = string.Join("-", slug.Split(' ', StringSplitOptions.RemoveEmptyEntries));
             return slug.Length > 200 ? slug[..200] : slug;
+        }
+
+        // Internal method to set slug (used for cloning to ensure uniqueness)
+        internal void SetSlug(string slug)
+        {
+            if (string.IsNullOrWhiteSpace(slug))
+                throw new ArgumentException("Slug cannot be empty.");
+            
+            Slug = slug.Length > 200 ? slug[..200] : slug;
         }
 
         private bool IsReadyForPublish()

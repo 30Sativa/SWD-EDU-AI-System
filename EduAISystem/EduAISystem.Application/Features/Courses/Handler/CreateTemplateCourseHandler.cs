@@ -12,11 +12,18 @@ namespace EduAISystem.Application.Features.Courses.Handler
         private readonly ICourseRepository _courseRepository;
         private readonly ISubjectRepository _subjectRepository;
         private readonly ICourseCategoryRepository _courseCategoryRepository;
-        public CreateTemplateCourseHandler(ICourseRepository courseRepository, ISubjectRepository subjectRepository, ICourseCategoryRepository courseCategoryRepository)
+        private readonly IUserRepository _userRepository;
+        
+        public CreateTemplateCourseHandler(
+            ICourseRepository courseRepository, 
+            ISubjectRepository subjectRepository, 
+            ICourseCategoryRepository courseCategoryRepository,
+            IUserRepository userRepository)
         {
             _courseRepository = courseRepository;
             _subjectRepository = subjectRepository;
             _courseCategoryRepository = courseCategoryRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<Guid> Handle(
@@ -25,20 +32,33 @@ namespace EduAISystem.Application.Features.Courses.Handler
         {
             
             var dto = request.Request;
+            
+            // Validate SubjectId exists
             if(await _subjectRepository.GetByIdAsync(dto.SubjectId, cancellationToken) is null)
             {
                 throw new NotFoundException(
                     $"Subject with id {dto.SubjectId} does not exist.");
             }
+            
+            // Validate Course Code uniqueness
             if (await _courseRepository.ExistsByCodeAsync(dto.Code, cancellationToken))
             {
                 throw new ConflictException(
                     $"Course with code {dto.Code} already exists.");
             }
+            
+            // Validate CategoryId exists
             if(await _courseCategoryRepository.GetByIdAsync(dto.CategoryId, cancellationToken) is null)
             {
                 throw new NotFoundException(
                     $"Course category with id {dto.CategoryId} does not exist.");
+            }
+            
+            // Validate CreatedByUserId exists
+            if(await _userRepository.GetByIdAsync(dto.CreatedByUserId, cancellationToken) is null)
+            {
+                throw new NotFoundException(
+                    $"User with id {dto.CreatedByUserId} does not exist.");
             }
 
             var course = CourseDomain.CreateTemplate(

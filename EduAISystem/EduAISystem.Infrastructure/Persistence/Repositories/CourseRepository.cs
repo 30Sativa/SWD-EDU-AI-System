@@ -22,10 +22,50 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         // =========================
         public async Task AddAsync(CourseDomain course, CancellationToken cancellationToken = default)
         {
-            var entity = MapToEntity(course);
+            try
+            {
+                var entity = MapToEntity(course);
 
-            _context.Courses.Add(entity);
-            await _context.SaveChangesAsync(cancellationToken);
+                _context.Courses.Add(entity);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+            {
+                // Extract inner exception details for better error messages
+                var innerException = ex.InnerException?.Message ?? ex.Message;
+                
+                // Check for common constraint violations
+                if (innerException.Contains("UNIQUE KEY constraint") || innerException.Contains("duplicate key"))
+                {
+                    if (innerException.Contains("Code") || innerException.Contains("UQ__Courses__A25C5AA7619FD357"))
+                    {
+                        throw new Application.Common.Exceptions.ConflictException($"Course with code '{course.Code}' already exists.");
+                    }
+                    if (innerException.Contains("Slug") || innerException.Contains("UQ__Courses__BC7B5FB637A3A684"))
+                    {
+                        throw new Application.Common.Exceptions.ConflictException($"Course with slug '{course.Slug}' already exists.");
+                    }
+                }
+                
+                if (innerException.Contains("FOREIGN KEY constraint") || innerException.Contains("REFERENCES"))
+                {
+                    if (innerException.Contains("CreatedByUserId") || innerException.Contains("User"))
+                    {
+                        throw new Application.Common.Exceptions.NotFoundException($"User with id {course.CreatedByUserId} does not exist.");
+                    }
+                    if (innerException.Contains("SubjectId") || innerException.Contains("Subject"))
+                    {
+                        throw new Application.Common.Exceptions.NotFoundException($"Subject with id {course.SubjectId} does not exist.");
+                    }
+                    if (innerException.Contains("TeacherId") || innerException.Contains("Teacher"))
+                    {
+                        throw new Application.Common.Exceptions.NotFoundException($"Teacher with id {course.TeacherId} does not exist.");
+                    }
+                }
+                
+                // Re-throw with inner exception details
+                throw new InvalidOperationException($"Failed to save course: {innerException}", ex);
+            }
         }
 
         // =========================

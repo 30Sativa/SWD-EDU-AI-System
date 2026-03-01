@@ -4,6 +4,7 @@ using EduAISystem.Application.Features.Courses.DTOs.Request;
 using EduAISystem.Application.Features.Courses.DTOs.Response;
 using EduAISystem.Application.Features.Courses.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -13,6 +14,7 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 {
     [Route("api/teacher/courses")]
     [ApiController]
+    [Authorize]
     public class CoursesController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -56,6 +58,21 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
             return Ok(ApiResponse<CourseDetailResponseDto>
                 .Ok(result, "Tạo khóa học thành công"));
+        }
+
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> UpdateCourse(
+            Guid id,
+            [FromBody] UpdateCourseRequestDto dto,
+            CancellationToken cancellationToken)
+        {
+            var teacherId = GetCurrentUserId();
+            if (teacherId == null)
+                return Unauthorized();
+
+            await _mediator.Send(new UpdateCourseCommand(id, teacherId.Value, dto), cancellationToken);
+
+            return Ok(ApiResponse<object>.Ok(null, "Cập nhật khóa học thành công"));
         }
 
         [HttpPost("{id:guid}/publish")]

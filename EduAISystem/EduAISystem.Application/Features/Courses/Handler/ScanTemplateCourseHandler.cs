@@ -1,12 +1,8 @@
 ﻿using EduAISystem.Application.Abstractions.Persistence;
+using EduAISystem.Application.Common.Exceptions;
 using EduAISystem.Application.Features.Courses.Commands;
 using EduAISystem.Application.Features.Courses.DTOs.Response;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EduAISystem.Application.Features.Courses.Handler
 {
@@ -31,18 +27,38 @@ namespace EduAISystem.Application.Features.Courses.Handler
             ScanTemplateCourseCommand request,
             CancellationToken cancellationToken)
         {
-            var course = await _courseRepository.GetByIdAsync(request.CourseId);
+            var course = await _courseRepository.GetByIdAsync(request.CourseId, cancellationToken);
 
-            if (course == null || !course.IsTemplate)
-                throw new Exception("Invalid template course");
+            if (course == null)
+                throw new NotFoundException($"Course with id {request.CourseId} does not exist.");
+
+            if (!course.IsTemplate)
+                throw new ConflictException($"Course with id {request.CourseId} is not a template course.");
 
             // 1) Extract text
-            var text = await _fileExtractor.ExtractAsync(
-                request.FileContent,
-                request.ContentType);
+            string text;
+            try
+            {
+                text = await _fileExtractor.ExtractAsync(
+                    request.FileContent,
+                    request.ContentType);
+            }
+            catch (NotSupportedException ex)
+            {
+                throw new ConflictException($"File type not supported: {ex.Message}");
+            }
 
             // 2) Send to AI
-            var result = await _aiService.AnalyzeStructureAsync(text);
+            ScanTemplateCourseResponseDto result;
+            try
+            {
+                result = await _aiService.AnalyzeStructureAsync(text);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Wrap AI service errors with more context
+                throw new ConflictException($"AI service error: {ex.Message}");
+            }
 
             return result;
         }

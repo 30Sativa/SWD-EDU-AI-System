@@ -1,5 +1,6 @@
 ﻿using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Abstractions.Security;
+using EduAISystem.Application.Common.Exceptions;
 using EduAISystem.Application.Features.Courses.Commands;
 using EduAISystem.Domain.Entities;
 using MediatR;
@@ -10,13 +11,22 @@ namespace EduAISystem.Application.Features.Courses.Handler
         : IRequestHandler<CloneTemplateCourseCommand, Guid>
     {
         private readonly ICourseRepository _courseRepository;
+        private readonly ISectionRepository _sectionRepository;
+        private readonly ILessonRepository _lessonRepository;
+        private readonly IUserRepository _userRepository;
         private readonly ICurrentUserService _currentUser;
 
         public CloneTemplateCourseHandler(
             ICourseRepository courseRepository,
+            ISectionRepository sectionRepository,
+            ILessonRepository lessonRepository,
+            IUserRepository userRepository,
             ICurrentUserService currentUser)
         {
             _courseRepository = courseRepository;
+            _sectionRepository = sectionRepository;
+            _lessonRepository = lessonRepository;
+            _userRepository = userRepository;
             _currentUser = currentUser;
         }
 
@@ -26,17 +36,33 @@ namespace EduAISystem.Application.Features.Courses.Handler
         {
             var dto = request.Request;
 
+            // Validate authentication
+            var createdByUserId = _currentUser.UserId;
+            if (createdByUserId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException("User must be authenticated to clone a template course.");
+            }
+
             var template = await _courseRepository
                 .GetTemplateWithDetailsAsync(dto.TemplateId, cancellationToken);
 
             if (template == null)
-                throw new InvalidOperationException("Template course not found.");
+                throw new NotFoundException($"Template course with id {dto.TemplateId} does not exist.");
 
             if (!template.IsTemplate)
-                throw new InvalidOperationException("Source must be a template.");
+                throw new ConflictException($"Course with id {dto.TemplateId} is not a template course.");
 
-            // 🔥 Manager / System user
-            var createdByUserId = _currentUser.UserId;
+            // Validate TeacherId exists
+            if (await _userRepository.GetByIdAsync(dto.TeacherId, cancellationToken) is null)
+            {
+                throw new NotFoundException($"User (Teacher) with id {dto.TeacherId} does not exist.");
+            }
+
+            // Validate Course Code uniqueness
+            if (await _courseRepository.ExistsByCodeAsync(dto.NewCode, cancellationToken))
+            {
+                throw new ConflictException($"Course with code {dto.NewCode} already exists.");
+            }
 
             var cloneCourse = CourseDomain.CloneFromTemplate(
                 template,
@@ -45,11 +71,15 @@ namespace EduAISystem.Application.Features.Courses.Handler
                 dto.NewCode
             );
 
+            // Save course first
+            await _courseRepository.AddAsync(cloneCourse, cancellationToken);
+
             // =========================
             // CLONE SECTIONS & LESSONS
             // =========================
             foreach (var section in template.Sections)
             {
+                // Create section
                 var newSection = SectionDomain.Create(
                     cloneCourse.Id,
                     section.Title,
@@ -57,6 +87,11 @@ namespace EduAISystem.Application.Features.Courses.Handler
                     section.SortOrder
                 );
 
+                // Save section to database first
+                await _sectionRepository.AddAsync(newSection, cancellationToken);
+
+                // Create and save lessons for this section
+                var lessons = new List<LessonDomain>();
                 foreach (var lesson in section.Lessons)
                 {
                     var newLesson = LessonDomain.Create(
@@ -70,13 +105,15 @@ namespace EduAISystem.Application.Features.Courses.Handler
                         lesson.IsPreview
                     );
 
-                    newSection.Lessons.Add(newLesson);
+                    lessons.Add(newLesson);
                 }
 
-                cloneCourse.AddSection(newSection);
+                // Save all lessons for this section
+                if (lessons.Any())
+                {
+                    await _lessonRepository.AddRangeAsync(lessons, cancellationToken);
+                }
             }
-
-            await _courseRepository.AddAsync(cloneCourse);
 
             return cloneCourse.Id;
         }

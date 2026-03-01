@@ -71,7 +71,7 @@ namespace EduAISystem.WebAPI.Middlewares
                     _ => new ApiError
                     {
                         Message = _env.IsDevelopment()
-                            ? ex.Message
+                            ? (ex.InnerException?.Message ?? ex.Message)
                             : "Internal server error"
                     }
                 };

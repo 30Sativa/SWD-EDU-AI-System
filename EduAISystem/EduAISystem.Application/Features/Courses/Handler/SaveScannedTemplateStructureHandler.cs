@@ -1,12 +1,8 @@
 ﻿using EduAISystem.Application.Abstractions.Persistence;
+using EduAISystem.Application.Common.Exceptions;
 using EduAISystem.Application.Features.Courses.Commands;
 using EduAISystem.Domain.Entities;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EduAISystem.Application.Features.Courses.Handler
 {
@@ -14,30 +10,46 @@ namespace EduAISystem.Application.Features.Courses.Handler
     : IRequestHandler<SaveScannedTemplateStructureCommand, Unit>
     {
         private readonly ICourseRepository _courseRepository;
+        private readonly ISectionRepository _sectionRepository;
+        private readonly ILessonRepository _lessonRepository;
 
         public SaveScannedTemplateStructureHandler(
-            ICourseRepository courseRepository)
+            ICourseRepository courseRepository,
+            ISectionRepository sectionRepository,
+            ILessonRepository lessonRepository)
         {
             _courseRepository = courseRepository;
+            _sectionRepository = sectionRepository;
+            _lessonRepository = lessonRepository;
         }
 
         public async Task<Unit> Handle(
             SaveScannedTemplateStructureCommand request,
             CancellationToken cancellationToken)
         {
-            var course = await _courseRepository.GetByIdAsync(request.CourseId);
+            var course = await _courseRepository.GetByIdAsync(request.CourseId, cancellationToken);
 
-            if (course == null || !course.IsTemplate)
-                throw new Exception("Invalid template");
+            if (course == null)
+                throw new NotFoundException($"Course with id {request.CourseId} does not exist.");
 
+            if (!course.IsTemplate)
+                throw new ConflictException($"Course with id {request.CourseId} is not a template course.");
+
+            // Save sections first, then lessons (lessons need section.Id)
             foreach (var sectionDto in request.Sections)
             {
+                // Create section
                 var section = SectionDomain.Create(
                     course.Id,
                     sectionDto.Title,
                     null,
                     sectionDto.SortOrder);
 
+                // Save section to database first
+                await _sectionRepository.AddAsync(section, cancellationToken);
+
+                // Create and save lessons for this section
+                var lessons = new List<LessonDomain>();
                 foreach (var lessonDto in sectionDto.Lessons)
                 {
                     var lesson = LessonDomain.Create(
@@ -50,13 +62,15 @@ namespace EduAISystem.Application.Features.Courses.Handler
                         null,
                         false);
 
-                    section.Lessons.Add(lesson);
+                    lessons.Add(lesson);
                 }
 
-                course.AddSection(section);
+                // Save all lessons for this section
+                if (lessons.Any())
+                {
+                    await _lessonRepository.AddRangeAsync(lessons, cancellationToken);
+                }
             }
-
-            await _courseRepository.UpdateAsync(course);
 
             return Unit.Value;
         }
