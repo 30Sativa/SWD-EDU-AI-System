@@ -4,9 +4,21 @@ export const getClasses = (params) => {
     return axiosClient.get('/api/manager/classes', { params });
 };
 
+export const getTeacherHomeroomClasses = (params) => {
+    return axiosClient.get('/api/teacher/classes/homeroom', { params });
+};
+
 
 export const createClass = (data) => {
     return axiosClient.post('/api/manager/classes', data);
+};
+
+export const getTeacherClassStudents = (id) => {
+    return axiosClient.get(`/api/teacher/classes/${id}/students`);
+};
+
+export const addStudentsToClass = (id, studentIds) => {
+    return axiosClient.post(`/api/teacher/classes/${id}/students`, studentIds);
 };
 
 export const getClassDetail = (id) => {

@@ -478,10 +478,10 @@ export default function GradeManagement() {
         },
         {
             title: 'SĨ SỐ',
-            dataIndex: 'studentCount',
+            dataIndex: 'currentStudents',
             key: 'students',
             render: (count, record) => {
-                const current = count || 0;
+                const current = count || record.studentCount || 0;
                 const max = record.maxStudents || record.maxStudent || 40;
                 return (
                     <div className="text-sm font-medium text-slate-600">

@@ -1,7 +1,7 @@
 import { Search, Filter, Users, Calendar, BookOpen, Layers, Edit, Eye, MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getClasses } from '../../api/classApi';
+import { getTeacherHomeroomClasses } from '../../api/classApi';
 import { Spin, Table, Button, Input, Select, Tag, Tooltip, Empty, message } from 'antd';
 import { getGradeLevels } from '../../../grade/api/gradeApi';
 import { getTerms } from '../../../term/api/termApi';
@@ -49,39 +49,9 @@ const ClassManagement = () => {
         const fetchClasses = async () => {
             try {
                 setLoading(true);
-                const res = await getClasses();
+                const res = await getTeacherHomeroomClasses();
 
                 let allItems = extractList(res);
-
-                // Nếu Backend trả về lỗi 404 (Không tìm thấy endpoint getTeacherClasses)
-                // hoặc vẫn trả về mảng nhưng trong đó mình phải LỌC TAY BẰNG FRONTEND
-                // Decode JWT to get teacher ID
-                try {
-                    const token = localStorage.getItem('accessToken');
-                    if (token) {
-                        const base64Url = token.split('.')[1];
-                        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
-                            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                        }).join(''));
-
-                        const decoded = JSON.parse(jsonPayload);
-                        // Get ID from MS claim or sub or id
-                        const userId = decoded?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
-                            || decoded?.nameid
-                            || decoded?.sub
-                            || decoded?.id;
-
-                        if (userId) {
-                            // Convert to lower case just in case
-                            const targetId = String(userId).toLowerCase();
-                            allItems = allItems.filter(c => String(c.teacherId).toLowerCase() === targetId);
-                        }
-                    }
-                } catch (e) {
-                    console.error("Lỗi parse JWT từ localStorage", e);
-                }
-
                 setClasses(allItems);
             } catch (err) {
                 console.error('Lỗi tải danh sách lớp:', err);
@@ -153,7 +123,7 @@ const ClassManagement = () => {
                         <Users size={16} />
                     </div>
                     <div>
-                        <span className="block text-sm font-bold text-slate-700">{record.studentCount || 0}</span>
+                        <span className="block text-sm font-bold text-slate-700">{record.currentStudents || record.studentCount || 0}</span>
                         <span className="text-[10px] text-slate-400 uppercase font-bold">Học viên</span>
                     </div>
                 </div>
