@@ -25,7 +25,7 @@ import ManagerClassDetail from "../features/grade/manager/pages/ClassDetail";
 import TermManagement from "../features/term/manager/pages/TermManagement";
 import ManagerCourseManagement from "../features/course/manager/pages/CourseManagement";
 import ManagerCreateTemplate from "../features/course/manager/pages/CreateTemplate";
-import ManagerCategoryManagement from "../features/category/manager/pages/CategoryManagement";
+
 import ManagerQuestionBank from "../features/question-bank/manager/pages/QuestionBank";
 import CourseDetail from "../features/course/student/pages/CourseDetail";
 import CoursesList from "../features/course/student/pages/CoursesList";
@@ -100,7 +100,7 @@ export default function RouteMap() {
             <Route index element={<ManagerDashboard />} />
             <Route path="subjects" element={<SubjectManagement />} />
             <Route path="subjects/:id" element={<SubjectDetail />} />
-            <Route path="categories" element={<ManagerCategoryManagement />} />
+
             <Route path="courses" element={<ManagerCourseManagement />} />
             <Route path="courses/create" element={<ManagerCreateTemplate />} />
             <Route path="grades" element={<GradeManagement />} />

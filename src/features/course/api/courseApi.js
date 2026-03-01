@@ -25,7 +25,11 @@ export const createCourseTemplate = async (data) => {
 };
 
 export const scanCourseTemplate = async (id, formData) => {
-    return await axiosClient.post(`/api/manager/courses/${id}/scan`, formData);
+    return await axiosClient.post(`/api/manager/courses/${id}/scan`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
 };
 
 export const saveCourseStructure = async (id, data) => {

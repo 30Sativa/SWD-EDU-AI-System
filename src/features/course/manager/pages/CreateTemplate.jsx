@@ -123,8 +123,8 @@ export default function CreateTemplate() {
             console.log('File to upload:', fileList[0]);
 
             const formData = new FormData();
-            // Using 'File' (capitalized) as it's common for .NET IFormFile
-            formData.append('File', fileList[0].originFileObj);
+            const fileToUpload = fileList[0].originFileObj || fileList[0];
+            formData.append('File', fileToUpload);
 
             const res = await scanCourseTemplate(createdCourseId, formData);
             console.log('AI Scan Response:', res);
@@ -312,7 +312,7 @@ export default function CreateTemplate() {
                     {currentStep === 1 && (
                         <div className="space-y-6">
                             <h2 className="text-xl font-bold text-slate-800">Sử dụng AI Phân tích đề cương</h2>
-                            <p className="text-slate-500">Tải lên file đề cương (Syllabus) dạng PDF hoặc DOCX để hệ thống tự động bóc tách thành các chương bài học.</p>
+                            <p className="text-slate-500">Tải lên file đề cương (Syllabus) dạng PDF hoặc Excel để hệ thống tự động bóc tách thành các chương bài học.</p>
 
                             <div className="p-8 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center">
                                 <Upload
@@ -323,13 +323,13 @@ export default function CreateTemplate() {
                                     fileList={fileList}
                                     onRemove={() => setFileList([])}
                                     maxCount={1}
-                                    accept=".pdf,.docx,.doc,.txt"
+                                    accept=".pdf,.xlsx,.xls,.csv,.txt"
                                 >
                                     <Button className="h-11 flex items-center justify-center bg-white border-slate-300 gap-2 mb-2">
                                         <FileText size={16} /> Chọn File đề cương
                                     </Button>
                                 </Upload>
-                                <span className="text-xs text-slate-400 mt-2">Định dạng hỗ trợ: PDF, DOCX (Tối đa 5MB)</span>
+                                <span className="text-xs text-slate-400 mt-2">Định dạng hỗ trợ: PDF, Excel (Tối đa 5MB)</span>
                             </div>
 
                             <div className="flex gap-4 justify-end pt-4 border-t border-slate-100">
