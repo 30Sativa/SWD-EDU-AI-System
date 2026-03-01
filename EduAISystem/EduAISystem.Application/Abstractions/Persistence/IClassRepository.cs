@@ -1,5 +1,9 @@
 using EduAISystem.Application.Common.Models;
+using EduAISystem.Application.Features.Classes.DTOs.Response;
 using EduAISystem.Domain.Entities;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EduAISystem.Application.Abstractions.Persistence
 {
@@ -26,6 +30,11 @@ namespace EduAISystem.Application.Abstractions.Persistence
         Task<bool> SetActiveStatusAsync(Guid id, bool isActive, CancellationToken cancellationToken = default);
 
         Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+        Task EnrollStudentToClassAsync(Guid studentId, Guid classId, CancellationToken cancellationToken = default);
+        Task<bool> RemoveStudentFromClassAsync(Guid studentId, Guid classId, CancellationToken cancellationToken = default);
+
+        Task<List<StudentInClassResponseDto>> GetStudentsByClassIdAsync(Guid classId, CancellationToken cancellationToken = default);
+        Task<List<ClassDomain>> GetClassesByTeacherAsync(Guid teacherId, CancellationToken cancellationToken = default);
     }
 }
 

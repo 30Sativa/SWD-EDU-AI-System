@@ -59,6 +59,11 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             var totalCount = await query.CountAsync(cancellationToken);
 
             var entities = await query
+                .Include(c => c.Teacher)
+                    .ThenInclude(t => t.User)
+                        .ThenInclude(u => u.UserProfile)
+                .Include(c => c.Term)
+                .Include(c => c.GradeLevel)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
@@ -78,6 +83,11 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         {
             var entity = await _context.Classes
                 .AsNoTracking()
+                .Include(c => c.Teacher)
+                    .ThenInclude(t => t.User)
+                        .ThenInclude(u => u.UserProfile)
+                .Include(c => c.Term)
+                .Include(c => c.GradeLevel)
                 .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
             return entity == null ? null : MapToDomain(entity);
@@ -184,6 +194,82 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             return true;
         }
 
+        public async Task<bool> RemoveStudentFromClassAsync(Guid studentId, Guid classId, CancellationToken cancellationToken = default)
+        {
+            var studentClass = await _context.StudentClasses
+                .FirstOrDefaultAsync(sc => sc.StudentId == studentId && sc.ClassId == classId, cancellationToken);
+            
+            if (studentClass == null) return false;
+
+            _context.StudentClasses.Remove(studentClass);
+
+            var classEntity = await _context.Classes.FirstOrDefaultAsync(c => c.Id == classId, cancellationToken);
+            if (classEntity != null)
+            {
+                classEntity.CurrentStudents = Math.Max(0, (classEntity.CurrentStudents ?? 0) - 1);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        public async Task EnrollStudentToClassAsync(Guid studentId, Guid classId, CancellationToken cancellationToken = default)
+        {
+            var exists = await _context.StudentClasses
+                .AnyAsync(sc => sc.StudentId == studentId && sc.ClassId == classId, cancellationToken);
+            if (exists) return;
+
+            var studentClass = new StudentClass
+            {
+                StudentId = studentId,
+                ClassId = classId,
+                JoinedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+
+            _context.StudentClasses.Add(studentClass);
+
+            // Cập nhật số lượng học sinh trong lớp (không bắt buộc nhưng tốt cho hiệu năng hiển thị)
+            var classEntity = await _context.Classes.FirstOrDefaultAsync(c => c.Id == classId, cancellationToken);
+            if (classEntity != null)
+            {
+                classEntity.CurrentStudents = (classEntity.CurrentStudents ?? 0) + 1;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        public async Task<List<Application.Features.Classes.DTOs.Response.StudentInClassResponseDto>> GetStudentsByClassIdAsync(Guid classId, CancellationToken cancellationToken = default)
+        {
+            return await _context.StudentClasses
+                .AsNoTracking()
+                .Where(sc => sc.ClassId == classId)
+                .Select(sc => new Application.Features.Classes.DTOs.Response.StudentInClassResponseDto
+                {
+                    UserId = sc.StudentId,
+                    StudentCode = sc.Student.StudentCode,
+                    FullName = sc.Student.User.UserProfile.FullName ?? "N/A",
+                    Email = sc.Student.User.Email,
+                    JoinedAt = sc.JoinedAt,
+                    IsActive = sc.Student.User.IsActive ?? false
+                })
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<ClassDomain>> GetClassesByTeacherAsync(Guid teacherId, CancellationToken cancellationToken = default)
+        {
+            var entities = await _context.Classes
+                .AsNoTracking()
+                .Include(c => c.Teacher)
+                    .ThenInclude(t => t.User)
+                        .ThenInclude(u => u.UserProfile)
+                .Include(c => c.Term)
+                .Include(c => c.GradeLevel)
+                .Where(c => c.TeacherId == teacherId)
+                .ToListAsync(cancellationToken);
+
+            return entities.Select(MapToDomain).ToList();
+        }
+
         private static ClassDomain MapToDomain(Class c)
         {
             return ClassDomain.Load(
@@ -198,7 +284,10 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 c.CurrentStudents ?? 0,
                 c.IsActive ?? true,
                 c.CreatedAt ?? DateTime.UtcNow,
-                c.UpdatedAt);
+                c.UpdatedAt,
+                c.Teacher?.User?.UserProfile?.FullName,
+                c.Term?.Name,
+                c.GradeLevel?.Name);
         }
     }
 }

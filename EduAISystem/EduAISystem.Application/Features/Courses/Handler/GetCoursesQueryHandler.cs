@@ -24,6 +24,8 @@ namespace EduAISystem.Application.Features.Courses.Handler
                 request.Status,
                 request.SubjectId,
                 request.IsDeletedFilter,
+                request.IsTemplate,
+                request.IsActive,
                 cancellationToken);
 
             var items = result.Items.Select(c => new CourseListItemResponseDto

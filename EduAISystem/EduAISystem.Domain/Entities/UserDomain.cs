@@ -70,13 +70,16 @@ namespace EduAISystem.Domain.Entities
             };
         }
         // Factory method to create an imported UserDomain
-        public static UserDomain CreateImported(string email, string passwordHash, UserRoleDomain role)
+        public static UserDomain CreateImported(string email, string passwordHash, string fullName, UserRoleDomain role)
         {
+            var userId = Guid.NewGuid();
+            var profile = new UserProfileDomain(userId, fullName);
             return new UserDomain
             {
-                Id = Guid.NewGuid(),
+                Id = userId,
                 Email = email,
                 PasswordHash = passwordHash,
+                UserProfile = profile,
                 Role = role,
                 IsActive = true,
                 IsFirstLogin = true,

@@ -11,6 +11,9 @@ namespace EduAISystem.Application.Features.Classes.DTOs.Response
         public int MaxStudents { get; set; }
         public int CurrentStudents { get; set; }
         public bool IsActive { get; set; }
+        public string? TeacherName { get; set; }
+        public string? TermName { get; set; }
+        public string? GradeLevelName { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

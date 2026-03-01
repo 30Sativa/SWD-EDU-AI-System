@@ -15,6 +15,11 @@ namespace EduAISystem.Domain.Entities
         public DateTime CreatedAt { get; private set; }
         public DateTime? UpdatedAt { get; private set; }
 
+        // Optional navigation names for display
+        public string? TeacherName { get; private set; }
+        public string? TermName { get; private set; }
+        public string? GradeLevelName { get; private set; }
+
         protected ClassDomain() { }
 
         public static ClassDomain Create(
@@ -71,7 +76,10 @@ namespace EduAISystem.Domain.Entities
             int currentStudents,
             bool isActive,
             DateTime createdAt,
-            DateTime? updatedAt)
+            DateTime? updatedAt,
+            string? teacherName = null,
+            string? termName = null,
+            string? gradeLevelName = null)
         {
             return new ClassDomain
             {
@@ -86,7 +94,10 @@ namespace EduAISystem.Domain.Entities
                 CurrentStudents = currentStudents,
                 IsActive = isActive,
                 CreatedAt = createdAt,
-                UpdatedAt = updatedAt
+                UpdatedAt = updatedAt,
+                TeacherName = teacherName,
+                TermName = termName,
+                GradeLevelName = gradeLevelName
             };
         }
 
@@ -117,6 +128,12 @@ namespace EduAISystem.Domain.Entities
             TermId = termId;
             GradeLevelId = gradeLevelId;
             MaxStudents = maxStudents;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void UpdateHomeroomTeacher(Guid teacherId)
+        {
+            TeacherId = teacherId;
             UpdatedAt = DateTime.UtcNow;
         }
 

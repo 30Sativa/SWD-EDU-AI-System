@@ -65,8 +65,8 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpPut("{id:guid}")]
         [SwaggerOperation(
-            Summary = "Cập nhật lớp học",
-            Description = "Cập nhật thông tin lớp học theo Id"
+            Summary = "Cập nhật lớp học (bao gồm gán GVCN)",
+            Description = "Cập nhật thông tin lớp học theo Id. Có thể thay đổi giáo viên chủ nhiệm qua field TeacherId nếu cần."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<ClassDetailResponseDto>))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<ClassDetailResponseDto?>))]
@@ -112,64 +112,18 @@ namespace EduAISystem.WebAPI.Controllers.Manager
             return Ok(ApiResponse<object>.Ok(null, "Xóa lớp học thành công"));
         }
 
-        [HttpGet("{id:guid}/students")]
-        [SwaggerOperation(
-            Summary = "Danh sách học sinh trong lớp",
-            Description = "Lấy toàn bộ danh sách học sinh đã được gán vào lớp này"
-        )]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<StudentInClassResponseDto>>))]
-        public async Task<IActionResult> GetStudentsInClass(Guid id, CancellationToken cancellationToken)
+        [HttpPost("{id:guid}/subject-teachers")]
+        [SwaggerOperation(Summary = "Phân công GV bộ môn", Description = "Gán giáo viên dạy môn học cụ thể cho lớp")]
+        public async Task<IActionResult> AssignSubjectTeacher(Guid id, [FromBody] AssignSubjectTeacherRequestDto dto, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(new GetStudentsInClassQuery { ClassId = id }, cancellationToken);
-            return Ok(ApiResponse<List<StudentInClassResponseDto>>.Ok(result, "Lấy danh sách học sinh trong lớp thành công"));
-        }
+            var result = await _mediator.Send(new AssignSubjectTeacherCommand 
+            { 
+                ClassId = id, 
+                SubjectId = dto.SubjectId, 
+                TeacherId = dto.TeacherId 
+            }, cancellationToken);
 
-        [HttpPost("{id:guid}/students")]
-        [SwaggerOperation(
-            Summary = "Thêm danh sách học sinh vào lớp",
-            Description = "Gán các tài khoản học sinh đã có sẵn vào lớp học theo danh sách User ID"
-        )]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
-        public async Task<IActionResult> AddStudents(Guid id, [FromBody] List<Guid> studentIds, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(new AddStudentsToClassCommand(id, studentIds), cancellationToken);
-            if (!result) return NotFound(ApiResponse<object>.Fail("Không tìm thấy lớp học"));
-
-            return Ok(ApiResponse<object>.Ok(null, "Đã thêm học sinh vào lớp thành công"));
-        }
-
-        [HttpDelete("{id:guid}/students/{studentId:guid}")]
-        [SwaggerOperation(
-            Summary = "Xóa học sinh khỏi lớp (Unenroll)",
-            Description = "Loại bỏ một học sinh ra khỏi lớp học"
-        )]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
-        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
-        public async Task<IActionResult> UnenrollStudent(Guid id, Guid studentId, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(new UnenrollStudentCommand(id, studentId), cancellationToken);
-            if (!result) return NotFound(ApiResponse<object>.Fail("Không tìm thấy học sinh trong lớp này"));
-
-            return Ok(ApiResponse<object>.Ok(null, "Đã xóa học sinh khỏi lớp thành công"));
-        }
-
-        [HttpPost("{id:guid}/students/enroll-excel")]
-        [SwaggerOperation(
-            Summary = "Gán học sinh vào lớp bằng Excel",
-            Description = "Upload file danh sách email học sinh đã có trong hệ thống để gán vào lớp này"
-        )]
-        [Consumes("multipart/form-data")]
-        public async Task<IActionResult> EnrollStudentsByExcel(Guid id, IFormFile file)
-        {
-            if (file == null || file.Length == 0)
-                return BadRequest(ApiResponse<object>.Fail("File không được để trống"));
-
-            using var ms = new MemoryStream();
-            await file.CopyToAsync(ms);
-
-            var result = await _mediator.Send(new EnrollStudentsByExcelCommand(id, file.FileName, ms.ToArray()));
-
-            return Ok(ApiResponse<object>.Ok(new { result.count, result.errors }, $"Đã gán thành công {result.count} học sinh."));
+            return Ok(ApiResponse<object>.Ok(null, "Phân công giáo viên bộ môn thành công"));
         }
     }
 }

@@ -17,6 +17,7 @@ namespace EduAISystem.Application.Features.Courses.DTOs.Request
         /// false: chỉ lấy khóa học chưa xóa (DeletedAt == null)
         /// </summary>
         public bool? IsDeletedFilter { get; set; }
+        public bool? IsActive { get; set; }
     }
 }
 

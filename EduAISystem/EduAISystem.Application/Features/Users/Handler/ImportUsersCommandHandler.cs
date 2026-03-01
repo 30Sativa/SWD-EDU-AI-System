@@ -51,6 +51,7 @@ namespace EduAISystem.Application.Features.Users.Handler
                 var user = UserDomain.CreateImported(
                     item.Email,
                     passwordHash,
+                    item.FullName,
                     UserRoleDomain.Student
                 );
 

@@ -90,6 +90,8 @@ public partial class EduAiDbV5Context : DbContext
 
     public virtual DbSet<UserProfile> UserProfiles { get; set; }
 
+    public virtual DbSet<ClassSubjectTeacher> ClassSubjectTeachers { get; set; }
+
 //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
 //        => optionsBuilder.UseSqlServer("Data Source=(local);Database=EduAI_DB_V5;Trusted_Connection=True;TrustServerCertificate=True;");
@@ -927,6 +929,25 @@ public partial class EduAiDbV5Context : DbContext
             entity.HasOne(d => d.User).WithOne(p => p.UserProfile)
                 .HasForeignKey<UserProfile>(d => d.UserId)
                 .HasConstraintName("FK__UserProfi__UserI__534D60F1");
+        });
+
+        modelBuilder.Entity<ClassSubjectTeacher>(entity =>
+        {
+            entity.HasKey(e => new { e.ClassId, e.SubjectId, e.TeacherId });
+
+            entity.Property(e => e.AssignedAt).HasDefaultValueSql("(sysdatetime())");
+
+            entity.HasOne(d => d.Class).WithMany()
+                .HasForeignKey(d => d.ClassId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            entity.HasOne(d => d.Subject).WithMany()
+                .HasForeignKey(d => d.SubjectId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            entity.HasOne(d => d.Teacher).WithMany()
+                .HasForeignKey(d => d.TeacherId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         OnModelCreatingPartial(modelBuilder);
