@@ -24,3 +24,7 @@ export const changeClassStatus = (id, status) => {
 export const deleteClass = (id) => {
     return axiosClient.delete(`/api/manager/classes/${id}`);
 };
+
+export const assignSubjectTeacher = (id, data) => {
+    return axiosClient.post(`/api/manager/classes/${id}/subject-teachers`, data);
+};

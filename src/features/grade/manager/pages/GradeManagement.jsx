@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit, Layers, BookOpen, Filter, School, Trash2, X, Users, Calendar } from 'lucide-react';
-import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, Switch, Select, Tabs, Popconfirm } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Search, Edit, Layers, BookOpen, Filter, School, Trash2, X, Users, Calendar, Eye, UserPlus } from 'lucide-react';
+import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, Switch, Select, Tabs, Popconfirm, Descriptions } from 'antd';
 import {
     getGradeLevels,
     createGradeLevel,
@@ -12,13 +13,17 @@ import {
     createClass,
     updateClass,
     changeClassStatus,
-    deleteClass
+    deleteClass,
+    getClassDetail,
+    assignSubjectTeacher
 } from '../../../classes/api/classApi';
 
 import { getUsers, ROLE_ENUM } from '../../../user/api/userApi';
 import { getTerms } from '../../../term/api/termApi';
+import { getSubjects } from '../../../subject/api/subjectApi';
 
 export default function GradeManagement() {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('2'); // '1': Grades, '2': Classes
 
     // Common State
@@ -45,15 +50,19 @@ export default function GradeManagement() {
     const [form] = Form.useForm();
     const [classForm] = Form.useForm();
 
+    // Data for Class Assignment UI check
+    const [subjects, setSubjects] = useState([]);
+
     // Fetch Data
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [gradeRes, classRes, teacherRes, termRes] = await Promise.all([
+            const [gradeRes, classRes, teacherRes, termRes, subjectRes] = await Promise.all([
                 getGradeLevels(),
                 getClasses(),
                 getUsers({ RoleFilter: ROLE_ENUM.TEACHER, PageSize: 100 }),
-                getTerms().catch(() => ({ data: [] })) // Use centralized API
+                getTerms().catch(() => ({ data: [] })), // Use centralized API
+                getSubjects().catch(() => ({ data: [] }))
             ]);
 
             const gradeData = gradeRes?.data?.items || gradeRes?.items || gradeRes?.data || gradeRes || [];
@@ -66,6 +75,10 @@ export default function GradeManagement() {
             // Handle Terms
             const termItems = termRes?.data?.items || termRes?.items || termRes?.data || termRes || [];
             setTerms(Array.isArray(termItems) ? termItems : []);
+
+            // Handle Subjects
+            const subjectItems = subjectRes?.data?.items || subjectRes?.items || subjectRes?.data || subjectRes || [];
+            setSubjects(Array.isArray(subjectItems) ? subjectItems : []);
 
             setGrades(Array.isArray(gradeData) ? gradeData : []);
             setClasses(Array.isArray(classData) ? classData : []);
@@ -274,16 +287,24 @@ export default function GradeManagement() {
     const handleClassSubmit = async (values) => {
         try {
             setClassSubmitting(true);
-            const payload = {
-                ...values,
-                maxStudents: parseInt(values.maxStudents)
-            };
 
             if (editingClass) {
-                await updateClass(editingClass.id, payload);
+                const updatePayload = {
+                    name: values.name,
+                    description: values.description,
+                    teacherId: values.teacherId,
+                    termId: values.termId,
+                    gradeLevelId: values.gradeLevelId,
+                    maxStudents: parseInt(values.maxStudents) || 0
+                };
+                await updateClass(editingClass.id, updatePayload);
                 message.success('Cập nhật lớp học thành công!');
             } else {
-                await createClass(payload);
+                const createPayload = {
+                    ...values,
+                    maxStudents: parseInt(values.maxStudents) || 0
+                };
+                await createClass(createPayload);
                 message.success('Tạo lớp học mới thành công!');
             }
 
@@ -435,7 +456,7 @@ export default function GradeManagement() {
             }
         },
         {
-            title: 'GIÁO VIÊN',
+            title: 'GVCN',
             key: 'teacher',
             render: (_, record) => {
                 // Try to find teacher name from the record or look it up in the teachers list if we have IDs
@@ -491,6 +512,24 @@ export default function GradeManagement() {
             align: 'right',
             render: (_, record) => (
                 <div className="flex justify-end gap-2">
+                    <Tooltip title="Phân công GV Bộ môn">
+                        <Button
+                            type="text"
+                            shape="circle"
+                            icon={<UserPlus size={16} />}
+                            className="text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                            onClick={() => navigate(`/dashboard/manager/classes/${record.id}`)}
+                        />
+                    </Tooltip>
+                    <Tooltip title="Xem chi tiết">
+                        <Button
+                            type="text"
+                            shape="circle"
+                            icon={<Eye size={16} />}
+                            className="text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 transition-colors"
+                            onClick={() => navigate(`/dashboard/manager/classes/${record.id}`)}
+                        />
+                    </Tooltip>
                     <Tooltip title="Chỉnh sửa">
                         <Button
                             type="text"
