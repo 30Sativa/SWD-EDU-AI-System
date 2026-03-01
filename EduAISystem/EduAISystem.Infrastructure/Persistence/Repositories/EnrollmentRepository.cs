@@ -20,35 +20,35 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         // =========================
         // EXISTS
         // =========================
-        public async Task<bool> ExistsAsync(Guid studentId, Guid courseId)
+        public async Task<bool> ExistsAsync(Guid studentId, Guid courseId, CancellationToken cancellationToken = default)
         {
             return await _context.Enrollments
                 .AnyAsync(e => e.StudentId == studentId &&
-                               e.CourseId == courseId);
+                               e.CourseId == courseId, cancellationToken);
         }
 
         // =========================
         // ADD
         // =========================
-        public async Task AddAsync(EnrollmentDomain enrollment)
+        public async Task AddAsync(EnrollmentDomain enrollment, CancellationToken cancellationToken = default)
         {
             var entity = MapToEntity(enrollment);
 
             _context.Enrollments.Add(entity);
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         // =========================
         // GET
         // =========================
-        public async Task<EnrollmentDomain?> GetAsync(Guid studentId, Guid courseId)
+        public async Task<EnrollmentDomain?> GetAsync(Guid studentId, Guid courseId, CancellationToken cancellationToken = default)
         {
             var entity = await _context.Enrollments
                 .AsNoTracking()
                 .FirstOrDefaultAsync(e =>
                     e.StudentId == studentId &&
-                    e.CourseId == courseId);
+                    e.CourseId == courseId, cancellationToken);
 
             return entity == null ? null : MapToDomain(entity);
         }
@@ -106,19 +106,19 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             };
         }
 
-        public async Task<PagedResult<EnrollmentDomain>> GetPagedByStudentAsync(Guid studentId, int page, int pageSize)
+        public async Task<PagedResult<EnrollmentDomain>> GetPagedByStudentAsync(Guid studentId, int page, int pageSize, CancellationToken cancellationToken = default)
         {
             var query = _context.Enrollments
-        .AsNoTracking()
-        .Where(e => e.StudentId == studentId);
+                .AsNoTracking()
+                .Where(e => e.StudentId == studentId);
 
-            var totalCount = await query.CountAsync();
+            var totalCount = await query.CountAsync(cancellationToken);
 
             var entities = await query
                 .OrderByDescending(e => e.EnrolledAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             var domains = entities.Select(MapToDomain).ToList();
 

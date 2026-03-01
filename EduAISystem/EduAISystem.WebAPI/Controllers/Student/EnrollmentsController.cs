@@ -3,6 +3,7 @@ using EduAISystem.Application.Features.Enrollments.Commands;
 using EduAISystem.Application.Features.Enrollments.DTOs.Response;
 using EduAISystem.Application.Features.Enrollments.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -11,6 +12,7 @@ namespace EduAISystem.WebAPI.Controllers.Student
 {
     [Route("api/student/courses")]
     [ApiController]
+    [Authorize]
     public class EnrollmentsController : ControllerBase
     {
         private readonly IMediator _mediator;

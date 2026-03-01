@@ -35,9 +35,15 @@ namespace EduAISystem.Application.Features.Enrollments.Handler
         {
             var studentId = _currentUser.UserId;
 
+            // Validate student is authenticated
+            if (studentId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException("Student must be authenticated to view enrolled courses.");
+            }
+
             // Lấy tất cả enrollments của student
             var enrollments = await _enrollmentRepository
-                .GetPagedByStudentAsync(studentId, request.Page, request.PageSize);
+                .GetPagedByStudentAsync(studentId, request.Page, request.PageSize, cancellationToken);
 
             var items = new List<MyEnrolledCourseResponseDto>();
 
