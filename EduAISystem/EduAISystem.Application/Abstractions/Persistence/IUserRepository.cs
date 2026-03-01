@@ -17,6 +17,7 @@ namespace EduAISystem.Application.Abstractions.Persistence
             string? searchTerm,
             int? roleFilter,
             bool? isActiveFilter,
+            bool? includeDeleted = false,
             CancellationToken cancellationToken = default);
     }
 }

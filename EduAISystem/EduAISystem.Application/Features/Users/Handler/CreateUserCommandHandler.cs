@@ -42,6 +42,8 @@ namespace EduAISystem.Application.Features.Users.Handler
                 Role = (int)user.Role,
                 IsActive = user.IsActive,
                 CreatedAt = user.CreatedAt,
+                IsDeleted = user.IsDeleted,
+                DeletedAt = user.DeletedAt,
                 Profile = new UserProfileDetailDto
                 {
                     FullName = user.UserProfile.FullName

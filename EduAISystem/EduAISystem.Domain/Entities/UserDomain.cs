@@ -15,8 +15,11 @@ namespace EduAISystem.Domain.Entities
         public bool IsEmailVerified { get; private set; }
 
         public DateTime CreatedAt { get; private set; }
+        public DateTime? DeletedAt { get; private set; }
 
         public virtual UserProfileDomain? UserProfile { get; internal set; }
+
+        public bool IsDeleted => DeletedAt.HasValue;
 
 
         protected UserDomain() { } // EF
@@ -40,7 +43,8 @@ namespace EduAISystem.Domain.Entities
             string passwordHash,
             bool isActive,
             UserRoleDomain role,
-            DateTime createdAt)
+            DateTime createdAt,
+            DateTime? deletedAt = null)
         {
             Id = id;
             Email = email;
@@ -48,6 +52,7 @@ namespace EduAISystem.Domain.Entities
             IsActive = isActive;
             Role = role;
             CreatedAt = createdAt;
+            DeletedAt = deletedAt;
         }
         // Factory method to create a new UserDomain
         public static UserDomain Create(
@@ -115,6 +120,30 @@ namespace EduAISystem.Domain.Entities
         public void ChangeRole(UserRoleDomain role)
         {
             Role = role;
+        }
+
+        // =========================
+        // SOFT DELETE
+        // =========================
+        public void SoftDelete()
+        {
+            if (DeletedAt.HasValue)
+                return; // Already deleted
+
+            DeletedAt = DateTime.UtcNow;
+            IsActive = false; // Deactivate when soft deleted
+        }
+
+        // =========================
+        // RESTORE
+        // =========================
+        public void Restore()
+        {
+            if (!DeletedAt.HasValue)
+                return; // Not deleted
+
+            DeletedAt = null;
+            IsActive = true; // Reactivate when restored
         }
     }
 }

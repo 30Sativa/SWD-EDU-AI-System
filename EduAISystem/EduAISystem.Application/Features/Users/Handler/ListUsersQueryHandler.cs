@@ -23,6 +23,7 @@ namespace EduAISystem.Application.Features.Users.Handler
                 request.SearchTerm,
                 request.RoleFilter,
                 request.IsActiveFilter,
+                request.IncludeDeleted,
                 cancellationToken);
 
             //Mapping từ UserDomain sang UserListResponseDto
@@ -33,7 +34,9 @@ namespace EduAISystem.Application.Features.Users.Handler
                 FullName = user.UserProfile?.FullName,
                 Role = (int)user.Role,
                 IsActive = user.IsActive,
-                CreatedAt = user.CreatedAt
+                CreatedAt = user.CreatedAt,
+                IsDeleted = user.IsDeleted,
+                DeletedAt = user.DeletedAt
             }).ToList();
 
             return new PagedResult<UserListResponseDto>

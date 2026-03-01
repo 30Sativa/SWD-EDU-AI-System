@@ -10,5 +10,6 @@ namespace EduAISystem.Application.Features.Users.Queries
         public string? SearchTerm { get; set; }
         public int? RoleFilter { get; set; }
         public bool? IsActiveFilter { get; set; }
+        public bool? IncludeDeleted { get; set; } // For admin to see deleted users
     }
 }

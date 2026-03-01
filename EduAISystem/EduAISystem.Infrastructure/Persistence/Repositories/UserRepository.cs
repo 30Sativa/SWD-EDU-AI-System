@@ -94,6 +94,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             if (entity == null)
                 return false;
             entity.DeletedAt = DateTime.UtcNow;
+            entity.IsActive = false; // Deactivate when soft deleted
             await _context.SaveChangesAsync(cancellationToken);
             return true;
         }
@@ -113,7 +114,8 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 entity.PasswordHash,
                 entity.IsActive ?? false,
                 (UserRoleDomain)entity.Role,
-                entity.CreatedAt ?? DateTime.MinValue);
+                entity.CreatedAt ?? DateTime.MinValue,
+                entity.DeletedAt);
             if (entity.UserProfile != null)
                 domain.UserProfile = UserProfileDomain.Load(
                     entity.UserProfile.UserId,
@@ -158,13 +160,20 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             int pageSize, 
             string? searchTerm, 
             int? roleFilter, 
-            bool? isActiveFilter, 
+            bool? isActiveFilter,
+            bool? includeDeleted = false,
             CancellationToken cancellationToken = default)
         {
             var query = _context.Users
             .AsNoTracking()
             .Include(u => u.UserProfile)
-            .Where(u => u.DeletedAt == null);
+            .AsQueryable();
+
+            // Filter deleted users unless includeDeleted is true
+            if (!includeDeleted.HasValue || !includeDeleted.Value)
+            {
+                query = query.Where(u => u.DeletedAt == null);
+            }
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
@@ -197,7 +206,8 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                     u.PasswordHash,
                     u.IsActive ?? false,
                     (UserRoleDomain)u.Role,
-                    u.CreatedAt ?? DateTime.MinValue);
+                    u.CreatedAt ?? DateTime.MinValue,
+                    u.DeletedAt);
                 if (u.UserProfile != null)
                     domain.UserProfile = UserProfileDomain.Load(
                         u.UserProfile.UserId,

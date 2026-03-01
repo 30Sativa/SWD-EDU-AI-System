@@ -8,6 +8,10 @@ namespace EduAISystem.Application.Features.Users.DTOs.Response
         public bool IsActive { get; init; }
         public DateTime? CreatedAt { get; init; }
 
+        // Status for admin
+        public bool IsDeleted { get; init; }
+        public DateTime? DeletedAt { get; init; }
+
         // Profile (null nếu user chưa có profile)
         public UserProfileDetailDto? Profile { get; init; }
     }

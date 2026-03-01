@@ -11,5 +11,9 @@
         public int Role { get; init; }
         public bool IsActive { get; init; }
         public DateTime? CreatedAt { get; init; }
+        
+        // Status for admin
+        public bool IsDeleted { get; init; }
+        public DateTime? DeletedAt { get; init; }
     }
 }

@@ -24,7 +24,7 @@ namespace EduAISystem.WebAPI.Controllers.Admin
         [HttpGet]
         [SwaggerOperation(
             Summary = "Danh sách người dùng",
-            Description = "Lấy toàn bộ người dùng kèm phân trang và bộ lọc"
+            Description = "Lấy toàn bộ người dùng kèm phân trang và bộ lọc. Dùng includeDeleted=true để xem cả người dùng đã bị xóa mềm. Response bao gồm IsDeleted và DeletedAt để hiển thị status."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<UserListResponseDto>>))]
         public async Task<IActionResult> GetAllUsers([FromQuery] ListUsersQuery query, CancellationToken cancellationToken)
