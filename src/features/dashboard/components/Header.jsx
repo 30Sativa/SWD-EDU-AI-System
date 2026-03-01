@@ -58,16 +58,19 @@ export default function Header({ userRole, basePath }) {
       <div className="flex-1"></div>
 
       <div className="flex items-center gap-4">
-        <div className="relative hidden md:block md:w-64">
+        <form autoComplete="off" className="relative hidden md:block md:w-64" onSubmit={(e) => e.preventDefault()}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
+            name="site-search-input"
+            id="site-search-input"
+            autoComplete="new-password"
             placeholder="Tìm kiếm..."
             className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-full text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white transition-all"
           />
-        </div>
+        </form>
 
-        <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 relative transition-colors">
+        <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 relative transition-colors" title="Thông báo">
           <Bell size={20} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
         </button>
@@ -97,10 +100,18 @@ export default function Header({ userRole, basePath }) {
                   <p className="text-sm font-semibold text-gray-900">{userName}</p>
                   <p className="text-xs text-gray-500">{getRoleLabel(userRole)}</p>
                 </div>
-                <Link to={`${basePath}/profile`} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                  <User size={16} /> Hồ sơ
+                <Link
+                  onClick={() => setUserDropdownOpen(false)}
+                  to={`${basePath}/profile`}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                >
+                  <User size={16} /> Hồ sơ cá nhân
                 </Link>
-                <Link to="/settings" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                <Link
+                  onClick={() => setUserDropdownOpen(false)}
+                  to={`${basePath}/settings`}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                >
                   <Settings size={16} /> Cài đặt
                 </Link>
                 <div className="my-1 border-t border-gray-100"></div>

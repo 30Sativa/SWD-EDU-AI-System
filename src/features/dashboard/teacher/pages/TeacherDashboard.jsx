@@ -187,7 +187,7 @@ export default function TeacherDashboard() {
 
             {/* Mini Sparkline Chart */}
             <div className="absolute bottom-0 left-0 right-0 h-16 opacity-30 group-hover:opacity-50 transition-opacity">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <ResponsiveContainer width="100%" height={64} minWidth={0} minHeight={0}>
                 <AreaChart data={card.data}>
                   <defs>
                     <linearGradient id={`gradient-${index}`} x1="0" y1="0" x2="0" y2="1">
@@ -228,7 +228,7 @@ export default function TeacherDashboard() {
               </select>
             </div>
             <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={0}>
                 <BarChart data={studentActivityData} barSize={40}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis
@@ -382,7 +382,7 @@ export default function TeacherDashboard() {
             <div className="h-[220px] relative">
               {courseDistributionData.length > 0 ? (
                 <>
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <ResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
                     <PieChart>
                       <Pie
                         data={courseDistributionData}

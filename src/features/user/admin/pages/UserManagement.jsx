@@ -206,38 +206,58 @@ export default function UserManagement() {
         return;
       }
 
-      const existingEmails = users.map(u => u.email.toLowerCase());
+      // 1. Phải lấy danh sách thực tế để check trùng chính xác
+      const allUsersRes = await getUsers({ Page: 1, PageSize: 100 });
+      const rawAllUsers = allUsersRes?.data?.items || allUsersRes?.items || allUsersRes?.data || [];
+      const serverUsers = Array.isArray(rawAllUsers) ? rawAllUsers : [];
+      const localUsersList = Array.isArray(users) ? users : [];
+
+      const existingIdentifiers = [...serverUsers, ...localUsersList].map(u => [
+        (u.email || u.Email || "").toLowerCase().trim(),
+        (u.userName || u.UserName || "").toLowerCase().trim()
+      ]).flat().filter(e => e !== "");
+
+      const emailsSeenInFile = new Set();
       const errors = [];
       const normalizedData = rawData.map((row, index) => {
         const rowErrors = [];
-        // Extract values without defaulting - strictly null if missing
-        const name = row.fullName || row['Họ và tên'] || row.name || row['Name'] || null;
-        const email = row.email || row['Email'] || null;
+        // Nhận diện tên linh hoạt
+        const name = (
+          row.fullName || row['Họ và tên'] || row['Họ tên'] || row['Họ Và Tên'] ||
+          row.name || row['Name'] || row['Full Name'] || row['FullName'] || ""
+        ).toString().trim();
+
+        // Nhận diện email linh hoạt
+        const emailRaw = (
+          row.email || row['Email'] || row['email'] || row['Email hệ thống'] ||
+          row['E-mail'] || row['Tên đăng nhập'] || row['Username'] || ""
+        ).toString().trim();
+        const lowerEmail = emailRaw.toLowerCase();
+
         const role = row.role || row['Vai trò'] || 'Học sinh';
-        const status = 'Hoạt động'; // Luôn luôn là đang hoạt động theo yêu cầu
+        const ROLE_MAP = { 'Quản trị viên': 1, 'Quản lý': 2, 'Giáo viên': 3, 'Học sinh': 4 };
+        const roleId = ROLE_MAP[role] || 4;
+        const status = 'Hoạt động';
 
         if (!name) rowErrors.push("Thiếu Họ và tên");
-        if (!email) rowErrors.push("Thiếu Email");
+        if (!emailRaw) rowErrors.push("Thiếu Email");
         else {
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) rowErrors.push("Email sai định dạng");
-          if (existingEmails.includes(email.toLowerCase())) rowErrors.push("Email đã tồn tại");
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) rowErrors.push("Email sai định dạng");
+          if (lowerEmail && existingIdentifiers.includes(lowerEmail)) rowErrors.push("Email đã tồn tại");
+          if (lowerEmail && emailsSeenInFile.has(lowerEmail)) rowErrors.push("Email bị lặp trong file");
+          if (lowerEmail) emailsSeenInFile.add(lowerEmail);
         }
 
-        const validRoles = ['Học sinh', 'Giáo viên', 'Quản lý', 'Quản trị viên', 'Student', 'Teacher', 'Manager', 'Admin'];
-        if (role && !validRoles.includes(role)) {
-          rowErrors.push("Vai trò không hợp lệ");
-        }
-
-        if (rowErrors.length > 0) {
-          errors.push({ row: index + 1, messages: rowErrors });
-        }
+        if (rowErrors.length > 0) errors.push({ row: index + 1, messages: rowErrors });
 
         return {
           name: name || 'NULL',
-          email: email || 'NULL',
-          role: role || 'NULL',
-          status: status || 'NULL',
-          errors: rowErrors
+          email: emailRaw || 'NULL',
+          roleId: roleId,
+          role: role,
+          status: status,
+          errors: rowErrors,
+          isDuplicate: lowerEmail && existingIdentifiers.includes(lowerEmail)
         };
       });
 
@@ -360,14 +380,26 @@ export default function UserManagement() {
     if (!formData.name) return message.warning("Nhập tên");
     setIsLoading(true);
     try {
-      const profilePayload = {
-        fullName: formData.name,
-        phoneNumber: formData.phoneNumber,
-        dateOfBirth: formData.dateOfBirth ? formData.dateOfBirth.format('YYYY-MM-DD') : null,
-        gender: formData.gender,
-        address: formData.address,
-        bio: formData.bio
+      const GENDER_MAP = {
+        'Nam': 'Male',
+        'Nữ': 'Female',
+        'Khác': 'Other'
       };
+
+      const profilePayload = {
+        Id: editingUser.id,
+        FullName: formData.name || "",
+        PhoneNumber: formData.phoneNumber || "",
+        Gender: GENDER_MAP[formData.gender] || formData.gender || "Other",
+        Address: formData.address || "",
+        Bio: formData.bio || ""
+      };
+
+      if (formData.dateOfBirth) {
+        profilePayload.DateOfBirth = formData.dateOfBirth.format('YYYY-MM-DD');
+      }
+
+      console.log("Updating profile with Final PascalCase Payload:", profilePayload);
       await updateUserProfile(editingUser.id, profilePayload);
       message.success("Cập nhật thông tin thành công");
       setShowEditModal(false);
@@ -394,6 +426,12 @@ export default function UserManagement() {
       const res = await getUserById(user.id);
       const data = res.data?.data || res.data || res;
       setEditingUser(data);
+      const GENDER_REVERSE_MAP = {
+        'Male': 'Nam',
+        'Female': 'Nữ',
+        'Other': 'Khác'
+      };
+
       setFormData({
         name: data.fullName || data.profile?.fullName || data.userName || '',
         email: data.email || '',
@@ -401,7 +439,7 @@ export default function UserManagement() {
         status: data.isActive ? 'Hoạt động' : 'Tạm khóa',
         phoneNumber: data.profile?.phoneNumber || '',
         dateOfBirth: data.profile?.dateOfBirth ? (data.profile.dateOfBirth.includes('T') ? dayjs(data.profile.dateOfBirth) : dayjs(data.profile.dateOfBirth)) : null,
-        gender: data.profile?.gender || 'Nam',
+        gender: GENDER_REVERSE_MAP[data.profile?.gender] || data.profile?.gender || 'Nam',
         address: data.profile?.address || '',
         bio: data.profile?.bio || ''
       });
@@ -1045,12 +1083,12 @@ export default function UserManagement() {
                           <td className="px-4 py-3 text-sm font-bold text-slate-700">{row.name}</td>
                           <td className="px-4 py-3 text-sm font-medium text-slate-600">{row.email}</td>
                           <td className="px-4 py-3">
-                            <Tag className="rounded-md border-none px-2 py-0 text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-500">{row.role}</Tag>
+                            <Tag className="rounded-md border-none px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-500">{row.role}</Tag>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1.5 pt-1">
                               <div className={`w-1.5 h-1.5 rounded-full ${row.status === 'Hoạt động' ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
-                              <span className={`text-[10px] font-bold ${row.status === 'Hoạt động' ? 'text-emerald-00' : 'text-slate-400'}`}>
+                              <span className={`text-[10px] font-black uppercase ${row.status === 'Hoạt động' ? 'text-emerald-600' : 'text-slate-400'}`}>
                                 {row.status}
                               </span>
                             </div>

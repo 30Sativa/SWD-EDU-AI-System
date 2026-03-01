@@ -254,16 +254,6 @@ export default function GeneralSettings() {
 
     const items = [
         {
-            key: '1',
-            label: (
-                <span className="flex items-center gap-2 px-2 py-1">
-                    <User size={18} />
-                    Hồ sơ cá nhân
-                </span>
-            ),
-            children: <ProfileSettings />,
-        },
-        {
             key: '2',
             label: (
                 <span className="flex items-center gap-2 px-2 py-1">
@@ -295,7 +285,7 @@ export default function GeneralSettings() {
 
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 min-h-[600px]">
                     <Tabs
-                        defaultActiveKey="1"
+                        defaultActiveKey="2"
                         items={items}
                         tabPosition="left"
                         className="custom-tabs h-full"

@@ -269,7 +269,7 @@ export default function AdminDashboard() {
                       <h3 className="text-4xl font-extrabold text-slate-900 tracking-tight">{metric.value}</h3>
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 h-16 opacity-20 group-hover:opacity-40 transition-opacity">
-                      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <ResponsiveContainer width="100%" height={64} minWidth={0} minHeight={0}>
                         <AreaChart data={chartData}>
                           <defs>
                             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
 
                 <div className="p-6 flex-1 flex flex-col md:flex-row items-center justify-center gap-8">
                   <div className="w-[220px] h-[220px] relative">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <ResponsiveContainer width={220} height={220} minWidth={0} minHeight={0}>
                       <PieChart>
                         <Pie
                           data={stats.roleDistribution}

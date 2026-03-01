@@ -36,7 +36,6 @@ const MENU_ITEMS = [
   { label: 'Lớp học', icon: Users, path: 'classes', allowedRoles: ['teacher'] },
   { label: 'Câu hỏi', icon: ListChecks, path: 'question-bank', allowedRoles: ['teacher'] },
   { label: 'Ngân hàng câu hỏi', icon: ListChecks, path: 'question-bank', allowedRoles: ['manager'] },
-  { label: 'Cài đặt', icon: Settings, path: 'settings', allowedRoles: ['admin', 'teacher', 'student', 'manager'] },
 ];
 
 export default function Sidebar({ userRole = 'teacher' }) {

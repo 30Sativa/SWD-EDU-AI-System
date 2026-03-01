@@ -145,7 +145,7 @@ export default function StudentProgress() {
 
                             {/* Background Chart Overlay */}
                             <div className="absolute bottom-0 right-[-20px] w-1/2 h-1/2 opacity-40">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height={150} minWidth={0} minHeight={0}>
                                     <AreaChart data={scoreTrendData}>
                                         <Area type="monotone" dataKey="score" stroke="#fff" fill="#fff" fillOpacity={0.4} strokeWidth={4} />
                                     </AreaChart>
@@ -179,7 +179,7 @@ export default function StudentProgress() {
                                 <div className="text-slate-300"><Target size={18} /></div>
                             </div>
                             <div className="h-[240px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height={240} minWidth={0} minHeight={0}>
                                     <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillData}>
                                         <PolarGrid stroke="#e2e8f0" />
                                         <PolarAngleAxis
@@ -216,7 +216,7 @@ export default function StudentProgress() {
                             </div>
                         </div>
                         <div className="h-[180px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height={180} minWidth={0} minHeight={0}>
                                 <BarChart data={weeklyActivityData}>
                                     <XAxis
                                         dataKey="day"

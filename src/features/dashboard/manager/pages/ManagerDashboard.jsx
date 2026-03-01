@@ -84,7 +84,7 @@ const StatCard = ({ label, value, trend, change, data, color, bgBadge, index }) 
 
       {/* Chart */}
       <div className="absolute bottom-0 left-0 right-0 h-16 opacity-30 group-hover:opacity-50 transition-opacity">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <ResponsiveContainer width="100%" height={64} minWidth={0} minHeight={0}>
           <AreaChart data={data}>
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
