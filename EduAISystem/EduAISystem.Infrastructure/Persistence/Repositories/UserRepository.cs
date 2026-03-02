@@ -25,7 +25,11 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 PasswordHash = user.PasswordHash,
                 IsActive = user.IsActive,
                 Role = (int)user.Role,
-                CreatedAt = user.CreatedAt
+                CreatedAt = user.CreatedAt,
+                UserProfile = new Entities.UserProfile
+                {
+                    FullName = user.UserProfile?.FullName ?? string.Empty
+                }
             };
             _context.Users.Add(entity);
 
