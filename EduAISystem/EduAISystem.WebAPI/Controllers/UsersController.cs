@@ -1,6 +1,9 @@
 using EduAISystem.Application.Common.Models;
+using EduAISystem.Application.Features.Users.Commands;
+using EduAISystem.Application.Features.Users.DTOs.Request;
 using EduAISystem.Application.Features.Users.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -36,6 +39,30 @@ namespace EduAISystem.WebAPI.Controllers
             );
 
             return Ok(ApiResponse<object>.Ok(result, "Lấy thông tin người dùng hiện tại thành công"));
+        }
+
+        [HttpPut("me/profile")]
+        [Authorize]
+        [SwaggerOperation(
+            Summary = "Cập nhật thông tin cá nhân",
+            Description = "Chỉ update các field được truyền (null = giữ nguyên)"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateUserProfileRequestDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(ApiResponse<object>.Fail("Không tìm thấy UserId trong token"));
+
+            var result = await _mediator.Send(new UpdateUserProfileCommand
+            {
+                UserId = Guid.Parse(userId),
+                Request = dto
+            });
+
+            return Ok(ApiResponse<object>.Ok(result, "Cập nhật thông tin cá nhân thành công"));
         }
     }
 }

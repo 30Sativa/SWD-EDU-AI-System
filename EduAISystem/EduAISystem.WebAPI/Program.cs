@@ -1,4 +1,5 @@
 using EduAISystem.Application;
+using EduAISystem.WebAPI.Converters;
 using EduAISystem.Infrastructure;
 using EduAISystem.Infrastructure.Persistence.Seed;
 using EduAISystem.WebAPI.Middlewares;
@@ -28,7 +29,12 @@ if (string.IsNullOrWhiteSpace(jwtSection["Secret"]))
 #region Service registration
 
 // MVC Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Xử lý chuỗi rỗng "" cho DateOnly? → tự convert thành null
+        options.JsonSerializerOptions.Converters.Add(new NullableDateOnlyJsonConverter());
+    });
 
 // Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();

@@ -1,7 +1,7 @@
 using EduAISystem.Application.Abstractions.Persistence;
+using EduAISystem.Application.Common.Exceptions;
 using EduAISystem.Application.Features.Users.Commands;
 using EduAISystem.Application.Features.Users.DTOs.Response;
-using EduAISystem.Domain.Entities;
 using MediatR;
 
 namespace EduAISystem.Application.Features.Users.Handler
@@ -19,10 +19,10 @@ namespace EduAISystem.Application.Features.Users.Handler
         {
             var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
             if (user == null)
-                return null;
+                throw new NotFoundException("Không tìm thấy người dùng.");
 
-            var profile = new UserProfileDomain(
-                request.UserId,
+            // Delegate all business logic to the Domain
+            user.UpdateProfile(
                 request.Request.FullName,
                 request.Request.AvatarUrl,
                 request.Request.PhoneNumber,
@@ -31,33 +31,29 @@ namespace EduAISystem.Application.Features.Users.Handler
                 request.Request.Address,
                 request.Request.Bio);
 
-            await _userRepository.UpdateProfileAsync(request.UserId, profile, cancellationToken);
+            // Persist the updated profile via Repository
+            await _userRepository.UpdateProfileAsync(request.UserId, user.UserProfile!, cancellationToken);
 
-            var updatedUser = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
-            if (updatedUser == null)
-                return null;
-
-            var profileDto = updatedUser.UserProfile == null
-                ? null
-                : new UserProfileDetailDto
-                {
-                    FullName = updatedUser.UserProfile.FullName,
-                    AvatarUrl = updatedUser.UserProfile.AvatarUrl,
-                    PhoneNumber = updatedUser.UserProfile.PhoneNumber,
-                    DateOfBirth = updatedUser.UserProfile.DateOfBirth,
-                    Gender = updatedUser.UserProfile.Gender,
-                    Address = updatedUser.UserProfile.Address,
-                    Bio = updatedUser.UserProfile.Bio
-                };
-
+            // Map and return the updated user detail
             return new UserDetailResponseDto
             {
-                Id = updatedUser.Id,
-                Email = updatedUser.Email,
-                Role = (int)updatedUser.Role,
-                IsActive = updatedUser.IsActive,
-                CreatedAt = updatedUser.CreatedAt,
-                Profile = profileDto
+                Id = user.Id,
+                Email = user.Email,
+                Role = (int)user.Role,
+                IsActive = user.IsActive,
+                CreatedAt = user.CreatedAt,
+                IsDeleted = user.IsDeleted,
+                DeletedAt = user.DeletedAt,
+                Profile = new UserProfileDetailDto
+                {
+                    FullName = user.UserProfile?.FullName ?? string.Empty,
+                    AvatarUrl = user.UserProfile?.AvatarUrl,
+                    PhoneNumber = user.UserProfile?.PhoneNumber,
+                    DateOfBirth = user.UserProfile?.DateOfBirth,
+                    Gender = user.UserProfile?.Gender,
+                    Address = user.UserProfile?.Address,
+                    Bio = user.UserProfile?.Bio
+                }
             };
         }
     }

@@ -79,13 +79,27 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             }
             else
             {
-                user.UserProfile.FullName = profile.FullName;
-                user.UserProfile.AvatarUrl = profile.AvatarUrl;
-                user.UserProfile.PhoneNumber = profile.PhoneNumber;
-                user.UserProfile.DateOfBirth = profile.DateOfBirth;
-                user.UserProfile.Gender = profile.Gender;
-                user.UserProfile.Address = profile.Address;
-                user.UserProfile.Bio = profile.Bio;
+                // null hoặc "" đều bỏ qua → giữ nguyên giá trị DB cũ
+                if (!string.IsNullOrWhiteSpace(profile.FullName))
+                    user.UserProfile.FullName = profile.FullName;
+
+                if (!string.IsNullOrWhiteSpace(profile.AvatarUrl))
+                    user.UserProfile.AvatarUrl = profile.AvatarUrl;
+
+                if (!string.IsNullOrWhiteSpace(profile.PhoneNumber))
+                    user.UserProfile.PhoneNumber = profile.PhoneNumber;
+
+                if (profile.DateOfBirth.HasValue)
+                    user.UserProfile.DateOfBirth = profile.DateOfBirth;
+
+                if (!string.IsNullOrWhiteSpace(profile.Gender))
+                    user.UserProfile.Gender = profile.Gender;
+
+                if (!string.IsNullOrWhiteSpace(profile.Address))
+                    user.UserProfile.Address = profile.Address;
+
+                if (!string.IsNullOrWhiteSpace(profile.Bio))
+                    user.UserProfile.Bio = profile.Bio;
             }
 
             await _context.SaveChangesAsync(cancellationToken);

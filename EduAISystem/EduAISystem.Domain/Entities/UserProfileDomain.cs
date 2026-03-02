@@ -18,7 +18,7 @@
         // Business constructor
         public UserProfileDomain(
             Guid userId,
-            string fullName,
+            string? fullName,
             string? avatarUrl = null,
             string? phoneNumber = null,
             DateOnly? dateOfBirth = null,
@@ -29,18 +29,30 @@
             if (string.IsNullOrWhiteSpace(fullName))
                 throw new ArgumentException("Họ tên không được để trống", nameof(fullName));
 
-            // Validate Gender nếu có
-            if (gender != null && !IsValidGender(gender))
-                throw new ArgumentException("Giới tính không hợp lệ", nameof(gender));
+            //// Validate Gender nếu có
+            //if (gender != null && !IsValidGender(gender))
+            //    throw new ArgumentException("Giới tính không hợp lệ", nameof(gender));
 
-            UserId = userId;
-            FullName = fullName;
-            AvatarUrl = avatarUrl;
-            PhoneNumber = phoneNumber;
-            DateOfBirth = dateOfBirth;
-            Gender = gender;
-            Address = address;
-            Bio = bio;
+            if (fullName != null)
+                FullName = fullName;
+
+            if (avatarUrl != null)
+                AvatarUrl = avatarUrl;
+
+            if (phoneNumber != null)
+                PhoneNumber = phoneNumber;
+            
+            if (dateOfBirth.HasValue)
+                DateOfBirth = dateOfBirth.Value;
+
+            if (gender != null)
+                Gender = gender;
+
+            if (address != null)
+                Address = address;
+
+            if (bio != null)
+                Bio = bio;
         }
 
         // Constructor đơn giản chỉ với required fields (dùng cho tạo mới, còn Load dùng cho mapping từ DB)
@@ -89,6 +101,37 @@
             Address = address;
         }
 
+        public void UpdateAllInfo(
+            string? fullName = null,
+            string? avatarUrl = null,
+            string? phoneNumber = null,
+            DateOnly? dateOfBirth = null,
+            string? gender = null,
+            string? address = null,
+            string? bio = null)
+        {
+            // null hoặc "" (chuỗi rỗng) đều bị bỏ qua → giữ nguyên giá trị cũ
+            if (!string.IsNullOrWhiteSpace(fullName))
+                FullName = fullName;
+
+            if (!string.IsNullOrWhiteSpace(avatarUrl))
+                AvatarUrl = avatarUrl;
+
+            if (!string.IsNullOrWhiteSpace(phoneNumber))
+                PhoneNumber = phoneNumber;
+
+            if (dateOfBirth.HasValue)
+                DateOfBirth = dateOfBirth.Value;
+
+            if (!string.IsNullOrWhiteSpace(gender))
+                Gender = gender;
+
+            if (!string.IsNullOrWhiteSpace(address))
+                Address = address;
+
+            if (!string.IsNullOrWhiteSpace(bio))
+                Bio = bio;
+        }
         public void UpdateAvatar(string? avatarUrl)
         {
             AvatarUrl = avatarUrl;

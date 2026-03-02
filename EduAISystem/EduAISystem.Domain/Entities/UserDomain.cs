@@ -93,7 +93,27 @@ namespace EduAISystem.Domain.Entities
             };
         }
 
+        public void UpdateProfile(
+            string? fullName,
+            string? avatarUrl,
+            string? phoneNumber,
+            DateOnly? dob,
+            string? gender,
+            string? address,
+            string? bio) {
+            if (UserProfile == null)
+                throw new Exception("Profile missing");
 
+            UserProfile.UpdateAllInfo(
+                fullName,
+                avatarUrl,
+                phoneNumber,
+                dob,
+                gender,
+                address,
+                bio);
+
+        }
 
         public bool CanLogin() => IsActive;
 
