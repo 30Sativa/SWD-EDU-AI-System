@@ -98,6 +98,20 @@ public partial class EduAiDbV5Context : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<UserProfile>(entity =>
+        {
+            entity.HasKey(e => e.UserId);
+
+            entity.ToTable("UserProfiles");
+
+            entity.Property(e => e.UserId)
+                .ValueGeneratedNever();
+
+            entity.HasOne(d => d.User)
+                .WithOne(p => p.UserProfile)
+                .HasForeignKey<UserProfile>(d => d.UserId)
+                .HasConstraintName("FK_UserProfiles_Users");
+        });
         modelBuilder.Entity<AilessonDraft>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__AILesson__3214EC0700065036");
