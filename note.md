@@ -64,7 +64,8 @@ Dự án áp dụng kiến trúc **Feature-based** hybrid (kết hợp global & 
 ### B. Admin Dashboard (`src/features/dashboard/admin`)
 - **UI**: Giao diện Slate/Blue modern style.
 - **Stats**: Hiển thị 4 metrics chính (Users, Active, Courses, Subjects) với Sparkline Charts (Recharts).
-- **Charts**: Biểu đồ phân bố Role (Donut Chart).
+- **Charts**: Biểu đồ phân bố Role (Donut Chart). 
+- **Fixes**: Đã xử lý lỗi `ResponsiveContainer` dimension warning (-1) bằng cách đặt `height` cụ thể và `minHeight={0}`.
 - **System Info**: Trạng thái hạ tầng (CPU/RAM dummy visualizations).
 
 ### C. User Management (`src/features/user/admin`)
@@ -81,6 +82,7 @@ Dự án áp dụng kiến trúc **Feature-based** hybrid (kết hợp global & 
   - **Student**: Blue Badge.
 - **Import/Export**:
   - **Import**: Hỗ trợ CSV/Excel, validate dữ liệu trước khi thêm.
+    - **Lưu ý Mapping**: Backend mapping yêu cầu **PascalCase** và thứ tự cột cụ thể (`FullName` ở index 0, `Email` & `UserName` ở index 1).
   - **Export**: Xuất danh sách user ra file CSV/Excel.
 - **CRUD UI**: Modal Tạo mới/Chỉnh sửa user đẹp mắt (sử dụng Backdrop blur).
 - **Logic cập nhật**:
@@ -204,4 +206,4 @@ const UserManagement = () => {
     - Chuyển đổi các mock data còn lại sang API call thực tế khi Backend sẵn sàng.
 
 ---
-*Last Updated: 2026-02-05*
+*Last Updated: 2026-03-02*

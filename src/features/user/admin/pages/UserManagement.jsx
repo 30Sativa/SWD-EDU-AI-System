@@ -103,7 +103,7 @@ export default function UserManagement() {
           id: u.id,
           // Kiểm tra đa dạng các trường hợp (camelCase, PascalCase) từ cả profile và object gốc
           name: u.fullName || u.profile?.fullName || u.userName || u.email?.replace(/@.*$/, '') || 'Thành viên',
-          email: u.email || u.userName || u.userName,
+          email: u.email || u.userName || "",
           role: getRoleName(u.role),
           status: u.isActive ? 'Hoạt động' : 'Tạm khóa',
           joinDate: u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN') : '-'
@@ -283,10 +283,11 @@ export default function UserManagement() {
     try {
       // Luôn tạo file mới từ dữ liệu đã được chuẩn hóa để đảm bảo các giá trị mặc định (Học sinh, Hoạt động)
       const cleanData = validRows.map(r => ({
-        "Họ và tên": r.name,
         "Email": r.email,
-        "Vai trò": r.role,
-        "Trạng thái": r.status
+        "FullName": r.name,
+        "UserName": r.email,
+        "Role": r.role,
+        "Status": r.status
       }));
       const ws = XLSX.utils.json_to_sheet(cleanData);
       const wb = XLSX.utils.book_new();
