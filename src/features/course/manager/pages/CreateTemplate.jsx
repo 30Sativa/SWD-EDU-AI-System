@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Sparkles, Plus, Trash2, CheckCircle2, FileText } from 'lucide-react';
 import { Form, Input, Button, Select, InputNumber, message, Card, Steps, Upload } from 'antd';
-import { createCourseTemplate, scanCourseTemplate, saveCourseStructure } from '../../api/courseApi';
+import { createCourseTemplate, scanCourseTemplate, saveCourseStructure, createSection } from '../../api/courseApi';
 import { getSubjects } from '../../../subject/api/subjectApi';
 import { getGradeLevels } from '../../../grade/api/gradeApi';
 import { getCourseCategories } from '../../../category/api/categoryApi';
@@ -165,20 +165,24 @@ export default function CreateTemplate() {
 
         try {
             setLoading(true);
-            // Try sending the array directly if wrapping doesn't work.
-            // Many APIs expect the root body to be the array for list-based POSTs.
-            const payload = scannedSections.map((sec, index) => ({
-                Title: sec.title || sec.Title,
-                Description: sec.description || sec.Description || "",
-                SortOrder: index + 1
-            }));
+            message.loading({ content: 'Đang lưu từng chương vào hệ thống...', key: 'save_struct' });
 
-            await saveCourseStructure(createdCourseId, payload);
-            message.success('Lưu cấu trúc khóa học xuất sắc!');
+            // Lưu từng chương một bằng API POST để đảm bảo vào DB chuẩn
+            for (let i = 0; i < scannedSections.length; i++) {
+                const sec = scannedSections[i];
+                const payload = {
+                    Title: sec.title || sec.Title,
+                    Description: sec.description || sec.Description || "",
+                    SortOrder: i + 1
+                };
+                await createSection(createdCourseId, payload);
+            }
+
+            message.success({ content: 'Lưu toàn bộ cấu trúc khóa học thành công!', key: 'save_struct' });
             setCurrentStep(3); // Complete
         } catch (error) {
             console.error('Lỗi lưu cấu trúc:', error);
-            message.error(error.response?.data?.message || 'Có lỗi xảy ra khi lưu cấu trúc');
+            message.error({ content: error.response?.data?.message || 'Có lỗi xảy ra khi lưu cấu trúc', key: 'save_struct' });
         } finally {
             setLoading(false);
         }

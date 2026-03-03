@@ -45,10 +45,7 @@ export const createTeacherCourse = async (data) => {
 };
 
 export const publishTeacherCourse = async (id) => {
-    if (!id) {
-        console.error("Course ID is missing for publish!");
-        return;
-    }
+    if (!id) return;
     const url = `/api/teacher/courses/${id}/publish`;
     return await axiosClient.post(url);
 };
@@ -63,6 +60,10 @@ export const getTeacherCourseDetail = async (id) => {
 
 export const updateTeacherCourse = async (id, data) => {
     return await axiosClient.put(`/api/teacher/courses/${id}`, data);
+};
+
+export const getCourseSections = async (courseId) => {
+    return await axiosClient.get(`/api/courses/${courseId}/sections`);
 };
 
 export const assignClassToCourse = async (courseId, classId) => {

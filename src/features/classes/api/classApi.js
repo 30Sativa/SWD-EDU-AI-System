@@ -21,6 +21,10 @@ export const addStudentsToClass = (id, studentIds) => {
     return axiosClient.post(`/api/teacher/classes/${id}/students`, studentIds);
 };
 
+export const removeStudentFromClass = (id, studentId) => {
+    return axiosClient.delete(`/api/teacher/classes/${id}/students/${studentId}`);
+};
+
 export const getClassDetail = (id) => {
     return axiosClient.get(`/api/manager/classes/${id}`);
 };

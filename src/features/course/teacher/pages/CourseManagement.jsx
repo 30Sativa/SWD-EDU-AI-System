@@ -32,7 +32,7 @@ import {
   Form,
   Radio
 } from 'antd';
-import { getMyCourses, getCourseTemplates, createTeacherCourse, cloneTeacherCourse, publishTeacherCourse, assignClassToCourse } from '../../api/courseApi';
+import { getMyCourses, getCourseTemplates, createTeacherCourse, cloneTeacherCourse, publishTeacherCourse, assignClassToCourse, getTeacherCourseDetail } from '../../api/courseApi';
 import { getSubjects } from '../../../subject/api/subjectApi';
 import { getCurrentUser } from '../../../user/api/userApi';
 import { getGradeLevels } from '../../../grade/api/gradeApi';
@@ -51,6 +51,9 @@ export default function CourseManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [assigningCourse, setAssigningCourse] = useState(null);
   const [createType, setCreateType] = useState('template');
@@ -71,8 +74,7 @@ export default function CourseManagement() {
       const data = res?.data?.items || res?.items || res?.data || res || [];
       setCourses(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Lỗi khi tải danh sách khóa học:', error);
-      message.error('Không thể kết nối máy chủ để tải danh sách khóa học');
+      // message.error handle
     } finally {
       setLoading(false);
     }
@@ -93,7 +95,7 @@ export default function CourseManagement() {
       setCategories(categoriesRes?.data?.items || categoriesRes?.items || categoriesRes?.data || []);
       setClasses(classesRes?.data?.items || classesRes?.items || classesRes?.data || []);
     } catch (error) {
-      console.error('Lỗi khi tải dữ liệu template/subject/grade/category/classes:', error);
+      // silence
     }
   };
 
@@ -107,7 +109,6 @@ export default function CourseManagement() {
         const id = res?.id || res?.data?.id || localStorage.getItem('userId');
         if (id) setUserId(String(id));
       } catch (err) {
-        console.error("Failed to fetch user", err);
         const savedId = localStorage.getItem('userId');
         if (savedId) setUserId(String(savedId));
       }
@@ -154,7 +155,6 @@ export default function CourseManagement() {
       form.resetFields();
       fetchCourses();
     } catch (error) {
-      console.error('Creation error:', error);
       // Detailed error handling
       const errorData = error.response?.data;
       const errorMsg = errorData?.message || errorData?.Message || 'Có lỗi xảy ra khi tạo khóa học';
@@ -176,7 +176,6 @@ export default function CourseManagement() {
       setIsEditModalOpen(false);
       fetchCourses();
     } catch (error) {
-      console.error('Update error:', error);
       message.error('Lỗi khi cập nhật thông tin khóa học');
     } finally {
       setSubmitting(false);
@@ -191,10 +190,40 @@ export default function CourseManagement() {
       setIsAssignModalOpen(false);
       fetchCourses();
     } catch (error) {
-      console.error('Assign error:', error);
       message.error(error.response?.data?.message || 'Lỗi khi gán lớp vào khóa học');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handlePreviewTemplate = async () => {
+    const templateId = form.getFieldValue('templateId');
+    if (!templateId) {
+      message.warning('Vui lòng chọn một template để xem trước');
+      return;
+    }
+
+    try {
+      setPreviewLoading(true);
+      setIsPreviewModalOpen(true);
+
+      // Thử lấy detail qua API teacher detail hoặc API sections
+      const res = await getTeacherCourseDetail(templateId).catch(() => null);
+      let data = res?.data || res;
+
+      if (!data || !(data.sections || data.items || data.Sections)) {
+        // Fallback sang API sections (lấy từ courseApi vừa thêm)
+        const { getCourseSections } = await import('../../api/courseApi');
+        const sectionsRes = await getCourseSections(templateId).catch(() => null);
+        const sections = sectionsRes?.data?.items || sectionsRes?.items || sectionsRes?.data || [];
+        data = { ...data, sections };
+      }
+
+      setPreviewData(data);
+    } catch (error) {
+      message.error('Không thể tải cấu trúc template');
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -330,7 +359,6 @@ export default function CourseManagement() {
                   className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    console.log("Record for publish:", record);
                     if (!record.id) {
                       message.error("Course ID is missing from this record!");
                       return;
@@ -340,7 +368,6 @@ export default function CourseManagement() {
                       message.success('Xuất bản khóa học thành công!');
                       fetchCourses();
                     } catch (error) {
-                      console.error("Publish Error:", error);
                       message.error('Lỗi khi xuất bản khóa học');
                     }
                   }}
@@ -531,20 +558,34 @@ export default function CourseManagement() {
             {createType === 'template' ? (
               <>
                 <Form.Item
-                  name="templateId"
                   label="Chọn Template Khóa Học"
-                  rules={[{ required: true, message: 'Vui lòng chọn template!' }]}
+                  required
                 >
-                  <Select
-                    placeholder="Chọn template có sẵn..."
-                    className="h-11"
-                    showSearch
-                    optionFilterProp="children"
-                  >
-                    {templates.map(t => (
-                      <Select.Option key={t.id} value={t.id}>{t.title} ({t.code})</Select.Option>
-                    ))}
-                  </Select>
+                  <div className="flex gap-2">
+                    <Form.Item
+                      name="templateId"
+                      noStyle
+                      rules={[{ required: true, message: 'Vui lòng chọn template!' }]}
+                    >
+                      <Select
+                        placeholder="Chọn template có sẵn..."
+                        className="h-11 flex-1"
+                        showSearch
+                        optionFilterProp="children"
+                      >
+                        {templates.map(t => (
+                          <Select.Option key={t.id} value={t.id}>{t.title} ({t.code})</Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                    <Button
+                      icon={<Eye size={16} />}
+                      onClick={handlePreviewTemplate}
+                      className="h-11 px-4 border-blue-200 text-blue-600 hover:bg-blue-50"
+                    >
+                      Xem thử
+                    </Button>
+                  </div>
                 </Form.Item>
 
                 <Form.Item
@@ -734,6 +775,74 @@ export default function CourseManagement() {
             </div>
           </Form>
         </div>
+      </Modal>
+      {/* Template Preview Modal */}
+      <Modal
+        title={<div className="flex items-center gap-2"><Eye size={20} className="text-[#0487e2]" /><span className="font-bold">Cấu trúc Template</span></div>}
+        open={isPreviewModalOpen}
+        onCancel={() => setIsPreviewModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsPreviewModalOpen(false)}>Đóng</Button>
+        ]}
+        width={650}
+        centered
+      >
+        {previewLoading ? (
+          <div className="py-20 text-center">
+            <Spin>
+              <div className="pt-4 text-slate-500 font-medium">Đang tải cấu trúc...</div>
+            </Spin>
+          </div>
+        ) : previewData ? (
+          <div className="py-2 space-y-4">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <h4 className="font-bold text-slate-800 text-lg mb-1">{previewData.title || previewData.name}</h4>
+              <p className="text-slate-500 text-sm">{previewData.description || 'Không có mô tả cho template này.'}</p>
+            </div>
+
+            <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              <h5 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 ml-1">Danh sách chương bài</h5>
+              {(previewData.sections || previewData.items || previewData.Sections || []).length > 0 ? (
+                <div className="space-y-3">
+                  {(previewData.sections || previewData.items || previewData.Sections).map((sec, idx) => (
+                    <div key={idx} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-[10px] font-bold text-blue-500 uppercase tracking-tighter bg-blue-50 px-2 py-0.5 rounded mb-2 inline-block">Chương {idx + 1}</span>
+                          <h6 className="font-bold text-slate-700">{sec.title || sec.Title || sec.name}</h6>
+                          <p className="text-xs text-slate-400 mt-1">{sec.description || sec.Description || 'Không có mô tả.'}</p>
+                        </div>
+                        <div className="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded">
+                          {(sec.lessons || sec.items || sec.Lessons || []).length} bài học
+                        </div>
+                      </div>
+
+                      {/* Lessons list if available */}
+                      {(sec.lessons || sec.items || sec.Lessons || []).length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                          {(sec.lessons || sec.items || sec.Lessons).slice(0, 3).map((lesson, lIdx) => (
+                            <div key={lIdx} className="flex items-center gap-3 text-xs text-slate-500">
+                              <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                              <span className="flex-1 font-medium italic">{lesson.title || lesson.Title || lesson.name}</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">{lesson.type || lesson.Type || 'Video'}</span>
+                            </div>
+                          ))}
+                          {(sec.lessons || sec.items || sec.Lessons).length > 3 && (
+                            <div className="text-[10px] text-slate-400 italic pl-4 font-medium">...và {(sec.lessons || sec.items || sec.Lessons).length - 3} bài học khác</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Empty description="Template này hiện chưa có nội dung chương bài." className="py-10" />
+              )}
+            </div>
+          </div>
+        ) : (
+          <Empty description="Không tìm thấy dữ liệu cấu trúc." />
+        )}
       </Modal>
     </div>
   );
