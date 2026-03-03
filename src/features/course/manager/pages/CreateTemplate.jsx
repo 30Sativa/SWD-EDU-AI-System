@@ -10,6 +10,20 @@ import { getCourseCategories } from '../../../category/api/categoryApi';
 const { Option } = Select;
 const { TextArea } = Input;
 
+const slugify = (text) => {
+    if (!text) return "";
+    return text
+        .toString()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .replace(/([^0-9a-z-\s])/g, '')
+        .replace(/(\s+)/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+};
+
 export default function CreateTemplate() {
     const navigate = useNavigate();
     const [form] = Form.useForm();
@@ -67,6 +81,7 @@ export default function CreateTemplate() {
             const payload = {
                 code: values.code || "TMPL_" + Date.now().toString().slice(-4),
                 title: values.title,
+                slug: slugify(values.title),
                 subjectId: values.subjectId,
                 gradeLevelId: values.gradeLevelId,
                 categoryId: values.categoryId,
@@ -171,9 +186,10 @@ export default function CreateTemplate() {
             for (let i = 0; i < scannedSections.length; i++) {
                 const sec = scannedSections[i];
                 const payload = {
-                    Title: sec.title || sec.Title,
-                    Description: sec.description || sec.Description || "",
-                    SortOrder: i + 1
+                    title: sec.title || sec.Title,
+                    slug: slugify(sec.title || sec.Title),
+                    description: sec.description || sec.Description || "",
+                    sortOrder: i + 1
                 };
                 await createSection(createdCourseId, payload);
             }

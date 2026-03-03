@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -17,6 +17,20 @@ import {
   Trash2,
   Rocket
 } from 'lucide-react';
+
+const slugify = (text) => {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .replace(/([^0-9a-z-\s])/g, '')
+    .replace(/(\s+)/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
 import {
   Table,
   Button,
@@ -138,6 +152,7 @@ export default function CourseManagement() {
       } else {
         const payload = {
           title: values.title,
+          slug: slugify(values.title),
           code: values.code,
           subjectId: values.subjectId,
           description: values.description || "",
@@ -169,13 +184,14 @@ export default function CourseManagement() {
       setSubmitting(true);
       const payload = {
         ...values,
+        slug: slugify(values.title),
         level: parseInt(values.level),
       };
       await updateTeacherCourse(editingCourse.id, payload);
       message.success('Cập nhật khóa học thành công!');
       setIsEditModalOpen(false);
       fetchCourses();
-    } catch (error) {
+    } catch {
       message.error('Lỗi khi cập nhật thông tin khóa học');
     } finally {
       setSubmitting(false);
@@ -220,14 +236,14 @@ export default function CourseManagement() {
       }
 
       setPreviewData(data);
-    } catch (error) {
+    } catch {
       message.error('Không thể tải cấu trúc template');
     } finally {
       setPreviewLoading(false);
     }
   };
 
-  const filteredCourses = courses.filter(course => {
+  const filteredCourses = useMemo(() => courses.filter(course => {
     const matchesSearch = (course.title || course.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.code?.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -239,7 +255,7 @@ export default function CourseManagement() {
     }
 
     return matchesSearch && matchesStatus;
-  });
+  }), [courses, searchTerm, statusFilter]);
 
   const columns = [
     {
@@ -269,7 +285,6 @@ export default function CourseManagement() {
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{record.code}</span>
-              <span className="text-[10px] text-slate-300 font-medium">ID: {record.id?.substring(0, 8)}...</span>
             </div>
           </div>
         </div>
@@ -279,23 +294,44 @@ export default function CourseManagement() {
       title: 'PHÂN LOẠI',
       key: 'level',
       render: (_, record) => {
+        // Mapping levels with support for both string and number
         const difficultyMap = {
           1: 'Cơ bản',
           2: 'Trung bình',
           3: 'Nâng cao'
         };
-        const levelText = difficultyMap[record.level] || difficultyMap[record.difficultyLevel] || record.level || 'Chưa định nghĩa';
-        const infoText = record.gradeLevelName || record.gradeName || record.categoryName || record.subjectName || 'N/A';
+        const levelVal = record.level ?? record.Level ?? record.difficultyLevel ?? record.DifficultyLevel;
+        const levelText = difficultyMap[Number(levelVal)] || record.levelName || record.LevelName || (levelVal ? `Cấp độ ${levelVal} ` : 'Chưa định nghĩa');
+
+        // Resolve names with fallback for various cases
+        const gradeId = record.gradeLevelId || record.GradeLevelId || record.gradeId || record.GradeId;
+        const gradeName = record.gradeLevelName || record.GradeLevelName || record.gradeName || record.GradeName ||
+          grades.find(g => g.id === gradeId)?.name;
+
+        const catId = record.categoryId || record.CategoryId;
+        const categoryName = record.categoryName || record.CategoryName ||
+          categories.find(c => c.id === catId)?.name;
+
+        const subId = record.subjectId || record.SubjectId;
+        const subjectName = record.subjectName || record.SubjectName ||
+          subjects.find(s => s.id === subId)?.name;
 
         return (
           <div className="flex flex-col gap-1">
             <Tag className="rounded font-bold border-none bg-blue-50 text-blue-600 px-2 py-0 text-[11px] w-fit">
               {levelText}
             </Tag>
-            <span className="text-xs text-slate-500 font-medium px-1 flex items-center gap-1">
-              <Layers size={12} className="text-[#0487e2]" />
-              {infoText}
-            </span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-slate-500 font-medium px-1 flex items-center gap-1">
+                <Layers size={12} className="text-[#0487e2]" />
+                {gradeName || categoryName || (gradeId || catId ? `Phân loại: ${String(gradeId || catId).substring(0, 8)}...` : 'Liên cấp / Khác')}
+              </span>
+              {subjectName && (
+                <span className="text-[10px] text-slate-400 font-medium px-1 italic">
+                  Môn: {subjectName}
+                </span>
+              )}
+            </div>
           </div>
         );
       }
@@ -306,10 +342,6 @@ export default function CourseManagement() {
       render: (_, record) => (
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="text-xs font-bold text-slate-600 flex items-center gap-1">
-              <Users size={14} className="text-slate-400" />
-              {record.enrollmentCount ?? record.studentCount ?? 0}
-            </div>
             <div className="text-xs font-bold text-amber-500 flex items-center gap-1">
               <CheckCircle2 size={14} fill="currentColor" className="text-amber-100" />
               {record.rating ?? record.averageRating ?? '0.0'}
@@ -331,11 +363,11 @@ export default function CourseManagement() {
         const rawStatus = (status ?? record.statusCode ?? record.statusTitle ?? '').toString().toLowerCase();
         const isActive = rawStatus === 'active' || rawStatus === 'published' || record.statusCode === 1;
         return (
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${isActive
+          <span className={`inline - flex items - center gap - 1.5 px - 2.5 py - 1 rounded - full text - xs font - bold border ${isActive
             ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
             : 'bg-slate-50 text-slate-500 border-slate-100'
-            }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+            } `}>
+            <span className={`w - 1.5 h - 1.5 rounded - full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'} `} />
             {isActive ? 'Hoạt động' : 'Bản nháp'}
           </span>
         );
@@ -367,7 +399,7 @@ export default function CourseManagement() {
                       await publishTeacherCourse(record.id);
                       message.success('Xuất bản khóa học thành công!');
                       fetchCourses();
-                    } catch (error) {
+                    } catch {
                       message.error('Lỗi khi xuất bản khóa học');
                     }
                   }}
@@ -383,12 +415,13 @@ export default function CourseManagement() {
                 onClick={() => navigate(`/dashboard/teacher/courses/${record.id}`)}
               />
             </Tooltip>
-            <Tooltip title="Gán lớp học">
+
+            <Tooltip title="Gán vào lớp">
               <Button
                 type="text"
                 shape="circle"
                 icon={<Users size={16} />}
-                className="text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
                 onClick={(e) => {
                   e.stopPropagation();
                   setAssigningCourse(record);
@@ -397,6 +430,7 @@ export default function CourseManagement() {
                 }}
               />
             </Tooltip>
+
             <Tooltip title="Chỉnh sửa">
               <Button
                 type="text"

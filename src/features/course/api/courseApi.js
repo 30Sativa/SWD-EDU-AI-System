@@ -20,6 +20,16 @@ export const createSection = async (courseId, data) => {
     return response;
 };
 
+export const updateSection = async (courseId, sectionId, data) => {
+    const response = await axiosClient.put(`/api/courses/${courseId}/sections/${sectionId}`, data);
+    return response;
+};
+
+export const deleteSection = async (courseId, sectionId) => {
+    const response = await axiosClient.delete(`/api/courses/${courseId}/sections/${sectionId}`);
+    return response;
+};
+
 export const createCourseTemplate = async (data) => {
     return await axiosClient.post("/api/manager/courses/template", data);
 };

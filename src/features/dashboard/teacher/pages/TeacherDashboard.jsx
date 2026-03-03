@@ -95,20 +95,12 @@ export default function TeacherDashboard() {
       color: '#0487e2'
     },
     {
-      label: 'Khóa học Đang hoạt động',
-      value: activeCoursesList.length,
+      label: 'Tổng Khóa học',
+      value: courses.length,
       change: '—',
       trend: 'neutral',
       data: defaultSparkline,
       color: '#10b981'
-    },
-    {
-      label: 'Bài học / Section',
-      value: totalLessons,
-      change: '—',
-      trend: 'neutral',
-      data: defaultSparkline,
-      color: '#6366f1'
     },
   ];
 
@@ -171,7 +163,7 @@ export default function TeacherDashboard() {
       </header>
 
       {/* Stats Grid with Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {summaryCards.map((card, index) => (
           <div key={index} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] flex flex-col justify-between h-40 relative overflow-hidden group">
             <div className="relative z-10 flex justify-between items-start">
@@ -273,7 +265,6 @@ export default function TeacherDashboard() {
                 <thead>
                   <tr className="text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50/50 border-b border-slate-50">
                     <th className="px-6 py-4">Tên khóa học</th>
-                    <th className="px-6 py-4">Học sinh</th>
                     <th className="px-6 py-4">Bài học / Section</th>
                     <th className="px-6 py-4 text-right"></th>
                   </tr>
@@ -294,9 +285,7 @@ export default function TeacherDashboard() {
                           <div className="font-bold text-slate-900">{name}</div>
                           <div className="text-xs text-slate-500">{course.gradeName ?? course.subjectName ?? ''}</div>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm font-medium text-slate-700">{students}</span>
-                        </td>
+
                         <td className="px-6 py-4 w-1/3">
                           <div className="flex items-center gap-3">
                             <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">

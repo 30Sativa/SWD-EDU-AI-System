@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Eye,
@@ -10,27 +10,53 @@ import {
     Video,
     FileText,
     CheckSquare,
-    GripVertical,
-    MoreVertical,
-    Clock,
-    Users,
+    Rocket,
+    GripVertical as DragHandle,
     BookOpen,
-    BarChart,
-    ArrowLeft,
-    UploadCloud,
-    X,
-    Rocket
+    Clock,
+    ArrowLeft
 } from 'lucide-react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Spin, message, Modal, Form, Input, Select, Button, Tag, Empty } from 'antd';
 import {
     getTeacherCourseDetail,
     publishTeacherCourse,
     updateTeacherCourse,
     createSection,
-    getCourseSections,
-    getMyCourses
+    updateSection,
+    deleteSection,
+    getCourseSections
 } from '../../api/courseApi';
-import { createLesson } from '../../../lesson/api/lessonApi';
+import { createLesson, updateLesson, deleteLesson, getLessonsBySection } from '../../../lesson/api/lessonApi';
+
+const slugify = (text) => {
+    if (!text) return "";
+    return text
+        .toString()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .replace(/([^0-9a-z-\s])/g, '')
+        .replace(/(\s+)/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+};
 
 export default function CourseDetail() {
     const { courseId } = useParams();
@@ -42,12 +68,29 @@ export default function CourseDetail() {
     const [sections, setSections] = useState([]);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
+    const [isEditSectionModalOpen, setIsEditSectionModalOpen] = useState(false);
+    const [editingSection, setEditingSection] = useState(null);
     const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
+    const [isEditLessonModalOpen, setIsEditLessonModalOpen] = useState(false);
     const [activeSectionId, setActiveSectionId] = useState(null);
+    const [editingLesson, setEditingLesson] = useState(null);
 
     const [form] = Form.useForm();
     const [sectionForm] = Form.useForm();
+    const [editSectionForm] = Form.useForm();
     const [lessonForm] = Form.useForm();
+    const [editLessonForm] = Form.useForm();
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     const fetchDetail = useCallback(async () => {
         try {
@@ -55,26 +98,52 @@ export default function CourseDetail() {
             const res = await getTeacherCourseDetail(courseId);
             const data = (res?.data || res);
 
-            // Nếu data trả về RỖNG hoặc KHÔNG có sections, ta sẽ "gọi riêng" theo yêu cầu của BE
             let structure = data.sections || data.items || data.Sections || [];
 
             if (structure.length === 0) {
                 try {
                     const sectionsRes = await getCourseSections(courseId);
                     structure = sectionsRes?.data?.items || sectionsRes?.items || sectionsRes?.data || [];
-                } catch (secError) {
-                    // Fail silently or handle appropriately without console logs
+                } catch {
+                    // Fail silently
                 }
             }
 
-            setSections(structure);
-            setCourse({ ...data, sections: structure });
-        } catch (error) {
+            // Preserving existing state (lessons and isExpanded) via functional update
+            setSections(prev => {
+                return structure.map(sec => {
+                    const existing = prev.find(s => s.id === sec.id);
+                    return {
+                        ...sec,
+                        lessons: existing?.lessons || sec.lessons || sec.Lessons || sec.items || sec.Items || sec.subSections || [],
+                        isExpanded: existing?.isExpanded || false
+                    };
+                });
+            });
+
+            setCourse(data);
+        } catch {
             message.error('Không thể tải thông tin khóa học');
         } finally {
             setLoading(false);
         }
     }, [courseId]);
+
+    // Function to fetch lessons for a specific section
+    const fetchSectionLessons = async (sectionId) => {
+        try {
+            const res = await getLessonsBySection(sectionId);
+            const lessons = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
+
+            setSections(prev => prev.map(sec =>
+                sec.id === sectionId ? { ...sec, lessons } : sec
+            ));
+            return lessons;
+        } catch (error) {
+            console.error("Error fetching lessons:", error);
+            return [];
+        }
+    };
 
     useEffect(() => {
         if (courseId) fetchDetail();
@@ -87,7 +156,6 @@ export default function CourseDetail() {
             message.success('Xuất bản khóa học thành công!');
             fetchDetail();
         } catch (error) {
-            console.error('Publish error:', error);
             message.error(error.response?.data?.message || 'Lỗi khi xuất bản khóa học');
         } finally {
             setSubmitting(false);
@@ -99,6 +167,7 @@ export default function CourseDetail() {
             setSubmitting(true);
             const payload = {
                 title: values.title,
+                slug: slugify(values.title),
                 description: values.description,
                 thumbnail: values.thumbnail,
                 level: parseInt(values.level),
@@ -109,29 +178,36 @@ export default function CourseDetail() {
             setIsEditModalOpen(false);
             fetchDetail();
         } catch (error) {
-            console.error('Update error:', error);
             message.error('Không thể cập nhật thông tin');
         } finally {
             setSubmitting(false);
         }
     };
 
-    const toggleSession = (sessionId) => {
+    const toggleSession = async (sessionId) => {
+        const section = sections.find(s => s.id === sessionId);
+        const willExpand = !section?.isExpanded;
+
         setSections(prev =>
             prev.map(session =>
-                session.id === sessionId ? { ...session, isExpanded: !session.isExpanded } : session
+                session.id === sessionId ? { ...session, isExpanded: willExpand } : session
             )
         );
+
+        // Fetch lessons if expanding and currently empty
+        if (willExpand && (!section?.lessons || section.lessons.length === 0)) {
+            fetchSectionLessons(sessionId);
+        }
     };
 
     const handleAddSection = async (values) => {
         try {
             setSubmitting(true);
-            const currentSections = course.sections || course.sessions || course.items || [];
             const payload = {
-                Title: values.title,
-                Description: values.description || "",
-                SortOrder: currentSections.length + 1
+                title: values.title,
+                slug: slugify(values.title),
+                description: values.description || "",
+                sortOrder: sections.length + 1
             };
             await createSection(courseId, payload);
             message.success('Thêm chương mới thành công!');
@@ -139,32 +215,166 @@ export default function CourseDetail() {
             sectionForm.resetFields();
             fetchDetail();
         } catch (error) {
-            message.error('Lỗi khi thêm chương: ' + (error.response?.data?.message || error.message));
+            const errorMsg = error.response?.data?.message || 'Lỗi khi thêm chương';
+            message.error(errorMsg);
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleUpdateSection = async (values) => {
+        try {
+            setSubmitting(true);
+            const payload = {
+                title: values.title,
+                slug: slugify(values.title),
+                description: values.description || "",
+                sortOrder: editingSection.sortOrder || 1
+            };
+            await updateSection(courseId, editingSection.id, payload);
+            message.success('Cập nhật chương thành công!');
+            setIsEditSectionModalOpen(false);
+            setEditingSection(null);
+            fetchDetail();
+        } catch (error) {
+            const errorMsg = error.response?.data?.message || 'Lỗi khi cập nhật chương';
+            message.error(errorMsg);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDeleteSection = (sectionId) => {
+        Modal.confirm({
+            title: 'Xác nhận xóa chương?',
+            content: 'Toàn bộ bài học bên trong chương này cũng sẽ bị xóa.',
+            okText: 'Xóa ngay',
+            okType: 'danger',
+            cancelText: 'Hủy bỏ',
+            onOk: async () => {
+                try {
+                    await deleteSection(courseId, sectionId);
+                    message.success('Đã xóa chương thành công!');
+                    fetchDetail();
+                } catch (error) {
+                    message.error('Lỗi khi xóa chương');
+                }
+            }
+        });
     };
 
     const handleAddLesson = async (values) => {
         try {
             setSubmitting(true);
             const payload = {
-                SectionId: activeSectionId,
-                Title: values.title,
-                Type: values.type,
-                Duration: parseInt(values.duration) || 0,
-                Content: values.content || "",
-                SortOrder: 1
+                sectionId: activeSectionId,
+                title: values.title,
+                slug: slugify(values.title),
+                type: values.type,
+                duration: parseInt(values.duration) || 0,
+                content: values.content || "",
+                sortOrder: 1
             };
             await createLesson(payload);
             message.success('Thêm bài học thành công!');
             setIsLessonModalOpen(false);
             lessonForm.resetFields();
-            fetchDetail();
+
+            // Refresh lessons for this section immediately
+            fetchSectionLessons(activeSectionId);
+            // Also refresh overall course stats
+            const res = await getTeacherCourseDetail(courseId);
+            const data = (res?.data || res);
+            setCourse(prev => ({ ...prev, ...data }));
         } catch (error) {
-            message.error('Lỗi khi thêm bài học: ' + (error.response?.data?.message || error.message));
+            const errorMsg = error.response?.data?.message || error.response?.data?.title || 'Lỗi khi thêm bài học';
+            message.error(errorMsg);
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleUpdateLesson = async (values) => {
+        try {
+            setSubmitting(true);
+            const payload = {
+                sectionId: editingLesson.sectionId || editingLesson.SectionId || activeSectionId,
+                title: values.title,
+                slug: slugify(values.title),
+                type: values.type,
+                duration: parseInt(values.duration) || 0,
+                content: values.content || "",
+                sortOrder: editingLesson.sortOrder || editingLesson.SortOrder || 1
+            };
+            await updateLesson(editingLesson.id, payload);
+            message.success('Cập nhật bài học thành công!');
+            setIsEditLessonModalOpen(false);
+            setEditingLesson(null);
+
+            // Refresh lessons for this section
+            fetchSectionLessons(payload.sectionId);
+            // Refresh overall stats
+            const res = await getTeacherCourseDetail(courseId);
+            const data = (res?.data || res);
+            setCourse(prev => ({ ...prev, ...data }));
+        } catch (error) {
+            const errorMsg = error.response?.data?.message || error.response?.data?.title || 'Lỗi khi cập nhật bài học';
+            message.error(errorMsg);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDeleteLesson = (lessonId) => {
+        Modal.confirm({
+            title: 'Xác nhận xóa bài học?',
+            content: 'Thao tác này không thể hoàn tác.',
+            okText: 'Xóa ngay',
+            okType: 'danger',
+            cancelText: 'Hủy bỏ',
+            onOk: async () => {
+                try {
+                    await deleteLesson(lessonId);
+                    message.success('Đã xóa bài học thành công!');
+
+                    // Force refresh all sections to ensure UI is up to date
+                    // Since we don't know which section the lesson belonged to here (easily)
+                    // we call fetchDetail which will preserve expanded states
+                    fetchDetail();
+
+                    // Also refresh each expanded section's lessons to be sure
+                    sections.filter(s => s.isExpanded).forEach(s => fetchSectionLessons(s.id));
+                } catch (error) {
+                    message.error('Lỗi khi xóa bài học');
+                }
+            }
+        });
+    };
+
+    const handleDragEnd = async (event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = sections.findIndex((item) => item.id === active.id);
+        const newIndex = sections.findIndex((item) => item.id === over.id);
+
+        const newSections = arrayMove(sections, oldIndex, newIndex);
+        setSections(newSections);
+
+        try {
+            message.loading({ content: 'Đang cập nhật thứ tự...', key: 'sort_update' });
+            const movedSection = newSections[newIndex];
+            const payload = {
+                title: movedSection.title || movedSection.Title,
+                slug: slugify(movedSection.title || movedSection.Title),
+                description: movedSection.description || movedSection.Description || "",
+                sortOrder: newIndex + 1
+            };
+            await updateSection(courseId, movedSection.id, payload);
+            message.success({ content: 'Đã cập nhật thứ tự chương', key: 'sort_update' });
+        } catch {
+            message.error({ content: 'Lỗi khi cập nhật thứ tự', key: 'sort_update' });
+            fetchDetail();
         }
     };
 
@@ -273,10 +483,6 @@ export default function CourseDetail() {
 
                             <div className="flex flex-wrap gap-6 pt-2">
                                 <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                    <Users size={16} className="text-[#0487e2]" />
-                                    <span className="font-bold text-slate-700">{course.enrollmentCount || 0}</span> học viên
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
                                     <BookOpen size={16} className="text-emerald-500" />
                                     <span className="font-bold text-slate-700">{course.totalLessons || 0}</span> bài học
                                 </div>
@@ -308,107 +514,49 @@ export default function CourseDetail() {
                     </div>
 
                     <div className="space-y-4">
-                        {sections.length > 0 ? sections.map((session, index) => (
-                            <div key={session.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-all hover:border-blue-200">
-                                {/* Section Header */}
-                                <div
-                                    className={`flex items-center justify-between p-4 cursor-pointer select-none transition-colors ${session.isExpanded ? 'bg-slate-50/80 border-b border-slate-100' : 'bg-white'}`}
-                                    onClick={() => toggleSession(session.id)}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 flex items-center justify-center rounded-lg font-bold text-sm transition-colors ${session.isExpanded ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'bg-slate-100 text-slate-500'}`}>
-                                            {index + 1}
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <SortableContext
+                                items={sections.map(s => s.id)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                {sections.length > 0 ? sections.map((session, index) => (
+                                    <SortableSection
+                                        key={session.id}
+                                        session={session}
+                                        index={index}
+                                        toggleSession={toggleSession}
+                                        handleDeleteSection={handleDeleteSection}
+                                        setEditingSection={setEditingSection}
+                                        editSectionForm={editSectionForm}
+                                        setIsEditSectionModalOpen={setIsEditSectionModalOpen}
+                                        setActiveSectionId={setActiveSectionId}
+                                        setIsLessonModalOpen={setIsLessonModalOpen}
+                                        handleDeleteLesson={handleDeleteLesson}
+                                        setEditingLesson={setEditingLesson}
+                                        setIsEditLessonModalOpen={setIsEditLessonModalOpen}
+                                        editLessonForm={editLessonForm}
+                                    />
+                                )) : (
+                                    <div className="py-20 bg-white rounded-2xl border border-slate-200 border-dashed flex flex-col items-center justify-center text-center">
+                                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-slate-200">
+                                            <BookOpen size={32} />
                                         </div>
-                                        <div>
-                                            <div className="font-bold text-slate-900">{session.title || session.name || session.Title || session.Name || 'Không có tiêu đề'}</div>
-                                            <div className="text-[11px] text-slate-400 font-medium flex items-center gap-2 mt-0.5">
-                                                <span className="flex items-center gap-1"><BookOpen size={12} /> {(session.lessons || session.subSections || []).length} Bài học</span>
-                                                <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                                <span className="flex items-center gap-1"><Clock size={12} /> {session.duration || session.Duration || '0 phút'}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="hidden group-hover:flex items-center gap-1">
-                                            <button className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 rounded-lg transition-colors" onClick={(e) => e.stopPropagation()}>
-                                                <Edit3 size={14} />
-                                            </button>
-                                            <button className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" onClick={(e) => e.stopPropagation()}>
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                        <div className={`h-8 w-8 flex items-center justify-center text-slate-400 transition-transform duration-300 ${session.isExpanded ? 'rotate-180' : ''}`}>
-                                            <ChevronDown size={20} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Lessons List Content */}
-                                {session.isExpanded && (
-                                    <div className="p-4 space-y-3 bg-white animate-in slide-in-from-top-2 duration-300">
-                                        {(session.lessons || session.subSections || []).length > 0 ? (
-                                            (session.lessons || session.subSections || []).map((lesson) => (
-                                                <div key={lesson.id} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-50 hover:border-blue-100 hover:bg-blue-50/30 transition-all group/lesson">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`h-10 w-10 flex items-center justify-center rounded-xl ${lesson.type === 'Video' ? 'bg-blue-50 text-[#0487e2]' : 'bg-slate-50 text-slate-500'}`}>
-                                                            {lesson.type === 'Video' ? <Video size={18} /> : (lesson.type === 'Quiz' ? <CheckSquare size={18} /> : <FileText size={18} />)}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-bold text-slate-700 text-sm group-hover/lesson:text-[#0487e2] transition-colors uppercase tracking-tight">{lesson.title || lesson.name || 'Bài học rỗng'}</div>
-                                                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-2">
-                                                                {lesson.type || 'Nội dung'}
-                                                                <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                                                {lesson.duration || lesson.Duration || '0m'}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 opacity-10 group-hover/lesson:opacity-100 transition-opacity">
-                                                        <button className="p-2 text-slate-400 hover:text-[#0487e2] hover:bg-white rounded-lg transition-colors shadow-sm">
-                                                            <Edit3 size={14} />
-                                                        </button>
-                                                        <button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-colors shadow-sm">
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                        <div className="p-2 text-slate-200 cursor-move">
-                                                            <GripVertical size={16} />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="text-center py-10 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                                                <p className="text-slate-400 text-xs font-medium italic">Chưa có bài học nào trong chương này.</p>
-                                            </div>
-                                        )}
-
+                                        <h4 className="text-slate-900 font-bold">Chương trình học đang trống</h4>
+                                        <p className="text-slate-400 text-sm mt-1 max-w-xs">Hãy bắt đầu xây dựng nội dung bằng cách thêm chương đầu tiên.</p>
                                         <button
-                                            onClick={() => {
-                                                setActiveSectionId(session.id);
-                                                setIsLessonModalOpen(true);
-                                            }}
-                                            className="w-full py-3 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 font-bold text-xs uppercase cursor-pointer hover:border-blue-200 hover:text-[#0487e2] hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
+                                            onClick={() => setIsSectionModalOpen(true)}
+                                            className="mt-6 px-6 py-2.5 bg-slate-900 text-white rounded-lg font-bold text-sm shadow-md"
                                         >
-                                            <Plus size={16} />
-                                            Thêm bài học mới
+                                            Khởi tạo ngay
                                         </button>
                                     </div>
                                 )}
-                            </div>
-                        )) : (
-                            <div className="py-20 bg-white rounded-2xl border border-slate-200 border-dashed flex flex-col items-center justify-center text-center">
-                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-slate-200">
-                                    <BookOpen size={32} />
-                                </div>
-                                <h4 className="text-slate-900 font-bold">Chương trình học đang trống</h4>
-                                <p className="text-slate-400 text-sm mt-1 max-w-xs">Hãy bắt đầu xây dựng nội dung bằng cách thêm chương đầu tiên.</p>
-                                <button
-                                    onClick={() => setIsSectionModalOpen(true)}
-                                    className="mt-6 px-6 py-2.5 bg-slate-900 text-white rounded-lg font-bold text-sm shadow-md"
-                                >
-                                    Khởi tạo ngay
-                                </button>
-                            </div>
-                        )}
+                            </SortableContext>
+                        </DndContext>
                     </div>
                 </div>
             </div>
@@ -488,6 +636,34 @@ export default function CourseDetail() {
                 </Form>
             </Modal>
 
+            {/* Edit Section Modal */}
+            <Modal
+                title={<span className="font-bold text-xl">Chỉnh sửa chương</span>}
+                open={isEditSectionModalOpen}
+                onCancel={() => {
+                    setIsEditSectionModalOpen(false);
+                    setEditingSection(null);
+                }}
+                footer={null}
+                centered
+                className="rounded-2xl"
+            >
+                <Form form={editSectionForm} layout="vertical" onFinish={handleUpdateSection} className="pt-4">
+                    <Form.Item name="title" label="Tên chương" rules={[{ required: true }]}>
+                        <Input className="h-11 rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white font-medium" />
+                    </Form.Item>
+                    <Form.Item name="description" label="Mô tả">
+                        <Input.TextArea rows={3} className="rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white" />
+                    </Form.Item>
+                    <div className="flex gap-3 pt-4 border-t border-slate-100 mt-2">
+                        <Button className="flex-1 h-11 rounded-xl font-bold text-slate-500 border-slate-200" onClick={() => setIsEditSectionModalOpen(false)}>Hủy</Button>
+                        <Button type="primary" htmlType="submit" loading={submitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold border-none shadow-lg shadow-blue-100">
+                            Cập nhật
+                        </Button>
+                    </div>
+                </Form>
+            </Modal>
+
             {/* Add Lesson Modal */}
             <Modal
                 title={<span className="font-bold text-xl">Thêm bài học mới</span>}
@@ -524,8 +700,208 @@ export default function CourseDetail() {
                     </div>
                 </Form>
             </Modal>
+            {/* Edit Lesson Modal */}
+            <Modal
+                title={<span className="font-bold text-xl">Chỉnh sửa bài học</span>}
+                open={isEditLessonModalOpen}
+                onCancel={() => {
+                    setIsEditLessonModalOpen(false);
+                    setEditingLesson(null);
+                }}
+                footer={null}
+                centered
+                className="rounded-2xl"
+            >
+                <Form form={editLessonForm} layout="vertical" onFinish={handleUpdateLesson} className="pt-4">
+                    <Form.Item name="title" label="Tiêu đề bài học" rules={[{ required: true }]}>
+                        <Input className="h-11 rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white font-medium" />
+                    </Form.Item>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Form.Item name="type" label="Loại bài học">
+                            <Select className="h-11 [&>.ant-select-selector]:!rounded-lg [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent">
+                                <Select.Option value="Video">Video</Select.Option>
+                                <Select.Option value="Document">Tài liệu</Select.Option>
+                                <Select.Option value="Quiz">Trắc nghiệm</Select.Option>
+                            </Select>
+                        </Form.Item>
+                        <Form.Item name="duration" label="Thời lượng (Phút)">
+                            <Input type="number" className="h-11 rounded-lg bg-slate-50 border-transparent" />
+                        </Form.Item>
+                    </div>
+                    <Form.Item name="content" label="Nội dung/Link">
+                        <Input.TextArea rows={3} className="rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white font-medium" />
+                    </Form.Item>
+                    <div className="flex gap-3 pt-4 border-t border-slate-100 mt-2">
+                        <Button className="flex-1 h-11 rounded-xl font-bold text-slate-500 border-slate-200" onClick={() => setIsEditLessonModalOpen(false)}>Hủy</Button>
+                        <Button type="primary" htmlType="submit" loading={submitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold border-none shadow-lg shadow-blue-100">
+                            Cập nhật
+                        </Button>
+                    </div>
+                </Form>
+            </Modal>
         </div>
     );
-
-
 }
+
+const SortableSection = React.memo(({
+    session,
+    index,
+    toggleSession,
+    handleDeleteSection,
+    setEditingSection,
+    editSectionForm,
+    setIsEditSectionModalOpen,
+    setActiveSectionId,
+    setIsLessonModalOpen,
+    handleDeleteLesson,
+    setEditingLesson,
+    setIsEditLessonModalOpen,
+    editLessonForm
+}) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: session.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : 1,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-all hover:border-blue-200 relative group"
+        >
+            {/* Section Header */}
+            <div
+                className={`flex items-center justify-between p-4 cursor-pointer select-none transition-colors ${session.isExpanded ? 'bg-slate-50/80 border-b border-slate-100' : 'bg-white'}`}
+                onClick={() => toggleSession(session.id)}
+            >
+                <div className="flex items-center gap-4">
+                    <div
+                        {...attributes}
+                        {...listeners}
+                        className="p-2 text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <DragHandle size={20} />
+                    </div>
+                    <div className={`w-10 h-10 flex items-center justify-center rounded-lg font-bold text-sm transition-colors ${session.isExpanded ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'bg-slate-100 text-slate-500'}`}>
+                        {index + 1}
+                    </div>
+                    <div>
+                        <div className="font-bold text-slate-900">{session.title || session.name || session.Title || session.Name || 'Không có tiêu đề'}</div>
+                        <div className="text-[11px] text-slate-400 font-medium flex items-center gap-2 mt-0.5">
+                            <span className="flex items-center gap-1"><BookOpen size={12} /> {(session.lessons || []).length} Bài học</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-200" />
+                            <span className="flex items-center gap-1"><Clock size={12} /> {session.duration || session.Duration || '0 phút'}</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                        <button
+                            className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 rounded-lg transition-colors"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingSection(session);
+                                editSectionForm.setFieldsValue({
+                                    title: session.title || session.Title,
+                                    description: session.description || session.Description
+                                });
+                                setIsEditSectionModalOpen(true);
+                            }}
+                        >
+                            <Edit3 size={14} />
+                        </button>
+                        <button
+                            className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSection(session.id);
+                            }}
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    </div>
+                    <div className={`h-8 w-8 flex items-center justify-center text-slate-400 transition-transform duration-300 ${session.isExpanded ? 'rotate-180' : ''}`}>
+                        <ChevronDown size={20} />
+                    </div>
+                </div>
+            </div>
+
+            {/* Lessons List Content */}
+            {session.isExpanded && (
+                <div className="p-4 space-y-3 bg-white animate-in slide-in-from-top-2 duration-300">
+                    {(session.lessons || []).length > 0 ? (
+                        (session.lessons || []).map((lesson) => (
+                            <div key={lesson.id} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-50 hover:border-blue-100 hover:bg-blue-50/30 transition-all group/lesson">
+                                <div className="flex items-center gap-4">
+                                    <div className={`h-10 w-10 flex items-center justify-center rounded-xl ${(lesson.type || lesson.Type) === 'Video' ? 'bg-blue-50 text-[#0487e2]' : 'bg-slate-50 text-slate-500'}`}>
+                                        {(lesson.type || lesson.Type) === 'Video' ? <Video size={18} /> : ((lesson.type || lesson.Type) === 'Quiz' ? <CheckSquare size={18} /> : <FileText size={18} />)}
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-slate-700 text-sm group-hover/lesson:text-[#0487e2] transition-colors uppercase tracking-tight">
+                                            {lesson.title || lesson.title || lesson.Title || lesson.Name || lesson.name || 'Bài học rỗng'}
+                                        </div>
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-2">
+                                            {lesson.type || lesson.Type || 'Nội dung'}
+                                            <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                            {lesson.duration || lesson.Duration || '0m'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-10 group-hover/lesson:opacity-100 transition-opacity">
+                                    <button
+                                        className="p-2 text-slate-400 hover:text-[#0487e2] hover:bg-white rounded-lg transition-colors shadow-sm"
+                                        onClick={() => {
+                                            setEditingLesson(lesson);
+                                            editLessonForm.setFieldsValue({
+                                                title: lesson.title,
+                                                type: lesson.type,
+                                                duration: lesson.duration,
+                                                content: lesson.content
+                                            });
+                                            setIsEditLessonModalOpen(true);
+                                        }}
+                                    >
+                                        <Edit3 size={14} />
+                                    </button>
+                                    <button
+                                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-colors shadow-sm"
+                                        onClick={() => handleDeleteLesson(lesson.id)}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-10 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                            <p className="text-slate-400 text-xs font-medium italic">Chưa có bài học nào trong chương này.</p>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={() => {
+                            setActiveSectionId(session.id);
+                            setIsLessonModalOpen(true);
+                        }}
+                        className="w-full py-3 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 font-bold text-xs uppercase cursor-pointer hover:border-blue-200 hover:text-[#0487e2] hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
+                    >
+                        <Plus size={16} />
+                        Thêm bài học mới
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+});
