@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { getLessonDetail } from '../../api/lessonApi';
 import { getClassDetail } from '../../../classes/api/classApi';
+import { getLessonQuiz } from '../../../quiz/student/api/quizApi';
 import { Spin, message } from 'antd';
 
 export default function LessonDetail() {
@@ -40,6 +41,7 @@ export default function LessonDetail() {
     const [loading, setLoading] = useState(true);
     const [lessonData, setLessonData] = useState(null);
     const [courseData, setCourseData] = useState(null);
+    const [quizData, setQuizData] = useState(null);
 
     // Sidebar States
     const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
@@ -65,16 +67,19 @@ export default function LessonDetail() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [lessonRes, courseRes] = await Promise.all([
+                const [lessonRes, courseRes, quizRes] = await Promise.all([
                     getLessonDetail(lessonId),
-                    getClassDetail(courseId)
+                    getClassDetail(courseId),
+                    getLessonQuiz(lessonId).catch(() => null) // Suppress error if no quiz
                 ]);
 
                 const lData = lessonRes?.data || lessonRes;
                 const cData = courseRes?.data || courseRes;
+                const qData = quizRes?.data || quizRes;
 
                 setLessonData(lData);
                 setCourseData(cData);
+                setQuizData(qData);
 
                 if (cData.sections && cData.sections.length > 0) {
                     setExpandedSections([cData.sections[0].id]);
@@ -200,18 +205,28 @@ export default function LessonDetail() {
 
     const handleSendMessage = () => {
         if (inputMessage.trim()) {
+            const userMsg = inputMessage.trim();
             setChatMessages([...chatMessages, {
                 id: chatMessages.length + 1,
                 type: 'user',
-                text: inputMessage
+                text: userMsg
             }]);
             setInputMessage('');
 
             setTimeout(() => {
+                let aiResponse = "";
+                if (userMsg.toLowerCase().includes("tóm tắt")) {
+                    aiResponse = `Dựa trên bài học "${lessonInfo.lessonTitle}", thầy xin tóm tắt các ý chính: 1. Định nghĩa cơ bản về nội dung bài học. 2. Các công thức quan trọng cần nhớ. 3. Lưu ý khi giải bài tập. Em có muốn thầy giải thích kỹ phần nào không?`;
+                } else if (userMsg.toLowerCase().includes("giải thích") || userMsg.toLowerCase().includes("công thức")) {
+                    aiResponse = `Về phần này, em cần chú ý đến mối liên hệ giữa các khái niệm trong bài. Đặc biệt là vận dụng vào bài tập trong tab "Bài Tập". Thầy khuyên em nên làm thử quiz để kiểm tra hiểu biết nhé!`;
+                } else {
+                    aiResponse = `Câu hỏi của em rất hay! Trong bài ${lessonInfo.lessonTitle} này, việc hiểu rõ bản chất sẽ giúp em làm các bài quiz Formative rất nhanh. Em có thắc mắc gì thêm về nội dung nào không?`;
+                }
+
                 setChatMessages(prev => [...prev, {
                     id: prev.length + 1,
                     type: 'ai',
-                    text: 'Thầy đang suy nghĩ câu trả lời... (Giả lập AI)',
+                    text: aiResponse,
                     isTyping: false
                 }]);
             }, 1000);
@@ -490,7 +505,49 @@ export default function LessonDetail() {
                                             </div>
                                         </div>
                                     )}
-                                    {activeTab !== 'content' && (
+                                    {activeTab === 'exercises' && (
+                                        <div className="space-y-6 max-w-3xl mx-auto animate-fade-in">
+                                            {quizData ? (
+                                                <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                                                    <div className="p-8 text-center bg-gradient-to-br from-blue-50/50 to-indigo-50/50">
+                                                        <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                                            <ListChecks size={32} className="text-blue-600" />
+                                                        </div>
+                                                        <h3 className="text-xl font-bold text-slate-900 mb-2">{quizData.title || 'Bài tập rèn luyện'}</h3>
+                                                        <p className="text-slate-500 text-sm mb-8">Kiểm tra lại kiến thức vừa học qua bài quiz nhanh nhé!</p>
+
+                                                        <div className="grid grid-cols-2 gap-4 mb-8">
+                                                            <div className="bg-white p-4 rounded-xl border border-slate-100">
+                                                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Số câu hỏi</p>
+                                                                <p className="text-sm font-semibold text-slate-900">{quizData.totalQuestions || 0} câu</p>
+                                                            </div>
+                                                            <div className="bg-white p-4 rounded-xl border border-slate-100">
+                                                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Thời gian</p>
+                                                                <p className="text-sm font-semibold text-slate-900">{quizData.duration || 15} phút</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <Link
+                                                            to={`/dashboard/student/quizzes/${quizData.id}`}
+                                                            className="inline-flex items-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all hover:-translate-y-0.5"
+                                                        >
+                                                            Bắt đầu làm bài
+                                                            <ChevronRight size={20} />
+                                                        </Link>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-100">
+                                                    <div className="w-16 h-16 bg-slate-100 rounded-xl flex items-center justify-center mb-6">
+                                                        <ListChecks className="text-slate-300" size={28} />
+                                                    </div>
+                                                    <h3 className="text-slate-900 font-semibold text-lg mb-2">Chưa có bài tập</h3>
+                                                    <p className="text-slate-500 text-sm">Giảng viên chưa cập nhật bài tập cho bài học này.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {activeTab !== 'content' && activeTab !== 'exercises' && (
                                         <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-100">
                                             <div className="w-16 h-16 bg-slate-100 rounded-xl flex items-center justify-center mb-6">
                                                 <Settings className="text-slate-400" size={28} />

@@ -29,14 +29,22 @@ import {
     Minimize2,
     Maximize2
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { getQuizDetail, startQuizAttempt, submitQuizAttempt, getQuizResult } from '../api/quizApi';
+import { Spin, message } from 'antd';
 
 export default function QuizDetail() {
     const navigate = useNavigate();
+    const { quizId } = useParams();
     const [mode, setMode] = useState('start'); // 'start' | 'taking' | 'completed'
+    const [loading, setLoading] = useState(true);
+    const [quizData, setQuizData] = useState(null);
+    const [attemptId, setAttemptId] = useState(null);
+    const [resultData, setResultData] = useState(null);
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [answers, setAnswers] = useState({});
-    const [timeLeft, setTimeLeft] = useState(45 * 60);
+    const [timeLeft, setTimeLeft] = useState(0);
+    const [submitting, setSubmitting] = useState(false);
     const reviewRef = useRef(null);
     const chatEndRef = useRef(null);
 
@@ -53,39 +61,66 @@ export default function QuizDetail() {
     ]);
     const [inputMessage, setInputMessage] = useState('');
 
-    const quiz = {
-        title: 'Kiểm tra 1 tiết: Hàm số bậc hai',
-        subject: 'Toan học',
-        time: '45 phút',
-        totalQuestions: 20,
-        type: 'Trac nghiệm',
-        questions: Array(20).fill(null).map((_, i) => ({
-            id: i + 1,
-            text: i === 0
-                ? "Cho hàm số f(x) có bảng biến thiên như sau. Hàm số đã cho đồng biến trên khoảng nào dưới đây?"
-                : i === 1
-                    ? "Tính thể tích V của khối lăng trụ có diện tích đáy B = 6 và chiều cao h = 4."
-                    : `Câu hỏi ${i + 1}: Nội dung câu hỏi trắc nghiệm liên quan đến kiến thức chương trình Toán học 11.`,
-            options: i === 1
-                ? [
-                    { id: 'A', text: 'V = 8' },
-                    { id: 'B', text: 'V = 24' },
-                    { id: 'C', text: 'V = 12' },
-                    { id: 'D', text: 'V = 72' }
-                ]
-                : [
-                    { id: 'A', text: 'Đáp án lựa chọn A' },
-                    { id: 'B', text: 'Đáp án lựa chọn B' },
-                    { id: 'C', text: 'Đáp án lựa chọn C' },
-                    { id: 'D', text: 'Đáp án lựa chọn D' }
-                ],
-            correctAnswer: i === 0 ? 'B' : 'B',
-            explanation: i === 0
-                ? "Dựa vào bảng biến thiên, ta thấy đạo hàm f'(x) > 0 trên khoảng (-1; 1) nên hàm số đồng biến trên khoảng này."
-                : i === 1
-                    ? "Thể tích khối lăng trụ: V = B.h = 6.4 = 24. Bạn đã nhầm lẫn với công thức khối chóp V = 1/3.B.h."
-                    : "Giải thích chi tiết cho câu hỏi này dựa trên các định lý và tính chất sách giáo khoa."
-        }))
+    useEffect(() => {
+        const fetchQuiz = async () => {
+            setLoading(true);
+            try {
+                const res = await getQuizDetail(quizId);
+                const data = res.data || res;
+                setQuizData(data);
+                if (data.duration) {
+                    setTimeLeft(data.duration * 60);
+                } else {
+                    setTimeLeft(45 * 60); // default
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải thông tin quiz:", error);
+                message.error("Không thể tải thông tin bài kiểm tra");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchQuiz();
+    }, [quizId]);
+
+    const handleStartQuiz = async () => {
+        try {
+            const res = await startQuizAttempt(quizId);
+            const data = res.data || res;
+            setAttemptId(data.id);
+            setMode('taking');
+        } catch (error) {
+            console.error("Lỗi khi bắt đầu làm bài:", error);
+            message.error("Không thể bắt đầu làm bài. Vui lòng thử lại.");
+        }
+    };
+
+    const handleSubmitQuiz = async () => {
+        if (!window.confirm('Bạn có chắc chắn muốn nộp bài?')) return;
+
+        setSubmitting(true);
+        try {
+            // Convert answers to the format expected by API
+            // Usually it's structure like { answers: [{ questionId, optionId }] }
+            const payload = {
+                answers: Object.entries(answers).map(([qId, oId]) => ({
+                    questionId: qId,
+                    optionId: oId
+                }))
+            };
+
+            await submitQuizAttempt(attemptId, payload);
+
+            // Get final results
+            const res = await getQuizResult(attemptId);
+            setResultData(res.data || res);
+            setMode('completed');
+        } catch (error) {
+            console.error("Lỗi khi nộp bài:", error);
+            message.error("Gặp lỗi khi nộp bài. Vui lòng thử lại.");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     useEffect(() => {
@@ -131,16 +166,28 @@ export default function QuizDetail() {
     const handleSendMessage = (text = inputMessage) => {
         if (!text.trim()) return;
 
-        const newUserMsg = { id: Date.now(), type: 'user', text };
+        const userMsg = text.trim();
+        const newUserMsg = { id: Date.now(), type: 'user', text: userMsg };
         setChatMessages(prev => [...prev, newUserMsg]);
         setInputMessage('');
 
         // Mock AI response
         setTimeout(() => {
+            let aiResponseText = "";
+            const result = resultData || { score: 0 };
+
+            if (userMsg.toLowerCase().includes("giải thích") || userMsg.toLowerCase().includes("tại sao")) {
+                aiResponseText = `Về phần câu hỏi này, em đã chọn đáp án chưa chính xác. Lý do là vì em đã nhầm lẫn giữa các khái niệm A và B. Với số điểm ${result.score}/10, em nên xem lại chương "Hàm số bậc hai" bài số 3 nhé.`;
+            } else if (userMsg.toLowerCase().includes("mẹo") || userMsg.toLowerCase().includes("nhanh")) {
+                aiResponseText = `Mẹo làm nhanh cho dạng bài này là em nên thử các giá trị đặc biệt vào phương trình. Điều này giúp loại trừ 50% đáp án sai chỉ trong 10 giây đấy!`;
+            } else {
+                aiResponseText = `Thầy AI đã nhận được câu hỏi. Với kết quả đạt ${result.score} điểm, em đang làm rất tốt ở các câu nhận biết, nhưng cần cải thiện các câu vận dụng cao. Em có muốn thầy đưa ra lộ trình luyện tập không?`;
+            }
+
             const aiResponse = {
                 id: Date.now() + 1,
                 type: 'ai',
-                text: `Thầy AI đang phân tích yêu cầu của em... Với nội dung "${text}", em cần tập trung vào các tính chất của hàm số bậc hai, đặc biệt là cách xét dấu đạo hàm f'(x).`
+                text: aiResponseText
             };
             setChatMessages(prev => [...prev, aiResponse]);
         }, 800);
@@ -166,6 +213,30 @@ export default function QuizDetail() {
         </style>
     );
 
+    if (loading) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-white">
+                <div className="flex flex-col items-center gap-4">
+                    <Spin size="large" />
+                    <p className="text-slate-500 font-medium">Đang tải thông tin bài kiểm tra...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!quizData) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-white text-center p-8">
+                <div className="max-w-md">
+                    <AlertCircle size={48} className="mx-auto text-slate-200 mb-4" />
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">Không tìm thấy bài kiểm tra</h2>
+                    <p className="text-slate-500 mb-6">Xin lỗi, bài kiểm tra này không tồn tại hoặc bạn không có quyền truy cập.</p>
+                    <button onClick={() => navigate('/dashboard/student/quizzes')} className="text-blue-600 font-bold hover:underline">Quay lại danh sách</button>
+                </div>
+            </div>
+        );
+    }
+
     if (mode === 'start') {
         return (
             <div className="fixed inset-0 bg-slate-50 flex items-center justify-center p-4 z-[9999] overflow-y-auto custom-scrollbar">
@@ -175,14 +246,14 @@ export default function QuizDetail() {
                     <div className="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-inner">
                         <ClipboardList className="text-blue-600" size={32} />
                     </div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">{quiz.title}</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">{quizData.title}</h1>
                     <p className="text-slate-500 font-medium mb-10">Vui lòng đọc kỹ thông tin trước khi bắt đầu bài làm.</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
                         {[
-                            { label: 'MÔN HỌC', value: quiz.subject, icon: LayoutGrid },
-                            { label: 'THỜI GIAN', value: quiz.time, icon: Clock },
-                            { label: 'SỐ CÂU', value: `${quiz.totalQuestions} câu`, icon: ClipboardList },
-                            { label: 'HÌNH THỨC', value: quiz.type, icon: BookOpen },
+                            { label: 'MÔN HỌC', value: quizData.subjectName || 'Bài tập', icon: LayoutGrid },
+                            { label: 'THỜI GIAN', value: `${quizData.duration || 45} phút`, icon: Clock },
+                            { label: 'SỐ CÂU', value: `${quizData.totalQuestions || (quizData.questions?.length || 0)} câu`, icon: ClipboardList },
+                            { label: 'HÌNH THỨC', value: quizData.type === 'formative' ? 'Luyện tập' : 'Kiểm tra', icon: BookOpen },
                         ].map((stat, i) => (
                             <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                                 <stat.icon className="text-blue-600 mx-auto mb-2 opacity-80" size={20} />
@@ -196,12 +267,12 @@ export default function QuizDetail() {
                         <ul className="space-y-3 text-sm text-slate-600 font-medium">
                             <li className="flex items-start gap-3"><div className="mt-1 w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"><CheckCircle size={10} className="text-blue-600" /></div><span>Không được phép thoát khỏi trình duyệt hoặc chuyển tab trong quá trình làm bài.</span></li>
                             <li className="flex items-start gap-3"><div className="mt-1 w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"><CheckCircle size={10} className="text-blue-600" /></div><span>Hệ thống sẽ tự động nộp bài khi hết thời gian đếm ngược.</span></li>
-                            <li className="flex items-start gap-3"><div className="mt-1 w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"><CheckCircle size={10} className="text-blue-600" /></div><span>Đảm bảo kết nối internet ổn định trong suốt {quiz.time} làm bài.</span></li>
+                            <li className="flex items-start gap-3"><div className="mt-1 w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"><CheckCircle size={10} className="text-blue-600" /></div><span>Đảm bảo kết nối internet ổn định trong suốt {quizData.duration || 45} phút làm bài.</span></li>
                         </ul>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <button onClick={() => navigate('/dashboard/student/quizzes')} className="w-full sm:w-auto px-8 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl transition-all">Quay lại</button>
-                        <button onClick={() => setMode('taking')} className="w-full sm:w-auto px-12 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-200 transition-all hover:-translate-y-1 text-lg">Bắt đầu làm bài</button>
+                        <button onClick={() => navigate(-1)} className="w-full sm:w-auto px-8 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl transition-all">Quay lại</button>
+                        <button onClick={handleStartQuiz} className="w-full sm:w-auto px-12 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-200 transition-all hover:-translate-y-1 text-lg">Bắt đầu làm bài</button>
                     </div>
                     <p className="mt-6 text-slate-400 text-xs font-medium">Bằng cách nhấn bắt đầu, đồng hồ đếm ngược sẽ khởi chạy ngay lập tức.</p>
                 </div>
@@ -210,7 +281,12 @@ export default function QuizDetail() {
     }
 
     if (mode === 'completed') {
-        const result = calculateScore();
+        const result = resultData || {
+            score: 0,
+            correctAnswersCount: 0,
+            totalQuestions: quizData.questions?.length || 0,
+            timeSpent: '00:00'
+        };
         return (
             <div className="min-h-screen bg-slate-50 overflow-y-auto custom-scrollbar relative">
                 {scrollbarStyle}
@@ -236,12 +312,12 @@ export default function QuizDetail() {
                                         className="stroke-blue-600 fill-none transition-all duration-1000 ease-out"
                                         strokeWidth="12"
                                         strokeDasharray={552}
-                                        strokeDashoffset={552 - (552 * result.score) / 10}
+                                        strokeDashoffset={552 - (552 * (result.score || 0)) / 10}
                                         strokeLinecap="round"
                                     />
                                 </svg>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-5xl font-bold text-slate-900 leading-none">{result.score}</span>
+                                    <span className="text-5xl font-bold text-slate-900 leading-none">{result.score || 0}</span>
                                     <span className="text-sm font-semibold text-slate-400 mt-1 uppercase tracking-wider">/ 10</span>
                                 </div>
                             </div>
@@ -250,15 +326,15 @@ export default function QuizDetail() {
                             <div className="flex-1 text-center md:text-left space-y-6">
                                 <div>
                                     <h1 className="text-2xl font-bold text-slate-900 mb-2">Chúc mừng! Bạn đã hoàn thành bài thi</h1>
-                                    <p className="text-slate-500 font-medium">Kỳ thi đánh giá năng lực THPT - Môn Toán (Mã đề: 102)</p>
+                                    <p className="text-slate-500 font-medium">{quizData.title}</p>
                                 </div>
 
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                     {[
-                                        { label: 'THỜI GIAN', value: '38:00', icon: Clock },
+                                        { label: 'THỜI GIAN', value: result.timeSpent || 'N/A', icon: Clock },
                                         { label: 'TRẠNG THÁI', value: 'Đã chấm', icon: ShieldCheck, color: 'text-emerald-600' },
-                                        { label: 'CÂU ĐÚNG', value: `${result.correct}/${result.total}`, icon: CheckCircle2 },
-                                        { label: 'XẾP HẠNG', value: '#12', icon: Trophy },
+                                        { label: 'CÂU ĐÚNG', value: `${result.correctAnswersCount || 0}/${result.totalQuestions || 0}`, icon: CheckCircle2 },
+                                        { label: 'XẾP HẠNG', value: result.rank ? `#${result.rank}` : 'N/A', icon: Trophy },
                                     ].map((stat, i) => (
                                         <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
                                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{stat.label}</p>
@@ -294,17 +370,17 @@ export default function QuizDetail() {
                             </h2>
                             <div className="flex items-center gap-3">
                                 <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full border border-emerald-100 flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> {result.correct} Đúng
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> {result.correctAnswersCount || 0} Đúng
                                 </span>
                                 <span className="px-3 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-full border border-red-100 flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div> {result.total - result.correct} Sai
+                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div> {(result.totalQuestions || 0) - (result.correctAnswersCount || 0)} Sai
                                 </span>
                             </div>
                         </div>
 
                         <div className="space-y-6">
-                            {quiz.questions.slice(0, 3).map((q, idx) => {
-                                const isCorrect = answers[idx] === q.correctAnswer;
+                            {(result.reviewDetails || quizData.questions || []).map((q, idx) => {
+                                const isCorrect = q.isCorrect;
                                 return (
                                     <div key={idx} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden p-6 md:p-8 space-y-5 transition-all hover:shadow-md">
                                         <div className="flex items-center justify-between border-b border-slate-50 pb-6">
@@ -316,18 +392,18 @@ export default function QuizDetail() {
                                                 </div>
                                             </div>
                                             <div className="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 uppercase tracking-widest">
-                                                Điểm: {isCorrect ? '0.5/0.5' : '0/0.5'}
+                                                Điểm: {q.point || 0}/{q.maxPoint || 1}
                                             </div>
                                         </div>
 
                                         <p className="text-lg font-bold text-slate-900 leading-relaxed">
-                                            {q.text}
+                                            {q.text || q.questionText}
                                         </p>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {q.options.map((opt) => {
-                                                const isSelected = answers[idx] === opt.id;
-                                                const isAnswer = opt.id === q.correctAnswer;
+                                            {(q.options || []).map((opt) => {
+                                                const isSelected = q.selectedOptionId === opt.id || answers[q.id] === opt.id;
+                                                const isAnswer = opt.isCorrect || opt.id === q.correctOptionId;
 
                                                 let style = "bg-slate-50 border-slate-100 text-slate-600";
                                                 if (isAnswer) style = "bg-emerald-50 border-emerald-500 text-emerald-900 ring-1 ring-emerald-500";
@@ -335,7 +411,7 @@ export default function QuizDetail() {
 
                                                 return (
                                                     <div key={opt.id} className={`p-5 rounded-2xl border-2 flex items-center justify-between ${style}`}>
-                                                        <span className="font-bold">{opt.id}. {opt.text}</span>
+                                                        <span className="font-bold">{opt.id.slice(0, 1).toUpperCase()}. {opt.text}</span>
                                                         {isAnswer && <CheckCircle2 className="text-emerald-500" size={20} />}
                                                         {isSelected && !isAnswer && (
                                                             <div className="flex items-center gap-2">
@@ -348,13 +424,15 @@ export default function QuizDetail() {
                                             })}
                                         </div>
 
-                                        <div className="mt-4 p-5 bg-slate-50/80 rounded-xl border border-slate-100 relative overflow-hidden">
-                                            <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600/20"></div>
-                                            <p className="text-sm italic text-slate-600 leading-relaxed font-medium">
-                                                <span className="font-bold text-slate-900 not-italic mr-2">Giải thích:</span>
-                                                {q.explanation}
-                                            </p>
-                                        </div>
+                                        {q.explanation && (
+                                            <div className="mt-4 p-5 bg-slate-50/80 rounded-xl border border-slate-100 relative overflow-hidden">
+                                                <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600/20"></div>
+                                                <p className="text-sm italic text-slate-600 leading-relaxed font-medium">
+                                                    <span className="font-bold text-slate-900 not-italic mr-2">Giải thích:</span>
+                                                    {q.explanation}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -529,13 +607,11 @@ export default function QuizDetail() {
                             <Flag size={18} /> Báo lỗi
                         </button>
                         <button
-                            className="px-4 sm:px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-200 transition-all active:scale-95"
-                            onClick={() => {
-                                if (window.confirm('Bạn có chắc chắn muốn nộp bài?')) setMode('completed');
-                            }}
+                            className="px-4 sm:px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-200 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={submitting}
+                            onClick={handleSubmitQuiz}
                         >
-                            <span className="hidden xs:inline">Nộp bài</span>
-                            <span className="xs:hidden">Nộp</span>
+                            {submitting ? 'Đang nộp...' : <><span className="hidden xs:inline">Nộp bài</span><span className="xs:hidden">Nộp</span></>}
                         </button>
                     </div>
                 </div>
@@ -547,18 +623,18 @@ export default function QuizDetail() {
                         <div className="flex-1 overflow-y-auto custom-scrollbar pt-6 pb-4 sm:pt-8 pr-2">
                             <div className="bg-white rounded-xl p-6 sm:p-8 md:p-10 shadow-sm border border-slate-200 relative mb-6">
                                 <div className="flex items-center justify-between mb-6">
-                                    <span className="px-4 py-1.5 bg-blue-100 text-blue-700 font-semibold rounded-full text-sm">Câu {currentQuestion + 1} / {quiz.totalQuestions}</span>
+                                    <span className="px-4 py-1.5 bg-blue-100 text-blue-700 font-semibold rounded-full text-sm">Câu {currentQuestion + 1} / {quizData.questions?.length || 0}</span>
                                     <button className="text-slate-300 hover:text-blue-600 transition-colors"><Flag size={20} /></button>
                                 </div>
-                                <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 leading-snug mb-8 sm:mb-10">{quiz.questions[currentQuestion].text}</p>
+                                <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 leading-snug mb-8 sm:mb-10">{quizData.questions?.[currentQuestion]?.text}</p>
                                 <div className="space-y-4">
-                                    {quiz.questions[currentQuestion].options.map((option) => (
-                                        <label key={option.id} className={`flex items-center p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer group ${answers[currentQuestion] === option.id ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500 shadow-sm' : 'border-slate-50 hover:border-blue-200 hover:bg-slate-50'}`}>
+                                    {(quizData.questions?.[currentQuestion]?.options || []).map((option) => (
+                                        <label key={option.id} className={`flex items-center p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer group ${answers[quizData.questions[currentQuestion].id] === option.id ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500 shadow-sm' : 'border-slate-50 hover:border-blue-200 hover:bg-slate-50'}`}>
                                             <div className="relative flex items-center justify-center mr-4 sm:mr-5 flex-shrink-0">
-                                                <input type="radio" name="quiz-option" className="peer appearance-none w-5 h-5 sm:w-6 sm:h-6 border-2 border-slate-200 rounded-full checked:border-blue-500 transition-all" checked={answers[currentQuestion] === option.id} onChange={() => setAnswers({ ...answers, [currentQuestion]: option.id })} />
+                                                <input type="radio" name="quiz-option" className="peer appearance-none w-5 h-5 sm:w-6 sm:h-6 border-2 border-slate-200 rounded-full checked:border-blue-500 transition-all" checked={answers[quizData.questions[currentQuestion].id] === option.id} onChange={() => setAnswers({ ...answers, [quizData.questions[currentQuestion].id]: option.id })} />
                                                 <div className="absolute w-2.5 h-2.5 sm:w-3 h-3 bg-blue-500 rounded-full scale-0 peer-checked:scale-100 transition-transform"></div>
                                             </div>
-                                            <span className={`text-sm sm:text-base font-medium flex-1 ${answers[currentQuestion] === option.id ? 'text-blue-900' : 'text-slate-700'}`}>{option.text}</span>
+                                            <span className={`text-sm sm:text-base font-medium flex-1 ${answers[quizData.questions[currentQuestion].id] === option.id ? 'text-blue-900' : 'text-slate-700'}`}>{option.text}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -567,15 +643,15 @@ export default function QuizDetail() {
                         <div className="h-20 flex-shrink-0 bg-white shadow-[0_-8px_24px_rgba(0,0,0,0.04)] border-t border-slate-100 flex items-center justify-between px-4 sm:px-8 rounded-t-3xl mx-0 xs:mx-2">
                             <button onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))} disabled={currentQuestion === 0} className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 font-bold rounded-2xl transition-all ${currentQuestion === 0 ? 'text-slate-200 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-50'}`}><ChevronLeft size={20} /><span className="hidden sm:inline">Câu trước</span></button>
                             <div className="hidden md:flex items-center gap-2"><span className="text-slate-300 font-bold text-xs tracking-widest uppercase">Chuyển câu hỏi</span></div>
-                            <button onClick={() => setCurrentQuestion(Math.min(quiz.totalQuestions - 1, currentQuestion + 1))} disabled={currentQuestion === quiz.totalQuestions - 1} className={`flex items-center gap-2 px-6 sm:px-8 py-2.5 bg-blue-600/10 text-blue-700 font-bold rounded-2xl transition-all ${currentQuestion === quiz.totalQuestions - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-blue-600/20'}`}><span className="hidden sm:inline">Câu tiếp</span><ChevronRight size={20} /></button>
+                            <button onClick={() => setCurrentQuestion(Math.min((quizData.questions?.length || 1) - 1, currentQuestion + 1))} disabled={currentQuestion === (quizData.questions?.length || 1) - 1} className={`flex items-center gap-2 px-6 sm:px-8 py-2.5 bg-blue-600/10 text-blue-700 font-bold rounded-2xl transition-all ${currentQuestion === (quizData.questions?.length || 1) - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-blue-600/20'}`}><span className="hidden sm:inline">Câu tiếp</span><ChevronRight size={20} /></button>
                         </div>
                     </div>
                     <div className="w-80 h-full overflow-y-auto py-6 custom-scrollbar hidden lg:flex flex-col gap-6 flex-shrink-0">
                         <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
                             <h3 className="flex items-center gap-2 text-slate-800 font-semibold mb-5"><LayoutGrid size={20} className="text-blue-600" /> Bản đồ câu hỏi</h3>
                             <div className="grid grid-cols-5 gap-2 mb-6">
-                                {quiz.questions.map((_, i) => (
-                                    <button key={i} onClick={() => setCurrentQuestion(i)} className={`w-full aspect-square flex items-center justify-center rounded-xl text-sm font-bold border-2 transition-all ${currentQuestion === i ? 'border-blue-600 text-blue-600 bg-blue-50 ring-2 ring-blue-100' : answers[i] ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100' : 'border-slate-50 bg-slate-50/50 text-slate-400 hover:border-slate-200'}`}>{i + 1}</button>
+                                {(quizData.questions || []).map((q, i) => (
+                                    <button key={i} onClick={() => setCurrentQuestion(i)} className={`w-full aspect-square flex items-center justify-center rounded-xl text-sm font-bold border-2 transition-all ${currentQuestion === i ? 'border-blue-600 text-blue-600 bg-blue-50 ring-2 ring-blue-100' : answers[q.id] ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100' : 'border-slate-50 bg-slate-50/50 text-slate-400 hover:border-slate-200'}`}>{i + 1}</button>
                                 ))}
                             </div>
                             <div className="space-y-3 pt-6 border-t border-slate-100">
