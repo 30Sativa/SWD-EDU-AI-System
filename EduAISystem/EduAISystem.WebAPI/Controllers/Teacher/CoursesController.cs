@@ -24,6 +24,27 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             _mediator = mediator;
         }
 
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetCourseById(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var teacherId = GetCurrentUserId();
+            if (teacherId == null)
+                return Unauthorized();
+
+            var course = await _mediator.Send(new GetCourseByIdQuery
+            {
+                Id = id
+            }, cancellationToken);
+
+            if (course == null || course.TeacherId != teacherId.Value)
+                return NotFound();
+
+            return Ok(ApiResponse<CourseDetailResponseDto>
+                .Ok(course, "Chi tiết khóa học"));
+        }
+
         [HttpGet("my")]
         public async Task<IActionResult> GetMyCourses(
             [FromQuery] GetMyCoursesQuery query,

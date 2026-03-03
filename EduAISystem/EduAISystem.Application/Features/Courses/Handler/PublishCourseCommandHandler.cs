@@ -26,13 +26,16 @@ namespace EduAISystem.Application.Features.Courses.Handler
                 return false;
             }
 
-            // Kiểm tra khóa học đã đủ thông tin tối thiểu để publish chưa
-            //if (!course.IsReadyForPublish())
-            //{
-            //    return false;
-            //}
+            try
+            {
+                course.Publish();
+            }
+            catch (InvalidOperationException)
+            {
+                // Course không đủ điều kiện publish (template, archived, thiếu thông tin, ...)
+                return false;
+            }
 
-            course.Publish();
             await _courseRepository.UpdateAsync(course, cancellationToken);
             return true;
         }
