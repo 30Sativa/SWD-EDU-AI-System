@@ -15,62 +15,91 @@ import {
     Circle,
     ClipboardList,
 } from 'lucide-react';
+import { getCourseQuizzes } from '../api/quizApi';
+import { getStudentMyCourses } from '../../../course/api/courseApi';
+import { Spin, message } from 'antd';
 
 export default function QuizList() {
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [quizType, setQuizType] = useState('trac-nghiem');
+    const [courses, setCourses] = useState([]);
+    const [quizzes, setQuizzes] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedCourse, setSelectedCourse] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [quizType, setQuizType] = useState('trac-nghiem');
 
-    const quizzes = [
-        {
-            id: 1,
-            title: 'Toán 11 – Hàm số bậc hai (Nâng cao)',
-            type: 'KIỂM TRA 1 TIẾT',
-            typeColor: 'blue',
-            duration: '45 phút',
-            questions: 20,
-            topic: 'Hàm số',
-            teacher: 'GV Nguyễn Văn A',
-            status: 'doing', // doing, not-started, completed
-            statusText: 'Đang làm',
-        },
-        {
-            id: 2,
-            title: 'Vật lý 11 – Khúc xạ ánh sáng & Thấu kính',
-            type: 'KIỂM TRA ĐỊNH KỲ',
-            typeColor: 'green',
-            duration: '60 phút',
-            questions: 40,
-            topic: 'Quang hình',
-            teacher: 'GV Trần Thị B',
-            status: 'not-started',
-            statusText: 'Chưa bắt đầu',
-        },
-        {
-            id: 3,
-            title: 'Hóa học 11 – Ancol & Phenol',
-            type: 'KIỂM TRA 1 TIẾT',
-            typeColor: 'blue',
-            duration: '45 phút',
-            questions: 30,
-            topic: 'Hữu cơ',
-            teacher: 'GV Lê Hoàng C',
-            status: 'completed',
-            statusText: 'Đã hoàn thành',
-        },
-        {
-            id: 4,
-            title: 'Tiếng Anh 11 – Grammar & Reading Unit 1-5',
-            type: 'ĐÁNH GIÁ NĂNG LỰC',
-            typeColor: 'purple',
-            duration: '90 phút',
-            questions: 50,
-            topic: 'Tổng hợp',
-            teacher: 'GV Phạm Minh D',
-            status: 'not-started',
-            statusText: 'Chưa bắt đầu',
+    // Fetch enrolled courses on mount
+    React.useEffect(() => {
+        const fetchCourses = async () => {
+            try {
+                const res = await getStudentMyCourses();
+                const data = res.data || res;
+                setCourses(Array.isArray(data) ? data : []);
+
+                // Fetch quizzes for all courses initially or just wait for selection
+                // For simplicity, let's fetch for the first course if exists or all
+                if (data && data.length > 0) {
+                    fetchAllQuizzes(data);
+                } else {
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải khóa học:", error);
+                message.error("Không thể tải danh sách khóa học");
+                setLoading(false);
+            }
+        };
+        fetchCourses();
+    }, []);
+
+    const fetchAllQuizzes = async (courseList) => {
+        setLoading(true);
+        try {
+            const quizPromises = courseList.map(course => getCourseQuizzes(course.id).catch(() => ({ data: [] })));
+            const results = await Promise.all(quizPromises);
+
+            const allQuizzes = results.flatMap((res, index) => {
+                const quizData = res.data || res;
+                return (Array.isArray(quizData) ? quizData : []).map(q => ({
+                    ...q,
+                    courseName: courseList[index].title || courseList[index].name
+                }));
+            });
+
+            setQuizzes(allQuizzes);
+        } catch (error) {
+            console.error("Lỗi khi tải quiz:", error);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    const fetchQuizzesByCourse = async (courseId) => {
+        if (courseId === 'all') {
+            fetchAllQuizzes(courses);
+            return;
+        }
+        setLoading(true);
+        try {
+            const res = await getCourseQuizzes(courseId);
+            const data = res.data || res;
+            const course = courses.find(c => c.id === courseId);
+            setQuizzes((Array.isArray(data) ? data : []).map(q => ({
+                ...q,
+                courseName: course.title || course.name
+            })));
+        } catch (error) {
+            console.error("Lỗi khi tải quiz:", error);
+            message.error("Không thể tải danh sách bài tập");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCourseChange = (e) => {
+        const val = e.target.value;
+        setSelectedCourse(val);
+        fetchQuizzesByCourse(val);
+    };
 
     const getTypeStyles = (color) => {
         switch (color) {
@@ -90,9 +119,8 @@ export default function QuizList() {
     };
 
     const filteredQuizzes = quizzes.filter(quiz =>
-        quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        quiz.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        quiz.teacher.toLowerCase().includes(searchTerm.toLowerCase())
+        (quiz.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (quiz.courseName || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -143,11 +171,15 @@ export default function QuizList() {
                                         MÔN HỌC
                                     </label>
                                     <div className="relative group">
-                                        <select className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer">
-                                            <option>Tất cả môn học</option>
-                                            <option>Toán học</option>
-                                            <option>Vật lý</option>
-                                            <option>Hóa học</option>
+                                        <select
+                                            value={selectedCourse}
+                                            onChange={handleCourseChange}
+                                            className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+                                        >
+                                            <option value="all">Tất cả khóa học</option>
+                                            {courses.map(course => (
+                                                <option key={course.id} value={course.id}>{course.title || course.name}</option>
+                                            ))}
                                         </select>
                                         <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                     </div>
@@ -223,14 +255,19 @@ export default function QuizList() {
 
                     <main className="flex-1 space-y-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {filteredQuizzes.length > 0 ? (
+                            {loading ? (
+                                <div className="col-span-full py-20 flex flex-col items-center gap-4">
+                                    <Spin size="large" />
+                                    <p className="text-slate-500 font-medium">Đang tải danh sách bài tập...</p>
+                                </div>
+                            ) : filteredQuizzes.length > 0 ? (
                                 filteredQuizzes.map((quiz) => (
                                     <div key={quiz.id} className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm group">
                                         <div className="p-6 flex-1">
                                             {/* Quiz Tag */}
                                             <div className="mb-4">
-                                                <span className={`text-[10px] font-semibold px-3 py-1 rounded-full ${getTypeStyles(quiz.typeColor)} uppercase tracking-wider`}>
-                                                    {quiz.type}
+                                                <span className={`text-[10px] font-semibold px-3 py-1 rounded-full ${quiz.type === 'summative' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'} uppercase tracking-wider`}>
+                                                    {quiz.type === 'summative' ? 'Tổng hợp' : 'Định kỳ'}
                                                 </span>
                                             </div>
 
@@ -244,21 +281,17 @@ export default function QuizList() {
                                                 <div className="flex items-center gap-8">
                                                     <div className="flex items-center gap-2 text-slate-500">
                                                         <Clock size={16} className="text-slate-400" />
-                                                        <span className="text-sm font-medium">{quiz.duration}</span>
+                                                        <span className="text-sm font-medium">{quiz.duration || 0} phút</span>
                                                     </div>
                                                     <div className="flex items-center gap-2 text-slate-500">
                                                         <ClipboardList size={16} className="text-slate-400" />
-                                                        <span className="text-sm font-medium">{quiz.questions} câu</span>
+                                                        <span className="text-sm font-medium">{quiz.totalQuestions || 0} câu</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-8">
                                                     <div className="flex items-center gap-2 text-slate-500">
                                                         <BookOpen size={16} className="text-slate-400" />
-                                                        <span className="text-sm font-medium">{quiz.topic}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-slate-500">
-                                                        <User size={16} className="text-slate-400" />
-                                                        <span className="text-sm font-medium">{quiz.teacher}</span>
+                                                        <span className="text-sm font-medium">{quiz.courseName}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -267,14 +300,19 @@ export default function QuizList() {
                                         {/* Card Footer */}
                                         <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${getStatusDotColor(quiz.status)} shadow-sm`}></div>
-                                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{quiz.statusText}</span>
+                                                <div className={`w-2 h-2 rounded-full ${quiz.isCompleted ? 'bg-emerald-400' : 'bg-gray-300'} shadow-sm`}></div>
+                                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                                    {quiz.isCompleted ? 'Đã hoàn thành' : 'Chưa bắt đầu'}
+                                                </span>
                                             </div>
 
-                                            {quiz.status === 'completed' ? (
-                                                <button className="px-5 py-2.5 bg-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-300 transition-all">
+                                            {quiz.isCompleted ? (
+                                                <Link
+                                                    to={`/dashboard/student/quizzes/${quiz.id}`}
+                                                    className="px-5 py-2.5 bg-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-300 transition-all"
+                                                >
                                                     Kết quả
-                                                </button>
+                                                </Link>
                                             ) : (
                                                 <Link
                                                     to={`/dashboard/student/quizzes/${quiz.id}`}
@@ -288,7 +326,7 @@ export default function QuizList() {
                                 ))
                             ) : (
                                 <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
-                                    <p className="text-slate-500 font-medium">Không tìm thấy bài kiểm tra nào phù hợp với từ khóa "{searchTerm}"</p>
+                                    <p className="text-slate-500 font-medium">Không tìm thấy bài kiểm tra nào phù hợp</p>
                                 </div>
                             )}
                         </div>
