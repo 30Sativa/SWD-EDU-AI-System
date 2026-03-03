@@ -141,7 +141,7 @@ export default function ClassDetail() {
                                 </Descriptions.Item>
                                 <Descriptions.Item label="Sĩ số">
                                     <span className="text-emerald-600">
-                                        {classData.studentCount || 0} / {classData.maxStudents || classData.maxStudent || 40} học viên
+                                        {classData.currentStudents || classData.studentCount || classData.students?.length || 0} / {classData.maxStudents || classData.maxStudent || 40} học viên
                                     </span>
                                 </Descriptions.Item>
                                 <Descriptions.Item label="Thuộc trường">
