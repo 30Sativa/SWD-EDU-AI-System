@@ -27,6 +27,7 @@ export default function Header({ userRole, basePath }) {
         // Prioritize full name for display
         const nameToStore = userData?.fullName || userData?.profile?.fullName || userData?.userName;
         if (nameToStore) localStorage.setItem('userName', nameToStore);
+        if (userData?.id) localStorage.setItem('userId', userData.id);
       } catch (error) {
         console.error('Failed to fetch user:', error);
       }
