@@ -1,4 +1,4 @@
-﻿using EduAISystem.Domain.Entities;
+using EduAISystem.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +14,7 @@ namespace EduAISystem.Application.Abstractions.Persistence
         Task DeleteAsync(LessonDomain lesson);
 
         Task<LessonDomain?> GetByIdAsync(Guid id);
+        Task<List<LessonDomain>> GetBySectionIdAsync(Guid sectionId);
         Task<List<LessonDomain>> GetBySectionIdAsync(IEnumerable<Guid> sectionId, CancellationToken  cancellation);
         Task AddRangeAsync(IEnumerable<LessonDomain> lessons, CancellationToken cancellation);
     }

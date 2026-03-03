@@ -1,4 +1,4 @@
-﻿using EduAISystem.Application.Features.Lessons.Commands;
+using EduAISystem.Application.Features.Lessons.Commands;
 using EduAISystem.Application.Features.Lessons.DTOs.Request;
 using EduAISystem.Application.Features.Lessons.Queries;
 using MediatR;
@@ -35,12 +35,12 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         }
 
         // GET: api/teacher/lessons/by-section/{sectionId}
-        //[HttpGet("by-section/{sectionId:guid}")]
-        //public async Task<IActionResult> GetBySection(Guid sectionId)
-        //{
-        //    var result = await _mediator.Send(new GetLessonsBySectionIdQuery(sectionId));
-        //    return Ok(result);
-        //}
+        [HttpGet("by-section/{sectionId:guid}")]
+        public async Task<IActionResult> GetBySection(Guid sectionId)
+        {
+            var result = await _mediator.Send(new GetLessonsBySectionIdQuery(sectionId));
+            return Ok(result);
+        }
 
         // POST: api/teacher/lessons
         [HttpPost]
