@@ -19,3 +19,7 @@ export const updateLesson = (id, data) => {
 export const deleteLesson = (id) => {
     return axiosClient.delete(`/api/teacher/lessons/${id}`);
 };
+
+export const getLessonsBySection = (sectionId) => {
+    return axiosClient.get(`/api/teacher/lessons/by-section/${sectionId}`);
+};
