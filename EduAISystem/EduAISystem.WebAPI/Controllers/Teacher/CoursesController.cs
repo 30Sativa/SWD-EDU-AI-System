@@ -38,7 +38,7 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
                 Id = id
             }, cancellationToken);
 
-            if (course == null || course.TeacherId != teacherId.Value)
+            if (course == null)
                 return NotFound();
 
             return Ok(ApiResponse<CourseDetailResponseDto>
