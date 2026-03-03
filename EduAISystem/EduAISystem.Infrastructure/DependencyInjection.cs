@@ -51,6 +51,8 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<IQuizAttemptRepository, QuizAttemptRepository>();
             services.AddScoped<ITeacherAssignmentRepository, TeacherAssignmentRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
+            services.AddScoped<IAssignmentRepository, AssignmentRepository>();
+            services.AddScoped<ISubmissionRepository, SubmissionRepository>();
             // 3. Services khác (nếu có)
             services.Configure<GeminiSettings>(
                     configuration.GetSection("Gemini"));
