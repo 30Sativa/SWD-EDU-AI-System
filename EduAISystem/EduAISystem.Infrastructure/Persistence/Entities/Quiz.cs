@@ -4,7 +4,14 @@ public partial class Quiz
 {
     public Guid Id { get; set; }
 
-    public Guid LessonId { get; set; }
+    /// <summary>Flow 1 (Formative): có LessonId. Flow 2 (Summative): null.</summary>
+    public Guid? LessonId { get; set; }
+
+    /// <summary>Flow 2 (Summative): có CourseId. Flow 1 (Formative): null.</summary>
+    public Guid? CourseId { get; set; }
+
+    /// <summary>Formative | Summative</summary>
+    public string QuizType { get; set; } = "Formative";
 
     public string Title { get; set; } = null!;
 
@@ -30,7 +37,9 @@ public partial class Quiz
 
     public DateTime? UpdatedAt { get; set; }
 
-    public virtual Lesson Lesson { get; set; } = null!;
+    public virtual Lesson? Lesson { get; set; }
+
+    public virtual Course? Course { get; set; }
 
     public virtual ICollection<Question> Questions { get; set; } = new List<Question>();
 

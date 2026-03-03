@@ -644,6 +644,8 @@ public partial class EduAiDbV5Context : DbContext
             entity.HasKey(e => e.Id).HasName("PK__Quizzes__3214EC073B9FEACB");
 
             entity.HasIndex(e => e.LessonId, "IX_Quizzes_LessonId");
+            entity.HasIndex(e => e.CourseId, "IX_Quizzes_CourseId");
+            entity.HasIndex(e => e.QuizType, "IX_Quizzes_QuizType");
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
@@ -659,10 +661,21 @@ public partial class EduAiDbV5Context : DbContext
             entity.Property(e => e.ShuffleQuestions).HasDefaultValue(false);
             entity.Property(e => e.Title).HasMaxLength(200);
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.QuizType)
+                .HasMaxLength(20)
+                .HasDefaultValue("Formative");
 
+            // Flow 1: Formative → gắn Lesson (nullable)
             entity.HasOne(d => d.Lesson).WithMany(p => p.Quizzes)
                 .HasForeignKey(d => d.LessonId)
+                .IsRequired(false)
                 .HasConstraintName("FK__Quizzes__LessonI__7B264821");
+
+            // Flow 2: Summative → gắn Course (nullable)
+            entity.HasOne(d => d.Course).WithMany()
+                .HasForeignKey(d => d.CourseId)
+                .IsRequired(false)
+                .HasConstraintName("FK_Quizzes_Courses");
         });
 
         modelBuilder.Entity<QuizAttempt>(entity =>
@@ -670,8 +683,8 @@ public partial class EduAiDbV5Context : DbContext
             entity.HasKey(e => e.Id).HasName("PK__QuizAtte__3214EC074518A2E2");
 
             entity.HasIndex(e => e.QuizId, "IX_QuizAttempts_QuizId");
-
             entity.HasIndex(e => e.StudentId, "IX_QuizAttempts_StudentId");
+            entity.HasIndex(e => e.Status, "IX_QuizAttempts_Status");
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.IsPassed).HasDefaultValue(false);
@@ -679,6 +692,9 @@ public partial class EduAiDbV5Context : DbContext
             entity.Property(e => e.Percentage).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.Score).HasColumnType("decimal(6, 2)");
             entity.Property(e => e.StartedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("IN_PROGRESS");
 
             entity.HasOne(d => d.Quiz).WithMany(p => p.QuizAttempts)
                 .HasForeignKey(d => d.QuizId)
@@ -774,10 +790,9 @@ public partial class EduAiDbV5Context : DbContext
             entity.HasKey(e => e.Id).HasName("PK__StudentQ__3214EC0771ECE06F");
 
             entity.HasIndex(e => e.ConversationId, "IX_StudentQuestions_ConversationId");
-
             entity.HasIndex(e => e.LessonId, "IX_StudentQuestions_LessonId");
-
             entity.HasIndex(e => e.StudentId, "IX_StudentQuestions_StudentId");
+            entity.HasIndex(e => e.AttemptId, "IX_StudentQuestions_AttemptId");
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.Airesponse).HasColumnName("AIResponse");
@@ -795,6 +810,12 @@ public partial class EduAiDbV5Context : DbContext
                 .HasForeignKey(d => d.StudentId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__StudentQu__Stude__43A1090D");
+
+            // AI Review context: optional link tới QuizAttempt
+            entity.HasOne(d => d.Attempt).WithMany()
+                .HasForeignKey(d => d.AttemptId)
+                .IsRequired(false)
+                .HasConstraintName("FK_StudentQuestions_QuizAttempts");
         });
 
         modelBuilder.Entity<Subject>(entity =>
