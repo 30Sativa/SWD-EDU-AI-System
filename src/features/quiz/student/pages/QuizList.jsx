@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { getCourseQuizzes } from '../api/quizApi';
 import { getStudentMyCourses } from '../../../course/api/courseApi';
+import { getCurrentUser } from '../../../user/api/userApi';
 import { Spin, message } from 'antd';
 
 export default function QuizList() {
@@ -26,30 +27,45 @@ export default function QuizList() {
     const [selectedCourse, setSelectedCourse] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [quizType, setQuizType] = useState('trac-nghiem');
+    const [studentId, setStudentId] = useState(localStorage.getItem('studentId') || null);
 
     // Fetch enrolled courses on mount
     React.useEffect(() => {
-        const fetchCourses = async () => {
+        const fetchUserDataAndCourses = async () => {
+            setLoading(true);
             try {
-                const res = await getStudentMyCourses();
-                const data = res.data || res;
-                setCourses(Array.isArray(data) ? data : []);
+                let currentStudentId = studentId;
+                if (!currentStudentId) {
+                    const profileRes = await getCurrentUser();
+                    const profileData = profileRes?.data || profileRes;
+                    currentStudentId = profileData?.id || profileData?.studentId;
+                    if (currentStudentId) {
+                        setStudentId(currentStudentId);
+                        localStorage.setItem('studentId', currentStudentId);
+                    }
+                }
 
-                // Fetch quizzes for all courses initially or just wait for selection
-                // For simplicity, let's fetch for the first course if exists or all
-                if (data && data.length > 0) {
-                    fetchAllQuizzes(data);
+                if (currentStudentId) {
+                    const res = await getStudentMyCourses(currentStudentId);
+                    const data = res.data || res;
+                    setCourses(Array.isArray(data) ? data : []);
+
+                    if (data && data.length > 0) {
+                        fetchAllQuizzes(data);
+                    } else {
+                        setLoading(false);
+                    }
                 } else {
                     setLoading(false);
                 }
             } catch (error) {
-                console.error("Lỗi khi tải khóa học:", error);
+                console.error("Lỗi khi tải dữ liệu:", error);
                 message.error("Không thể tải danh sách khóa học");
                 setLoading(false);
             }
         };
-        fetchCourses();
-    }, []);
+        fetchUserDataAndCourses();
+    }, [studentId]);
 
     const fetchAllQuizzes = async (courseList) => {
         setLoading(true);
@@ -82,10 +98,10 @@ export default function QuizList() {
         try {
             const res = await getCourseQuizzes(courseId);
             const data = res.data || res;
-            const course = courses.find(c => c.id === courseId);
+            const course = courses.find(c => String(c.id) === String(courseId));
             setQuizzes((Array.isArray(data) ? data : []).map(q => ({
                 ...q,
-                courseName: course.title || course.name
+                courseName: course?.title || course?.name || 'Khóa học'
             })));
         } catch (error) {
             console.error("Lỗi khi tải quiz:", error);

@@ -13,6 +13,7 @@ import {
 import { getStudentMyCourses, enrollCourse } from '../../api/courseApi';
 import { getSubjects } from '../../../subject/api/subjectApi';
 import { getGradeLevels } from '../../../grade/api/gradeApi';
+import { getCurrentUser } from '../../../user/api/userApi';
 import axiosClient from '../../../../lib/axiosClient';
 import { Spin, message } from 'antd';
 
@@ -36,40 +37,62 @@ export default function CoursesList() {
     const [grades, setGrades] = useState(['Tất cả', 'Lớp 10', 'Lớp 11', 'Lớp 12']);
     const [loading, setLoading] = useState(true);
     const [totalItems, setTotalItems] = useState(0);
+    const [studentId, setStudentId] = useState(localStorage.getItem('studentId') || null);
 
     const statuses = ['Tất cả', 'Đang học', 'Chưa bắt đầu', 'Đã hoàn thành'];
     const types = ['Tất cả', 'Chính khóa', 'Trải nghiệm'];
 
+    const fetchFilters = async () => {
+        try {
+            const [subjRes, gradeRes] = await Promise.all([
+                getSubjects().catch(() => null),
+                getGradeLevels().catch(() => null)
+            ]);
+
+            const subjData = subjRes?.data || subjRes;
+            const gradeData = gradeRes?.data || gradeRes;
+
+            if (Array.isArray(subjData) && subjData.length > 0) {
+                const apiSubjects = subjData.map(s => s.name);
+                setSubjects(prev => Array.from(new Set([...prev, ...apiSubjects])));
+            }
+            if (Array.isArray(gradeData) && gradeData.length > 0) {
+                const apiGrades = gradeData.map(g => g.name);
+                setGrades(prev => Array.from(new Set([...prev, ...apiGrades])));
+            }
+        } catch (error) {
+            console.error("Lỗi khi tải bộ lọc:", error);
+        }
+    };
+
     useEffect(() => {
-        const fetchFilters = async () => {
+        const initData = async () => {
+            setLoading(true);
             try {
-                const [subjRes, gradeRes] = await Promise.all([
-                    getSubjects().catch(() => null),
-                    getGradeLevels().catch(() => null)
-                ]);
-
-                const subjData = subjRes?.data || subjRes;
-                const gradeData = gradeRes?.data || gradeRes;
-
-                if (Array.isArray(subjData) && subjData.length > 0) {
-                    const apiSubjects = subjData.map(s => s.name);
-                    setSubjects(prev => Array.from(new Set([...prev, ...apiSubjects])));
+                if (!studentId) {
+                    const profileRes = await getCurrentUser();
+                    const profileData = profileRes?.data || profileRes;
+                    const id = profileData?.id || profileData?.studentId;
+                    if (id) {
+                        setStudentId(id);
+                        localStorage.setItem('studentId', id);
+                    }
                 }
-                if (Array.isArray(gradeData) && gradeData.length > 0) {
-                    const apiGrades = gradeData.map(g => g.name);
-                    setGrades(prev => Array.from(new Set([...prev, ...apiGrades])));
-                }
+                await fetchFilters();
             } catch (error) {
-                console.error("Lỗi khi tải bộ lọc:", error);
+                console.error("Lỗi khi khởi tạo dữ liệu:", error);
+            } finally {
+                setLoading(false);
             }
         };
-        fetchFilters();
-    }, []);
+        initData();
+    }, [studentId]);
 
     const fetchMyCourses = async () => {
+        if (!studentId) return;
         setLoading(true);
         try {
-            const res = await getStudentMyCourses({
+            const res = await getStudentMyCourses(studentId, {
                 page: currentPage,
                 limit: 100
             });
@@ -138,12 +161,12 @@ export default function CoursesList() {
     };
 
     useEffect(() => {
-        if (activeTab === 'my') {
+        if (activeTab === 'my' && studentId) {
             fetchMyCourses();
-        } else {
+        } else if (activeTab === 'discover') {
             fetchAllClasses();
         }
-    }, [currentPage, activeTab]);
+    }, [currentPage, activeTab, studentId]);
 
     const handleEnroll = async (e, courseId) => {
         e.preventDefault();

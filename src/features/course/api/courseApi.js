@@ -10,8 +10,12 @@ export const getMyCourses = async (params) => {
     return response;
 };
 
-export const getStudentMyCourses = async (params) => {
-    const response = await axiosClient.get("/api/student/courses/my", { params });
+export const getStudentMyCourses = async (studentId, params) => {
+    if (!studentId) {
+        // Fallback to the generic endpoint if studentId is not provided
+        return await axiosClient.get("/api/student/courses/my", { params });
+    }
+    const response = await axiosClient.get(`/api/student/students/${studentId}/courses`, { params });
     return response;
 };
 

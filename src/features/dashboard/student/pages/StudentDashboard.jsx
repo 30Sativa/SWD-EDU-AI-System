@@ -77,6 +77,12 @@ export default function StudentDashboard() {
         const userRes = await getCurrentUser();
         const userData = userRes?.data || userRes;
 
+        // Extract studentId (it might be 'id' or 'studentId' in the profile)
+        const currentStudentId = userData?.id || userData?.studentId;
+        if (currentStudentId) {
+          localStorage.setItem('studentId', currentStudentId);
+        }
+
         // Ưu tiên hiển thị fullName (từ root hoặc profile), fallback về userName hoặc 'Bạn'
         const displayName = userData?.fullName || userData?.profile?.fullName || userData?.userName || 'Bạn';
 
@@ -84,7 +90,7 @@ export default function StudentDashboard() {
         localStorage.setItem('userFullName', displayName);
 
         // Fetch My Courses
-        const courseRes = await getStudentMyCourses({ page: 1, limit: 10 });
+        const courseRes = await getStudentMyCourses(currentStudentId, { page: 1, limit: 10 });
         const coursesInfo = courseRes?.data || courseRes;
 
         if (coursesInfo?.items || Array.isArray(coursesInfo)) {

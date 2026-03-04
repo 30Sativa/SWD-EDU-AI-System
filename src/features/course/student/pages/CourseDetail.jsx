@@ -17,7 +17,7 @@ import {
     User,
     ListChecks
 } from 'lucide-react';
-import { getClassDetail } from '../../../classes/api/classApi';
+import { getTeacherCourseDetail } from '../../api/courseApi';
 import { Spin, message } from 'antd';
 
 export default function CourseDetail() {
@@ -30,7 +30,7 @@ export default function CourseDetail() {
         const fetchDetail = async () => {
             setLoading(true);
             try {
-                const res = await getClassDetail(courseId);
+                const res = await getTeacherCourseDetail(courseId);
                 const data = res?.data || res;
                 setCourseData(data);
 
