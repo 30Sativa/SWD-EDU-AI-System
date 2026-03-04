@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -14,8 +14,23 @@ import {
   Users,
   Clock,
   MoreVertical,
-  Trash2
+  Trash2,
+  Rocket
 } from 'lucide-react';
+
+const slugify = (text) => {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .replace(/([^0-9a-z-\s])/g, '')
+    .replace(/(\s+)/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
 import {
   Table,
   Button,
@@ -31,8 +46,12 @@ import {
   Form,
   Radio
 } from 'antd';
-import { getMyCourses, getCourseTemplates, createTeacherCourse, cloneTeacherCourse } from '../../api/courseApi';
+import { getMyCourses, getCourseTemplates, createTeacherCourse, cloneTeacherCourse, publishTeacherCourse, assignClassToCourse, getTeacherCourseDetail } from '../../api/courseApi';
 import { getSubjects } from '../../../subject/api/subjectApi';
+import { getCurrentUser } from '../../../user/api/userApi';
+import { getGradeLevels } from '../../../grade/api/gradeApi';
+import { getCourseCategories } from '../../../category/api/categoryApi';
+import { getClasses } from '../../../classes/api/classApi';
 
 export default function CourseManagement() {
   const navigate = useNavigate();
@@ -40,14 +59,27 @@ export default function CourseManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [userId, setUserId] = useState(null);
 
   // Create Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [createType, setCreateType] = useState('template'); // 'template' or 'scratch'
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [assigningCourse, setAssigningCourse] = useState(null);
+  const [createType, setCreateType] = useState('template');
   const [templates, setTemplates] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [grades, setGrades] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
+  const [assignForm] = Form.useForm();
 
   const fetchCourses = useCallback(async () => {
     try {
@@ -56,8 +88,7 @@ export default function CourseManagement() {
       const data = res?.data?.items || res?.items || res?.data || res || [];
       setCourses(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Lỗi khi tải danh sách khóa học:', error);
-      message.error('Không thể kết nối máy chủ để tải danh sách khóa học');
+      // message.error handle
     } finally {
       setLoading(false);
     }
@@ -65,35 +96,72 @@ export default function CourseManagement() {
 
   const fetchDependencies = async () => {
     try {
-      const [templatesRes, subjectsRes] = await Promise.all([
+      const [templatesRes, subjectsRes, gradesRes, categoriesRes, classesRes] = await Promise.all([
         getCourseTemplates(),
-        getSubjects()
+        getSubjects(),
+        getGradeLevels(),
+        getCourseCategories({ pageSize: 100 }),
+        getClasses()
       ]);
       setTemplates(templatesRes?.data?.items || templatesRes?.items || templatesRes?.data || []);
       setSubjects(subjectsRes?.data?.items || subjectsRes?.items || subjectsRes?.data || []);
+      setGrades(gradesRes?.data?.items || gradesRes?.items || gradesRes?.data || []);
+      setCategories(categoriesRes?.data?.items || categoriesRes?.items || categoriesRes?.data || []);
+      setClasses(classesRes?.data?.items || classesRes?.items || classesRes?.data || []);
     } catch (error) {
-      console.error('Lỗi khi tải dữ liệu template/subject:', error);
+      // silence
     }
   };
 
   useEffect(() => {
     fetchCourses();
     fetchDependencies();
+    const fetchUser = async () => {
+      try {
+        const res = await getCurrentUser();
+        // Handle inconsistent API response structures
+        const id = res?.id || res?.data?.id || localStorage.getItem('userId');
+        if (id) setUserId(String(id));
+      } catch (err) {
+        const savedId = localStorage.getItem('userId');
+        if (savedId) setUserId(String(savedId));
+      }
+    };
+    fetchUser();
   }, [fetchCourses]);
 
   const handleCreateSubmit = async (values) => {
     try {
       setSubmitting(true);
+      const currentUserId = userId || localStorage.getItem('userId');
+
       if (createType === 'template') {
-        const payload = { templateId: values.templateId };
+        if (!currentUserId) {
+          message.error('Không tìm thấy thông tin tài khoản. Vui lòng đăng nhập lại.');
+          return;
+        }
+
+        const payload = {
+          templateId: values.templateId,
+          teacherId: currentUserId,
+          newCode: values.newCode
+        };
+
         await cloneTeacherCourse(payload);
         message.success('Clone khóa học từ template thành công!');
       } else {
         const payload = {
           title: values.title,
+          slug: slugify(values.title),
           code: values.code,
           subjectId: values.subjectId,
-          description: values.description || ""
+          description: values.description || "",
+          gradeLevelId: values.gradeLevelId,
+          categoryId: values.categoryId,
+          level: parseInt(values.level || 1),
+          language: values.language || "Vietnamese",
+          totalLessons: 0,
+          totalDuration: 0
         };
         await createTeacherCourse(payload);
         message.success('Tạo khóa học mới thành công!');
@@ -102,14 +170,80 @@ export default function CourseManagement() {
       form.resetFields();
       fetchCourses();
     } catch (error) {
-      console.error('Creation error:', error);
-      message.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo khóa học');
+      // Detailed error handling
+      const errorData = error.response?.data;
+      const errorMsg = errorData?.message || errorData?.Message || 'Có lỗi xảy ra khi tạo khóa học';
+      message.error(errorMsg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const filteredCourses = courses.filter(course => {
+  const handleEditSubmit = async (values) => {
+    try {
+      setSubmitting(true);
+      const payload = {
+        ...values,
+        slug: slugify(values.title),
+        level: parseInt(values.level),
+      };
+      await updateTeacherCourse(editingCourse.id, payload);
+      message.success('Cập nhật khóa học thành công!');
+      setIsEditModalOpen(false);
+      fetchCourses();
+    } catch {
+      message.error('Lỗi khi cập nhật thông tin khóa học');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAssignSubmit = async (values) => {
+    try {
+      setSubmitting(true);
+      await assignClassToCourse(assigningCourse.id, values.classId);
+      message.success('Gán lớp vào khóa học thành công!');
+      setIsAssignModalOpen(false);
+      fetchCourses();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Lỗi khi gán lớp vào khóa học');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePreviewTemplate = async () => {
+    const templateId = form.getFieldValue('templateId');
+    if (!templateId) {
+      message.warning('Vui lòng chọn một template để xem trước');
+      return;
+    }
+
+    try {
+      setPreviewLoading(true);
+      setIsPreviewModalOpen(true);
+
+      // Thử lấy detail qua API teacher detail hoặc API sections
+      const res = await getTeacherCourseDetail(templateId).catch(() => null);
+      let data = res?.data || res;
+
+      if (!data || !(data.sections || data.items || data.Sections)) {
+        // Fallback sang API sections (lấy từ courseApi vừa thêm)
+        const { getCourseSections } = await import('../../api/courseApi');
+        const sectionsRes = await getCourseSections(templateId).catch(() => null);
+        const sections = sectionsRes?.data?.items || sectionsRes?.items || sectionsRes?.data || [];
+        data = { ...data, sections };
+      }
+
+      setPreviewData(data);
+    } catch {
+      message.error('Không thể tải cấu trúc template');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const filteredCourses = useMemo(() => courses.filter(course => {
     const matchesSearch = (course.title || course.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.code?.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -121,7 +255,7 @@ export default function CourseManagement() {
     }
 
     return matchesSearch && matchesStatus;
-  });
+  }), [courses, searchTerm, statusFilter]);
 
   const columns = [
     {
@@ -149,7 +283,9 @@ export default function CourseManagement() {
                 <Tag color="gold" className="m-0 text-[10px] font-bold uppercase px-1 leading-tight rounded-sm border-none">VIP</Tag>
               )}
             </div>
-            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{record.code}</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{record.code}</span>
+            </div>
           </div>
         </div>
       )
@@ -157,17 +293,48 @@ export default function CourseManagement() {
     {
       title: 'PHÂN LOẠI',
       key: 'level',
-      render: (_, record) => (
-        <div className="flex flex-col gap-1">
-          <Tag className="rounded font-bold border-none bg-blue-50 text-blue-600 px-2 py-0 text-[11px] w-fit">
-            {record.level || 'Chưa định nghĩa'}
-          </Tag>
-          <span className="text-xs text-slate-500 font-medium px-1 flex items-center gap-1">
-            <Layers size={12} className="text-[#0487e2]" />
-            {record.subjectName || 'Khối lớp N/A'}
-          </span>
-        </div>
-      )
+      render: (_, record) => {
+        // Mapping levels with support for both string and number
+        const difficultyMap = {
+          1: 'Cơ bản',
+          2: 'Trung bình',
+          3: 'Nâng cao'
+        };
+        const levelVal = record.level ?? record.Level ?? record.difficultyLevel ?? record.DifficultyLevel;
+        const levelText = difficultyMap[Number(levelVal)] || record.levelName || record.LevelName || (levelVal ? `Cấp độ ${levelVal} ` : 'Chưa định nghĩa');
+
+        // Resolve names with fallback for various cases
+        const gradeId = record.gradeLevelId || record.GradeLevelId || record.gradeId || record.GradeId;
+        const gradeName = record.gradeLevelName || record.GradeLevelName || record.gradeName || record.GradeName ||
+          grades.find(g => g.id === gradeId)?.name;
+
+        const catId = record.categoryId || record.CategoryId;
+        const categoryName = record.categoryName || record.CategoryName ||
+          categories.find(c => c.id === catId)?.name;
+
+        const subId = record.subjectId || record.SubjectId;
+        const subjectName = record.subjectName || record.SubjectName ||
+          subjects.find(s => s.id === subId)?.name;
+
+        return (
+          <div className="flex flex-col gap-1">
+            <Tag className="rounded font-bold border-none bg-blue-50 text-blue-600 px-2 py-0 text-[11px] w-fit">
+              {levelText}
+            </Tag>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-slate-500 font-medium px-1 flex items-center gap-1">
+                <Layers size={12} className="text-[#0487e2]" />
+                {gradeName || categoryName || (gradeId || catId ? `Phân loại: ${String(gradeId || catId).substring(0, 8)}...` : 'Liên cấp / Khác')}
+              </span>
+              {subjectName && (
+                <span className="text-[10px] text-slate-400 font-medium px-1 italic">
+                  Môn: {subjectName}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      }
     },
     {
       title: 'THỐNG KÊ',
@@ -175,18 +342,14 @@ export default function CourseManagement() {
       render: (_, record) => (
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="text-xs font-bold text-slate-600 flex items-center gap-1">
-              <Users size={14} className="text-slate-400" />
-              {record.enrollmentCount || 0}
-            </div>
             <div className="text-xs font-bold text-amber-500 flex items-center gap-1">
               <CheckCircle2 size={14} fill="currentColor" className="text-amber-100" />
-              {record.rating || '0.0'}
+              {record.rating ?? record.averageRating ?? '0.0'}
             </div>
           </div>
           <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
             <Clock size={12} />
-            {record.totalLessons || 0} bài • {Math.floor(record.totalDuration / 60) || 0}h {(record.totalDuration % 60) || 0}m
+            {record.totalLessons ?? record.lessonCount ?? 0} bài • {Math.floor((record.totalDuration ?? 0) / 60)}h {(record.totalDuration ?? 0) % 60}m
           </div>
         </div>
       )
@@ -196,14 +359,15 @@ export default function CourseManagement() {
       dataIndex: 'status',
       key: 'status',
       align: 'center',
-      render: (status) => {
-        const isActive = status === 'Active' || status === 'Published';
+      render: (status, record) => {
+        const rawStatus = (status ?? record.statusCode ?? record.statusTitle ?? '').toString().toLowerCase();
+        const isActive = rawStatus === 'active' || rawStatus === 'published' || record.statusCode === 1;
         return (
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${isActive
+          <span className={`inline - flex items - center gap - 1.5 px - 2.5 py - 1 rounded - full text - xs font - bold border ${isActive
             ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
             : 'bg-slate-50 text-slate-500 border-slate-100'
-            }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+            } `}>
+            <span className={`w - 1.5 h - 1.5 rounded - full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'} `} />
             {isActive ? 'Hoạt động' : 'Bản nháp'}
           </span>
         );
@@ -213,28 +377,86 @@ export default function CourseManagement() {
       title: 'TÁC VỤ',
       key: 'action',
       align: 'right',
-      render: (_, record) => (
-        <div className="flex items-center justify-end gap-2">
-          <Tooltip title="Xem chi tiết">
-            <Button
-              type="text"
-              shape="circle"
-              icon={<Eye size={16} />}
-              className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
-              onClick={() => navigate(`/dashboard/teacher/courses/${record.id}`)}
-            />
-          </Tooltip>
-          <Tooltip title="Chỉnh sửa">
-            <Button
-              type="text"
-              shape="circle"
-              icon={<Edit size={16} />}
-              className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
-              onClick={() => navigate(`/dashboard/teacher/courses/${record.id}/edit`)}
-            />
-          </Tooltip>
-        </div>
-      )
+      render: (_, record) => {
+        const rawStatus = (record.status ?? record.statusCode ?? record.statusTitle ?? '').toString().toLowerCase();
+        const isPublished = rawStatus === 'active' || rawStatus === 'published' || record.statusCode === 1;
+        return (
+          <div className="flex items-center justify-end gap-2">
+            {!isPublished && (
+              <Tooltip title="Xuất bản">
+                <Button
+                  type="text"
+                  shape="circle"
+                  icon={<Rocket size={16} />}
+                  className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!record.id) {
+                      message.error("Course ID is missing from this record!");
+                      return;
+                    }
+                    try {
+                      await publishTeacherCourse(record.id);
+                      message.success('Xuất bản khóa học thành công!');
+                      fetchCourses();
+                    } catch {
+                      message.error('Lỗi khi xuất bản khóa học');
+                    }
+                  }}
+                />
+              </Tooltip>
+            )}
+            <Tooltip title="Xem chi tiết">
+              <Button
+                type="text"
+                shape="circle"
+                icon={<Eye size={16} />}
+                className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
+                onClick={() => navigate(`/dashboard/teacher/courses/${record.id}`)}
+              />
+            </Tooltip>
+
+            <Tooltip title="Gán vào lớp">
+              <Button
+                type="text"
+                shape="circle"
+                icon={<Users size={16} />}
+                className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAssigningCourse(record);
+                  assignForm.resetFields();
+                  setIsAssignModalOpen(true);
+                }}
+              />
+            </Tooltip>
+
+            <Tooltip title="Chỉnh sửa">
+              <Button
+                type="text"
+                shape="circle"
+                icon={<Edit size={16} />}
+                className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingCourse(record);
+                  editForm.setFieldsValue({
+                    title: record.title,
+                    code: record.code,
+                    subjectId: record.subjectId,
+                    gradeLevelId: record.gradeLevelId,
+                    categoryId: record.categoryId,
+                    level: record.level || 1,
+                    language: record.language || "Vietnamese",
+                    description: record.description
+                  });
+                  setIsEditModalOpen(true);
+                }}
+              />
+            </Tooltip>
+          </div>
+        );
+      }
     }
   ];
 
@@ -370,21 +592,47 @@ export default function CourseManagement() {
             {createType === 'template' ? (
               <>
                 <Form.Item
-                  name="templateId"
                   label="Chọn Template Khóa Học"
-                  rules={[{ required: true, message: 'Vui lòng chọn template!' }]}
+                  required
                 >
-                  <Select
-                    placeholder="Chọn template có sẵn..."
-                    className="h-11"
-                    showSearch
-                    optionFilterProp="children"
-                  >
-                    {templates.map(t => (
-                      <Select.Option key={t.id} value={t.id}>{t.title} ({t.code})</Select.Option>
-                    ))}
-                  </Select>
+                  <div className="flex gap-2">
+                    <Form.Item
+                      name="templateId"
+                      noStyle
+                      rules={[{ required: true, message: 'Vui lòng chọn template!' }]}
+                    >
+                      <Select
+                        placeholder="Chọn template có sẵn..."
+                        className="h-11 flex-1"
+                        showSearch
+                        optionFilterProp="children"
+                      >
+                        {templates.map(t => (
+                          <Select.Option key={t.id} value={t.id}>{t.title} ({t.code})</Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                    <Button
+                      icon={<Eye size={16} />}
+                      onClick={handlePreviewTemplate}
+                      className="h-11 px-4 border-blue-200 text-blue-600 hover:bg-blue-50"
+                    >
+                      Xem thử
+                    </Button>
+                  </div>
                 </Form.Item>
+
+                <Form.Item
+                  name="newCode"
+                  label="Mã Khóa Học Mới"
+                  rules={[{ required: true, message: 'Vui lòng nhập mã khóa học mới!' }]}
+                >
+                  <Input
+                    className="h-11 rounded-lg uppercase bg-slate-50 border-transparent hover:bg-white focus:bg-white"
+                    placeholder="VD: ABC123"
+                  />
+                </Form.Item>
+
                 <div className="bg-amber-50 border border-amber-100 p-3 rounded-lg text-sm text-amber-700 flex gap-2">
                   Hệ thống sẽ clone toàn bộ khung sườn rỗng (Draft) sang khóa học mới của bạn.
                 </div>
@@ -406,7 +654,36 @@ export default function CourseManagement() {
                   </Form.Item>
                 </div>
 
-                <Form.Item name="description" label="Mô tả ngắn">
+                <div className="grid grid-cols-2 gap-4">
+                  <Form.Item name="gradeLevelId" label="Khối Lớp" rules={[{ required: true, message: 'Chọn khối lớp' }]}>
+                    <Select placeholder="Chọn khối..." className="h-11 [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent hover:[&>.ant-select-selector]:!bg-white">
+                      {grades.map(g => <Select.Option key={g.id} value={g.id}>{g.name}</Select.Option>)}
+                    </Select>
+                  </Form.Item>
+                  <Form.Item name="categoryId" label="Danh Mục" rules={[{ required: true, message: 'Chọn danh mục' }]}>
+                    <Select placeholder="Chọn loại..." className="h-11 [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent hover:[&>.ant-select-selector]:!bg-white">
+                      {categories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+                    </Select>
+                  </Form.Item>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Form.Item name="level" label="Độ Khó" initialValue={1}>
+                    <Select className="h-11 [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent hover:[&>.ant-select-selector]:!bg-white">
+                      <Select.Option value={1}>Cơ bản</Select.Option>
+                      <Select.Option value={2}>Trung bình</Select.Option>
+                      <Select.Option value={3}>Nâng cao</Select.Option>
+                    </Select>
+                  </Form.Item>
+                  <Form.Item name="language" label="Ngôn Ngữ" initialValue="Vietnamese">
+                    <Select className="h-11 [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent hover:[&>.ant-select-selector]:!bg-white">
+                      <Select.Option value="Vietnamese">Tiếng Việt</Select.Option>
+                      <Select.Option value="English">Tiếng Anh</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </div>
+
+                <Form.Item name="description" label="Mô tả">
                   <Input.TextArea rows={3} className="rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white" placeholder="Mô tả mục tiêu khóa học..." />
                 </Form.Item>
               </>
@@ -420,6 +697,186 @@ export default function CourseManagement() {
             </div>
           </Form>
         </div>
+      </Modal>
+
+      {/* Quick Edit Modal */}
+      <Modal
+        title={<div className="flex items-center gap-2"><Edit size={20} className="text-[#0487e2]" /><span className="font-bold text-xl">Chỉnh sửa Khóa học</span></div>}
+        open={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        footer={null}
+        width={600}
+        centered
+        className="rounded-2xl"
+      >
+        <div className="pt-4">
+          <Form form={editForm} layout="vertical" onFinish={handleEditSubmit}>
+            <Form.Item name="title" label="Tên Khóa Học" rules={[{ required: true }]}>
+              <Input className="h-11 rounded-lg" />
+            </Form.Item>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item name="code" label="Mã Khóa" rules={[{ required: true }]}>
+                <Input className="h-11 rounded-lg uppercase" />
+              </Form.Item>
+              <Form.Item name="subjectId" label="Môn Học" rules={[{ required: true }]}>
+                <Select className="h-11">
+                  {subjects.map(s => <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>)}
+                </Select>
+              </Form.Item>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item name="gradeLevelId" label="Khối Lớp" rules={[{ required: true }]}>
+                <Select className="h-11">
+                  {grades.map(g => <Select.Option key={g.id} value={g.id}>{g.name}</Select.Option>)}
+                </Select>
+              </Form.Item>
+              <Form.Item name="categoryId" label="Danh Mục" rules={[{ required: true }]}>
+                <Select className="h-11">
+                  {categories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+                </Select>
+              </Form.Item>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item name="level" label="Độ Khó">
+                <Select className="h-11">
+                  <Select.Option value={1}>Cơ bản</Select.Option>
+                  <Select.Option value={2}>Trung bình</Select.Option>
+                  <Select.Option value={3}>Nâng cao</Select.Option>
+                </Select>
+              </Form.Item>
+              <Form.Item name="language" label="Ngôn Ngữ">
+                <Select className="h-11">
+                  <Select.Option value="Vietnamese">Tiếng Việt</Select.Option>
+                  <Select.Option value="English">Tiếng Anh</Select.Option>
+                </Select>
+              </Form.Item>
+            </div>
+
+            <Form.Item name="description" label="Mô tả">
+              <Input.TextArea rows={3} className="rounded-lg" />
+            </Form.Item>
+
+            <div className="flex gap-3 pt-4">
+              <Button className="flex-1 h-11 rounded-xl font-bold" onClick={() => setIsEditModalOpen(false)}>Hủy</Button>
+              <Button type="primary" htmlType="submit" loading={submitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold border-none">
+                Lưu thay đổi
+              </Button>
+            </div>
+          </Form>
+        </div>
+      </Modal>
+
+      {/* Assign Class Modal */}
+      <Modal
+        title={<div className="flex items-center gap-2"><Users size={20} className="text-[#0487e2]" /><span className="font-bold text-xl">Gán Lớp vào Khóa Học</span></div>}
+        open={isAssignModalOpen}
+        onCancel={() => setIsAssignModalOpen(false)}
+        footer={null}
+        width={500}
+        centered
+        className="rounded-2xl"
+      >
+        <div className="pt-4 space-y-4">
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
+            <p className="text-blue-700 text-sm font-medium mb-1">Khóa học đang gán:</p>
+            <p className="text-blue-900 font-bold">{assigningCourse?.title}</p>
+          </div>
+
+          <Form form={assignForm} layout="vertical" onFinish={handleAssignSubmit}>
+            <Form.Item
+              name="classId"
+              label="Chọn Lớp Học"
+              rules={[{ required: true, message: 'Vui lòng chọn lớp học!' }]}
+              extra="Chỉ các lớp bạn được phân công mới xuất hiện ở đây."
+            >
+              <Select placeholder="Tìm và chọn lớp..." className="h-11">
+                {classes.map(c => (
+                  <Select.Option key={c.id} value={c.id}>
+                    {c.name} - {c.gradeName || 'Khối N/A'}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <div className="flex gap-3 pt-4">
+              <Button className="flex-1 h-11 rounded-xl font-bold" onClick={() => setIsAssignModalOpen(false)}>Hủy</Button>
+              <Button type="primary" htmlType="submit" loading={submitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold border-none">
+                Gán Lớp Ngay
+              </Button>
+            </div>
+          </Form>
+        </div>
+      </Modal>
+      {/* Template Preview Modal */}
+      <Modal
+        title={<div className="flex items-center gap-2"><Eye size={20} className="text-[#0487e2]" /><span className="font-bold">Cấu trúc Template</span></div>}
+        open={isPreviewModalOpen}
+        onCancel={() => setIsPreviewModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsPreviewModalOpen(false)}>Đóng</Button>
+        ]}
+        width={650}
+        centered
+      >
+        {previewLoading ? (
+          <div className="py-20 text-center">
+            <Spin>
+              <div className="pt-4 text-slate-500 font-medium">Đang tải cấu trúc...</div>
+            </Spin>
+          </div>
+        ) : previewData ? (
+          <div className="py-2 space-y-4">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <h4 className="font-bold text-slate-800 text-lg mb-1">{previewData.title || previewData.name}</h4>
+              <p className="text-slate-500 text-sm">{previewData.description || 'Không có mô tả cho template này.'}</p>
+            </div>
+
+            <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              <h5 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 ml-1">Danh sách chương bài</h5>
+              {(previewData.sections || previewData.items || previewData.Sections || []).length > 0 ? (
+                <div className="space-y-3">
+                  {(previewData.sections || previewData.items || previewData.Sections).map((sec, idx) => (
+                    <div key={idx} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-[10px] font-bold text-blue-500 uppercase tracking-tighter bg-blue-50 px-2 py-0.5 rounded mb-2 inline-block">Chương {idx + 1}</span>
+                          <h6 className="font-bold text-slate-700">{sec.title || sec.Title || sec.name}</h6>
+                          <p className="text-xs text-slate-400 mt-1">{sec.description || sec.Description || 'Không có mô tả.'}</p>
+                        </div>
+                        <div className="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded">
+                          {(sec.lessons || sec.items || sec.Lessons || []).length} bài học
+                        </div>
+                      </div>
+
+                      {/* Lessons list if available */}
+                      {(sec.lessons || sec.items || sec.Lessons || []).length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                          {(sec.lessons || sec.items || sec.Lessons).slice(0, 3).map((lesson, lIdx) => (
+                            <div key={lIdx} className="flex items-center gap-3 text-xs text-slate-500">
+                              <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                              <span className="flex-1 font-medium italic">{lesson.title || lesson.Title || lesson.name}</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">{lesson.type || lesson.Type || 'Video'}</span>
+                            </div>
+                          ))}
+                          {(sec.lessons || sec.items || sec.Lessons).length > 3 && (
+                            <div className="text-[10px] text-slate-400 italic pl-4 font-medium">...và {(sec.lessons || sec.items || sec.Lessons).length - 3} bài học khác</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Empty description="Template này hiện chưa có nội dung chương bài." className="py-10" />
+              )}
+            </div>
+          </div>
+        ) : (
+          <Empty description="Không tìm thấy dữ liệu cấu trúc." />
+        )}
       </Modal>
     </div>
   );

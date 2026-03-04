@@ -105,7 +105,7 @@ const ClassManagement = () => {
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
                         <Layers size={14} className="text-slate-400" />
-                        <span>{record.gradeName || gradesMap[record.gradeLevelId] || `Khối ${record.gradeLevelId || '?'}`}</span>
+                        <span>{record.gradeName || gradesMap[record.gradeLevelId] || gradesMap[record.gradeId] || `Khối ${record.gradeLevelId || record.gradeId || '?'}`}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
                         <Calendar size={14} className="text-slate-400" />

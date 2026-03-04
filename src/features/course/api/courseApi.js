@@ -20,6 +20,16 @@ export const createSection = async (courseId, data) => {
     return response;
 };
 
+export const updateSection = async (courseId, sectionId, data) => {
+    const response = await axiosClient.put(`/api/courses/${courseId}/sections/${sectionId}`, data);
+    return response;
+};
+
+export const deleteSection = async (courseId, sectionId) => {
+    const response = await axiosClient.delete(`/api/courses/${courseId}/sections/${sectionId}`);
+    return response;
+};
+
 export const createCourseTemplate = async (data) => {
     return await axiosClient.post("/api/manager/courses/template", data);
 };
@@ -45,9 +55,27 @@ export const createTeacherCourse = async (data) => {
 };
 
 export const publishTeacherCourse = async (id) => {
-    return await axiosClient.post(`/api/teacher/courses/${id}/publish`);
+    if (!id) return;
+    const url = `/api/teacher/courses/${id}/publish`;
+    return await axiosClient.post(url);
 };
 
 export const cloneTeacherCourse = async (data) => {
     return await axiosClient.post("/api/teacher/courses/clone", data);
+};
+
+export const getTeacherCourseDetail = async (id) => {
+    return await axiosClient.get(`/api/teacher/courses/${id}`);
+};
+
+export const updateTeacherCourse = async (id, data) => {
+    return await axiosClient.put(`/api/teacher/courses/${id}`, data);
+};
+
+export const getCourseSections = async (courseId) => {
+    return await axiosClient.get(`/api/courses/${courseId}/sections`);
+};
+
+export const assignClassToCourse = async (courseId, classId) => {
+    return await axiosClient.post(`/api/teacher/courses/${courseId}/classes/${classId}`);
 };

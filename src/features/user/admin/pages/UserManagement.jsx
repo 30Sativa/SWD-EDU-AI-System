@@ -348,7 +348,7 @@ export default function UserManagement() {
       const payload = {
         fullName: formData.name,
         email: formData.email,
-        password: 'Password123!', // Mặc định hoặc có thể thêm field cho user nhập
+        password: '123456', // Mặc định hoặc có thể thêm field cho user nhập
         role: ROLE_ID_MAP[formData.role] || ROLE_ENUM.STUDENT
       };
 

@@ -15,8 +15,8 @@ import {
     ArrowLeft
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getClassDetail, getTeacherClassStudents, addStudentsToClass } from '../../api/classApi';
-import { Spin, Modal, Select, message, Table, Input, Button, Tooltip, Empty } from 'antd';
+import { getClassDetail, getTeacherClassStudents, addStudentsToClass, removeStudentFromClass } from '../../api/classApi';
+import { Spin, Modal, Select, message, Table, Input, Button, Tooltip, Empty, Popconfirm } from 'antd';
 import { getUsers } from '../../../user/api/userApi';
 
 // Lấy danh sách học sinh từ chi tiết lớp (BE có thể trả students / enrollments / members)
@@ -170,6 +170,21 @@ export default function ClassStudentList() {
         }
     };
 
+    const handleRemoveStudent = async (studentId) => {
+        try {
+            message.loading({ content: 'Đang xóa học sinh...', key: 'remove_student' });
+            await removeStudentFromClass(classId, studentId);
+            message.success({ content: 'Đã xóa học sinh khỏi lớp thành công', key: 'remove_student' });
+            setReloadTrigger(prev => prev + 1);
+        } catch (err) {
+            console.error('Lỗi khi xóa học sinh:', err);
+            message.error({
+                content: err.response?.data?.message || 'Không thể xóa học sinh. Vui lòng thử lại.',
+                key: 'remove_student'
+            });
+        }
+    };
+
     const rawStudents = studentsData.length > 0 ? studentsData : extractStudents(classDetail);
     const students = rawStudents.map(s => ({
         id: s.id ?? s.userId ?? s.studentId,
@@ -277,7 +292,21 @@ export default function ClassStudentList() {
                         <Button type="text" shape="circle" icon={<Mail size={17} />} className="text-slate-400 hover:text-amber-600 hover:bg-amber-50" />
                     </Tooltip>
                     <Tooltip title="Xóa khỏi lớp">
-                        <Button type="text" shape="circle" icon={<Trash2 size={17} />} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50" />
+                        <Popconfirm
+                            title="Xác nhận xóa"
+                            description="Bạn có chắc chắn muốn xóa học sinh này khỏi lớp không?"
+                            onConfirm={() => handleRemoveStudent(record.id)}
+                            okText="Xóa ngay"
+                            cancelText="Hủy"
+                            okButtonProps={{ danger: true }}
+                        >
+                            <Button
+                                type="text"
+                                shape="circle"
+                                icon={<Trash2 size={17} />}
+                                className="text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            />
+                        </Popconfirm>
                     </Tooltip>
                 </div>
             )

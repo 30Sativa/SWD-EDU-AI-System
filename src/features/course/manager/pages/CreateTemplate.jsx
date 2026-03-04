@@ -2,13 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Sparkles, Plus, Trash2, CheckCircle2, FileText } from 'lucide-react';
 import { Form, Input, Button, Select, InputNumber, message, Card, Steps, Upload } from 'antd';
-import { createCourseTemplate, scanCourseTemplate, saveCourseStructure } from '../../api/courseApi';
+import { createCourseTemplate, scanCourseTemplate, saveCourseStructure, createSection } from '../../api/courseApi';
 import { getSubjects } from '../../../subject/api/subjectApi';
 import { getGradeLevels } from '../../../grade/api/gradeApi';
 import { getCourseCategories } from '../../../category/api/categoryApi';
 
 const { Option } = Select;
 const { TextArea } = Input;
+
+const slugify = (text) => {
+    if (!text) return "";
+    return text
+        .toString()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .replace(/([^0-9a-z-\s])/g, '')
+        .replace(/(\s+)/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+};
 
 export default function CreateTemplate() {
     const navigate = useNavigate();
@@ -22,6 +36,7 @@ export default function CreateTemplate() {
 
     // Flow State
     const [currentStep, setCurrentStep] = useState(0);
+    const [skipAI, setSkipAI] = useState(false);
     const [createdCourseId, setCreatedCourseId] = useState(null);
     const [createdTemplateInfo, setCreatedTemplateInfo] = useState(null);
     const [fileList, setFileList] = useState([]);
@@ -66,6 +81,7 @@ export default function CreateTemplate() {
             const payload = {
                 code: values.code || "TMPL_" + Date.now().toString().slice(-4),
                 title: values.title,
+                slug: slugify(values.title),
                 subjectId: values.subjectId,
                 gradeLevelId: values.gradeLevelId,
                 categoryId: values.categoryId,
@@ -99,7 +115,12 @@ export default function CreateTemplate() {
 
                 setCreatedCourseId(courseId);
                 message.success('Tạo Template Khóa học cơ bản thành công!');
-                setCurrentStep(1); // Move to AI Scan
+                if (skipAI) {
+                    setScannedSections([{ title: 'Chương 1', description: '' }]);
+                    setCurrentStep(2); // Skip to structure
+                } else {
+                    setCurrentStep(1); // Move to AI Scan
+                }
             } else {
                 message.error('Không thể lấy ID của Khóa học vừa tạo');
             }
@@ -159,20 +180,25 @@ export default function CreateTemplate() {
 
         try {
             setLoading(true);
-            // Try sending the array directly if wrapping doesn't work.
-            // Many APIs expect the root body to be the array for list-based POSTs.
-            const payload = scannedSections.map((sec, index) => ({
-                Title: sec.title || sec.Title,
-                Description: sec.description || sec.Description || "",
-                SortOrder: index + 1
-            }));
+            message.loading({ content: 'Đang lưu từng chương vào hệ thống...', key: 'save_struct' });
 
-            await saveCourseStructure(createdCourseId, payload);
-            message.success('Lưu cấu trúc khóa học xuất sắc!');
+            // Lưu từng chương một bằng API POST để đảm bảo vào DB chuẩn
+            for (let i = 0; i < scannedSections.length; i++) {
+                const sec = scannedSections[i];
+                const payload = {
+                    title: sec.title || sec.Title,
+                    slug: slugify(sec.title || sec.Title),
+                    description: sec.description || sec.Description || "",
+                    sortOrder: i + 1
+                };
+                await createSection(createdCourseId, payload);
+            }
+
+            message.success({ content: 'Lưu toàn bộ cấu trúc khóa học thành công!', key: 'save_struct' });
             setCurrentStep(3); // Complete
         } catch (error) {
             console.error('Lỗi lưu cấu trúc:', error);
-            message.error(error.response?.data?.message || 'Có lỗi xảy ra khi lưu cấu trúc');
+            message.error({ content: error.response?.data?.message || 'Có lỗi xảy ra khi lưu cấu trúc', key: 'save_struct' });
         } finally {
             setLoading(false);
         }
@@ -295,14 +321,26 @@ export default function CreateTemplate() {
                                 <TextArea rows={4} placeholder="Nhập mô tả chi tiết..." className="rounded-lg" />
                             </Form.Item>
 
-                            <div className="flex justify-end pt-4 border-t border-slate-100 mt-4">
+                            <div className="flex justify-end gap-4 pt-4 border-t border-slate-100 mt-4">
+                                <Button
+                                    htmlType="submit"
+                                    onClick={() => setSkipAI(true)}
+                                    loading={loading && skipAI}
+                                    disabled={loading && !skipAI}
+                                    className="h-11 px-6 rounded-lg font-bold border-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-colors"
+                                >
+                                    Khởi tạo & Nhập thủ công
+                                </Button>
                                 <Button
                                     type="primary"
                                     htmlType="submit"
-                                    loading={loading}
-                                    className="h-11 px-8 rounded-lg bg-[#0487e2] hover:bg-[#0463ca] font-bold"
+                                    onClick={() => setSkipAI(false)}
+                                    loading={loading && !skipAI}
+                                    disabled={loading && skipAI}
+                                    icon={<Sparkles size={16} />}
+                                    className="h-11 px-8 rounded-lg bg-[#0487e2] hover:bg-[#0463ca] font-bold shadow-lg shadow-blue-200"
                                 >
-                                    Khởi tạo Template
+                                    Khởi tạo Template với AI
                                 </Button>
                             </div>
                         </Form>
