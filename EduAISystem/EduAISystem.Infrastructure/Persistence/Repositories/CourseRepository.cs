@@ -400,5 +400,56 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             _context.CourseClasses.Add(courseClass);
             await _context.SaveChangesAsync(cancellationToken);
         }
+
+        // =========================
+        // GET COURSES BY STUDENT ID
+        // =========================
+        public async Task<PagedResult<CourseDomain>> GetStudentCoursesPagedAsync(
+            Guid studentId,
+            int page,
+            int pageSize,
+            string? searchTerm,
+            string? statusFilter,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _context.Enrollments
+                .AsNoTracking()
+                .Where(e => e.StudentId == studentId)
+                .Join(
+                    _context.Courses.Where(c => c.DeletedAt == null),
+                    e => e.CourseId,
+                    c => c.Id,
+                    (e, c) => c);
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(c =>
+                    c.Title.Contains(searchTerm) ||
+                    c.Code.Contains(searchTerm));
+            }
+
+            if (!string.IsNullOrWhiteSpace(statusFilter))
+            {
+                query = query.Where(c => c.Status == statusFilter);
+            }
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var domains = items.Select(MapToDomain).ToList();
+
+            return new PagedResult<CourseDomain>
+            {
+                Items = domains,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
     }
 }

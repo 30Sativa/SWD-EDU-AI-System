@@ -31,6 +31,14 @@ namespace EduAISystem.Application.Abstractions.Persistence
         Task<bool> ExistsByCodeAsync(string code, CancellationToken cancellationToken = default);
         Task<CourseDomain?> GetTemplateWithDetailsAsync(Guid templateId, CancellationToken cancellationToken = default);
         Task AssignClassToCourseAsync(Guid courseId, Guid classId, CancellationToken cancellationToken = default);
+
+        Task<PagedResult<CourseDomain>> GetStudentCoursesPagedAsync(
+            Guid studentId,
+            int page,
+            int pageSize,
+            string? searchTerm,
+            string? statusFilter,
+            CancellationToken cancellationToken = default);
     }
 }
 
