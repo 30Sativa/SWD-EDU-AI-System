@@ -403,6 +403,9 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
 
         // =========================
         // GET COURSES BY STUDENT ID
+        // Luồng: Student → StudentClass (lớp đang học, IsActive=true)
+        //                → CourseClass  (khóa học được gán cho lớp đó)
+        //                → Course       (thông tin khóa học)
         // =========================
         public async Task<PagedResult<CourseDomain>> GetStudentCoursesPagedAsync(
             Guid studentId,
@@ -412,14 +415,23 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             string? statusFilter,
             CancellationToken cancellationToken = default)
         {
-            var query = _context.Enrollments
+            // Lấy tất cả classId mà student đang thuộc (IsActive = true)
+            var classIds = _context.StudentClasses
                 .AsNoTracking()
-                .Where(e => e.StudentId == studentId)
-                .Join(
-                    _context.Courses.Where(c => c.DeletedAt == null),
-                    e => e.CourseId,
-                    c => c.Id,
-                    (e, c) => c);
+                .Where(sc => sc.StudentId == studentId && (sc.IsActive ?? true))
+                .Select(sc => sc.ClassId);
+
+            // Lấy courseId được gán cho những lớp đó (distinct để tránh trùng)
+            var courseIds = _context.CourseClasses
+                .AsNoTracking()
+                .Where(cc => classIds.Contains(cc.ClassId))
+                .Select(cc => cc.CourseId)
+                .Distinct();
+
+            // Query Course từ courseIds
+            var query = _context.Courses
+                .AsNoTracking()
+                .Where(c => courseIds.Contains(c.Id) && c.DeletedAt == null);
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
@@ -441,11 +453,70 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            var domains = items.Select(MapToDomain).ToList();
+            return new PagedResult<CourseDomain>
+            {
+                Items = items.Select(MapToDomain).ToList(),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
+        // =========================
+        // GET PUBLIC COURSES (CATALOG)
+        // =========================
+        public async Task<PagedResult<CourseDomain>> GetPublicCoursesPagedAsync(
+            int page,
+            int pageSize,
+            string? searchTerm,
+            Guid? categoryId,
+            Guid? subjectId,
+            Guid? gradeLevelId,
+            Guid? termId,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _context.Courses
+                .AsNoTracking()
+                .Where(c => c.DeletedAt == null
+                         && c.Status == "Published"
+                         && (c.IsActive ?? true));
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(c =>
+                    c.Title.Contains(searchTerm) ||
+                    c.Code.Contains(searchTerm));
+            }
+
+            if (categoryId.HasValue)
+                query = query.Where(c => c.CategoryId == categoryId.Value);
+
+            if (subjectId.HasValue)
+                query = query.Where(c => c.SubjectId == subjectId.Value);
+
+            if (gradeLevelId.HasValue)
+                query = query.Where(c => c.GradeLevelId == gradeLevelId.Value);
+
+            if (termId.HasValue)
+            {
+                // Lọc courses được gán cho lớp thuộc kỳ học đó
+                var courseIdsInTerm = _context.CourseClasses
+                    .Where(cc => cc.Class.TermId == termId.Value)
+                    .Select(cc => cc.CourseId);
+                query = query.Where(c => courseIdsInTerm.Contains(c.Id));
+            }
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
 
             return new PagedResult<CourseDomain>
             {
-                Items = domains,
+                Items = items.Select(MapToDomain).ToList(),
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize

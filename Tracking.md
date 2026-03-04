@@ -84,9 +84,15 @@
 - **Danh mục**
   - [x] CRUD danh mục khóa học (`CourseCategory`) + bật/tắt
   - [x] Hỗ trợ danh mục cha–con (ParentId)
-- **Thiếu/todo**
-  - [ ] API public/student để duyệt danh mục + xem course theo danh mục
-  - [ ] Tìm kiếm course theo môn/khối/kỳ học/danh mục (filter/search)
+- **Course Discovery (Public Catalog)**
+  - [x] API public/student để duyệt danh mục + xem course theo danh mục
+    - `GET /api/catalog/categories` – duyệt danh mục (filter parentId, active)
+    - `GET /api/catalog/categories/{categoryId}/courses` – courses theo danh mục
+    - `GET /api/catalog/courses` – tất cả courses published + active
+    - `GET /api/catalog/courses/{id}` – chi tiết course
+  - [x] Tìm kiếm course theo môn/khối/kỳ học/danh mục (filter/search)
+    - Query params: `searchTerm`, `categoryId`, `subjectId`, `gradeLevelId`, `termId`
+    - TermId lọc qua CourseClasses → Classes.TermId
 
 **Cần cải thiện**
 
@@ -113,7 +119,7 @@
   - [ ] Archive course (đưa về trạng thái ngừng dùng nhưng giữ dữ liệu)
   - [ ] Soft delete course (DeletedAt) + restore (nếu cần)
   - [ ] Unpublish course (Published → Draft) trong trường hợp cần sửa nội dung
-  - [ ] Student course catalog: xem danh sách course đã publish & active để đăng ký
+  - [x] Student course catalog: xem danh sách course đã publish & active để đăng ký → `GET /api/catalog/courses`
   - [ ] Quản lý `CourseSetting` (AllowAIChat, RequireQuizCompletion, EnableDiscussions, PassingScore…)
 
 **Cần cải thiện (Course lifecycle)**
@@ -142,8 +148,18 @@
   - [ ] Publish/unpublish lesson (nếu muốn điều khiển `Lesson.Status`)
 - **Blocks/FAQ**
   - [x] Có entity `LessonBlock`, `LessonFaq` trong DB
-  - [ ] API quản lý lesson blocks (CRUD)
-  - [ ] API quản lý lesson FAQ (CRUD)
+  - [x] API quản lý lesson blocks (CRUD)
+    - `GET /api/teacher/lessons/{lessonId}/blocks` – danh sách blocks
+    - `GET /api/teacher/lessons/{lessonId}/blocks/{id}` – chi tiết
+    - `POST /api/teacher/lessons/{lessonId}/blocks` – tạo block (type: Text/Video/Image/File/Quiz/Code)
+    - `PUT /api/teacher/lessons/{lessonId}/blocks/{id}` – cập nhật
+    - `DELETE /api/teacher/lessons/{lessonId}/blocks/{id}` – xoá
+  - [x] API quản lý lesson FAQ (CRUD)
+    - `GET /api/teacher/lessons/{lessonId}/faqs` – danh sách FAQ
+    - `GET /api/teacher/lessons/{lessonId}/faqs/{id}` – chi tiết
+    - `POST /api/teacher/lessons/{lessonId}/faqs` – tạo FAQ
+    - `PUT /api/teacher/lessons/{lessonId}/faqs/{id}` – cập nhật
+    - `DELETE /api/teacher/lessons/{lessonId}/faqs/{id}` – xoá
 
 **Cần cải thiện (Content)**
 
@@ -157,6 +173,7 @@
 - **Enrollment**
   - [x] Học sinh enroll vào course theo `courseId`
   - [x] Học sinh xem danh sách course đã enroll
+  - [x] API lấy danh sách courses theo studentId (admin/teacher xem) → `GET /api/student/students/{studentId}/courses`
   - [ ] Unenroll/withdraw course (khi chuyển lớp hoặc học sinh nghỉ)
   - [ ] Hạn dùng enrollment (`Enrollment.ExpiresAt`) – API/logic enforce
 - **Tiến độ học**

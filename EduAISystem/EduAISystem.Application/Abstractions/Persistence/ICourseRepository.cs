@@ -39,6 +39,16 @@ namespace EduAISystem.Application.Abstractions.Persistence
             string? searchTerm,
             string? statusFilter,
             CancellationToken cancellationToken = default);
+
+        Task<PagedResult<CourseDomain>> GetPublicCoursesPagedAsync(
+            int page,
+            int pageSize,
+            string? searchTerm,
+            Guid? categoryId,
+            Guid? subjectId,
+            Guid? gradeLevelId,
+            Guid? termId,
+            CancellationToken cancellationToken = default);
     }
 }
 
