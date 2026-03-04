@@ -105,14 +105,11 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             if (teacherId == null)
                 return Unauthorized();
 
-            var success = await _mediator.Send(new PublishCourseCommand
+            await _mediator.Send(new PublishCourseCommand
             {
                 CourseId = id,
                 TeacherId = teacherId.Value
             }, cancellationToken);
-
-            if (!success)
-                return NotFound();
 
             return Ok(ApiResponse<object>.Ok(null, "Publish thành công"));
         }
