@@ -32,8 +32,8 @@ export default function CoursesList() {
     const [currentPage, setCurrentPage] = useState(1);
 
     const [courses, setCourses] = useState([]);
-    const [subjects, setSubjects] = useState(['Tất cả']);
-    const [grades, setGrades] = useState(['Tất cả']);
+    const [subjects, setSubjects] = useState(['Tất cả', 'Toán học', 'Vật lý', 'Hóa học', 'Tiếng Anh', 'Ngữ văn', 'Sinh học', 'Tin học']);
+    const [grades, setGrades] = useState(['Tất cả', 'Lớp 10', 'Lớp 11', 'Lớp 12']);
     const [loading, setLoading] = useState(true);
     const [totalItems, setTotalItems] = useState(0);
 
@@ -44,18 +44,20 @@ export default function CoursesList() {
         const fetchFilters = async () => {
             try {
                 const [subjRes, gradeRes] = await Promise.all([
-                    getSubjects(),
-                    getGradeLevels()
+                    getSubjects().catch(() => null),
+                    getGradeLevels().catch(() => null)
                 ]);
 
                 const subjData = subjRes?.data || subjRes;
                 const gradeData = gradeRes?.data || gradeRes;
 
-                if (Array.isArray(subjData)) {
-                    setSubjects(['Tất cả', ...subjData.map(s => s.name)]);
+                if (Array.isArray(subjData) && subjData.length > 0) {
+                    const apiSubjects = subjData.map(s => s.name);
+                    setSubjects(prev => Array.from(new Set([...prev, ...apiSubjects])));
                 }
-                if (Array.isArray(gradeData)) {
-                    setGrades(['Tất cả', ...gradeData.map(g => g.name)]);
+                if (Array.isArray(gradeData) && gradeData.length > 0) {
+                    const apiGrades = gradeData.map(g => g.name);
+                    setGrades(prev => Array.from(new Set([...prev, ...apiGrades])));
                 }
             } catch (error) {
                 console.error("Lỗi khi tải bộ lọc:", error);
