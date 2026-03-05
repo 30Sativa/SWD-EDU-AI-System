@@ -23,3 +23,23 @@ export const deleteLesson = (id) => {
 export const getLessonsBySection = (sectionId) => {
     return axiosClient.get(`/api/teacher/lessons/by-section/${sectionId}`);
 };
+
+export const getLessonBlocks = (lessonId, params) => {
+    return axiosClient.get(`/api/teacher/lessons/${lessonId}/blocks`, { params });
+};
+
+export const createLessonBlock = (lessonId, data) => {
+    return axiosClient.post(`/api/teacher/lessons/${lessonId}/blocks`, data);
+};
+
+export const getLessonBlockDetail = (lessonId, id) => {
+    return axiosClient.get(`/api/teacher/lessons/${lessonId}/blocks/${id}`);
+};
+
+export const updateLessonBlock = (lessonId, id, data) => {
+    return axiosClient.put(`/api/teacher/lessons/${lessonId}/blocks/${id}`, data);
+};
+
+export const deleteLessonBlock = (lessonId, id) => {
+    return axiosClient.delete(`/api/teacher/lessons/${lessonId}/blocks/${id}`);
+};

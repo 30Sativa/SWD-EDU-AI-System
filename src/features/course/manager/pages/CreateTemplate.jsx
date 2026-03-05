@@ -56,7 +56,6 @@ export default function CreateTemplate() {
                 setGrades(extract(gradesRes));
                 setCategories(extract(categoriesRes));
             } catch (error) {
-                console.error('Lỗi khi tải dữ liệu phụ trợ:', error);
                 message.warning('Không thể tải một số danh sách dữ liệu.');
             }
         };
@@ -65,13 +64,28 @@ export default function CreateTemplate() {
 
     const getCurrentUserId = () => {
         try {
-            const userStr = localStorage.getItem('user');
-            if (userStr) {
-                const user = JSON.parse(userStr);
-                return user.id;
+            const token = localStorage.getItem('accessToken');
+            if (token) {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const decoded = JSON.parse(jsonPayload);
+                const userId = decoded?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
+                    || decoded?.sub
+                    || decoded?.id
+                    || decoded?.uid;
+                if (userId) return userId;
             }
-        } catch (e) { console.error(e); }
-        // Fallback user ID for testing if needed
+        } catch (e) {
+            // handle error if needed
+        }
+
+        const storedUserId = localStorage.getItem('userId');
+        if (storedUserId) return storedUserId;
+
+        // Fallback user ID - you might still get an error if this user doesn't exist
         return "76d2bcfd-87e9-4d21-aff2-a3b933517b02";
     };
 
@@ -92,7 +106,6 @@ export default function CreateTemplate() {
             };
 
             const res = await createCourseTemplate(payload);
-            console.log('Response from createCourseTemplate:', res);
 
             // Comprehensive ID extraction
             const courseId = res?.id || res?.Id || res?.data?.id || res?.data?.Id ||
@@ -125,7 +138,6 @@ export default function CreateTemplate() {
                 message.error('Không thể lấy ID của Khóa học vừa tạo');
             }
         } catch (error) {
-            console.error('Lỗi tạo template:', error);
             message.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo template');
         } finally {
             setLoading(false);
@@ -140,15 +152,12 @@ export default function CreateTemplate() {
 
         try {
             setLoading(true);
-            console.log('Starting AI Scan for Course ID:', createdCourseId);
-            console.log('File to upload:', fileList[0]);
 
             const formData = new FormData();
             const fileToUpload = fileList[0].originFileObj || fileList[0];
             formData.append('File', fileToUpload);
 
             const res = await scanCourseTemplate(createdCourseId, formData);
-            console.log('AI Scan Response:', res);
 
             // Comprehensive sections extraction
             const sections = res?.data?.sections || res?.sections ||
@@ -160,13 +169,11 @@ export default function CreateTemplate() {
                 message.success('Phân tích đề cương bằng AI hoàn tất!');
                 setCurrentStep(2); // Move to Save Structure
             } else {
-                console.warn('No sections found in response:', res);
                 message.warning('Không tìm thấy cấu trúc nào từ file này');
             }
         } catch (error) {
-            console.error('Lỗi phân tích AI chi tiết:', error);
             const errorMsg = error.response?.data?.message || error.response?.data || error.message || 'Lỗi xử lý file với AI';
-            message.error(typeof errorMsg === 'string' ? errorMsg : 'Lỗi xử lý file với AI (Xem console)');
+            message.error(typeof errorMsg === 'string' ? errorMsg : 'Lỗi xử lý file với AI');
         } finally {
             setLoading(false);
         }
@@ -198,7 +205,6 @@ export default function CreateTemplate() {
             message.success({ content: 'Lưu toàn bộ cấu trúc khóa học thành công!', key: 'save_struct' });
             setCurrentStep(3); // Complete
         } catch (error) {
-            console.error('Lỗi lưu cấu trúc:', error);
             message.error({ content: error.response?.data?.message || 'Có lỗi xảy ra khi lưu cấu trúc', key: 'save_struct' });
         } finally {
             setLoading(false);

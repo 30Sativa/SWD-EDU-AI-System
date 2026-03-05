@@ -87,14 +87,6 @@ export default function TeacherDashboard() {
 
   const summaryCards = [
     {
-      label: 'Tổng Học sinh',
-      value: totalStudents,
-      change: '—',
-      trend: 'neutral',
-      data: defaultSparkline,
-      color: '#0487e2'
-    },
-    {
       label: 'Tổng Khóa học',
       value: courses.length,
       change: '—',
@@ -109,6 +101,14 @@ export default function TeacherDashboard() {
       trend: 'neutral',
       data: defaultSparkline,
       color: '#6366f1'
+    },
+    {
+      label: 'Tổng số Bài học',
+      value: totalLessons,
+      change: '—',
+      trend: 'neutral',
+      data: defaultSparkline,
+      color: '#f59e0b'
     },
   ];
 
