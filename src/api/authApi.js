@@ -10,3 +10,15 @@ export const loginAPI = async (values) => {
 
     return axiosClient.post('/api/Auth/login', payload);
 };
+
+export const googleLoginAPI = async (idToken, defaultRole = 0) => {
+    return axiosClient.post('/api/auth/google-login', { idToken, defaultRole });
+};
+
+export const forgotPasswordAPI = async (email) => {
+    return axiosClient.post('/api/Auth/forgot-password', { email });
+};
+
+export const resetPasswordAPI = async (values) => {
+    return axiosClient.post('/api/Auth/reset-password', values);
+};

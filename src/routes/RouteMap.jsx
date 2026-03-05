@@ -6,6 +6,8 @@ import Sidebar from "../components/layout/Sidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import Home from "../pages/Home";
 import Login from "../pages/Login";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 
 import ProtectedRoute from "./ProtectedRoute";
 // Teacher & Student routes (using features/)
@@ -133,6 +135,8 @@ export default function RouteMap() {
 
       {/* Các route có layout Header/Footer */}
       <Route path="login" element={<Login />} />
+      <Route path="forgot-password" element={<ForgotPassword />} />
+      <Route path="reset-password" element={<ResetPassword />} />
 
 
       {/* Các route có layout Header/Footer */}
