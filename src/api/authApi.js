@@ -8,10 +8,17 @@ export const loginAPI = async (values) => {
         password: values.password,
     };
 
-    return axiosClient.post('/api/auth/login', payload);
+    return axiosClient.post('/api/Auth/login', payload);
 };
 
-export const registerAPI = async (data) => {
-    // Expected data: { email, password, firstName, lastName, roleId... }
-    return axiosClient.post('/api/auth/register', data);
+export const googleLoginAPI = async (idToken, defaultRole = 0) => {
+    return axiosClient.post('/api/auth/google-login', { idToken, defaultRole });
+};
+
+export const forgotPasswordAPI = async (email) => {
+    return axiosClient.post('/api/Auth/forgot-password', { email });
+};
+
+export const resetPasswordAPI = async (values) => {
+    return axiosClient.post('/api/Auth/reset-password', values);
 };

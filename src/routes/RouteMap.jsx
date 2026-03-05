@@ -6,6 +6,8 @@ import Sidebar from "../components/layout/Sidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import Home from "../pages/Home";
 import Login from "../pages/Login";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 
 import ProtectedRoute from "./ProtectedRoute";
 // Teacher & Student routes (using features/)
@@ -14,6 +16,7 @@ import CourseManagement from "../features/course/teacher/pages/CourseManagement"
 import TeacherCourseDetail from "../features/course/teacher/pages/CourseDetail";
 import TeacherQuizList from "../features/quiz/teacher/pages/TeacherQuizList";
 import TeacherQuizEditor from "../features/quiz/teacher/pages/TeacherQuizEditor";
+import TeacherLessonDetail from "../features/lesson/teacher/pages/LessonDetail";
 import StudentDashboard from "../features/dashboard/student/pages/StudentDashboard";
 import ClassManagement from "../features/classes/teacher/pages/ClassManagement";
 import ClassStudentList from "../features/classes/teacher/pages/ClassStudentList";
@@ -74,6 +77,7 @@ export default function RouteMap() {
             <Route path="courses/:courseId" element={<TeacherCourseDetail />} />
             <Route path="courses/:courseId/quizzes" element={<TeacherQuizList />} />
             <Route path="courses/:courseId/quizzes/:quizId" element={<TeacherQuizEditor />} />
+            <Route path="courses/:courseId/lessons/:lessonId" element={<TeacherLessonDetail />} />
             <Route path="classes/:classId/students" element={<ClassStudentList />} />
             <Route path="classes" element={<ClassManagement />} />
             <Route path="question-bank" element={<QuestionBank />} />
@@ -135,6 +139,8 @@ export default function RouteMap() {
 
       {/* Các route có layout Header/Footer */}
       <Route path="login" element={<Login />} />
+      <Route path="forgot-password" element={<ForgotPassword />} />
+      <Route path="reset-password" element={<ResetPassword />} />
 
 
       {/* Các route có layout Header/Footer */}
