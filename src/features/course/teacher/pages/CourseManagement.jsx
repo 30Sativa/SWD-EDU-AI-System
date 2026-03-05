@@ -183,6 +183,10 @@ export default function CourseManagement() {
       setSubmitting(true);
       const payload = {
         title: values.title,
+        code: values.code,
+        subjectId: values.subjectId,
+        gradeLevelId: values.gradeLevelId,
+        categoryId: values.categoryId,
         description: values.description || "",
         thumbnail: editingCourse?.thumbnail || "",
         level: parseInt(values.level) || 1,
