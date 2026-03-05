@@ -8,6 +8,7 @@ import Home from "../pages/Home";
 import Login from "../pages/Login";
 import ForgotPassword from "../pages/ForgotPassword";
 import ResetPassword from "../pages/ResetPassword";
+import VerifyEmail from "../pages/VerifyEmail";
 
 import ProtectedRoute from "./ProtectedRoute";
 // Teacher & Student routes (using features/)
@@ -141,6 +142,7 @@ export default function RouteMap() {
       <Route path="login" element={<Login />} />
       <Route path="forgot-password" element={<ForgotPassword />} />
       <Route path="reset-password" element={<ResetPassword />} />
+      <Route path="verify-email" element={<VerifyEmail />} />
 
 
       {/* Các route có layout Header/Footer */}

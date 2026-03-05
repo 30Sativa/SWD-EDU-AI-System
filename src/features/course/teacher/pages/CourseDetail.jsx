@@ -1735,7 +1735,7 @@ const SortableSection = React.memo(({
                     {(session.lessons || []).length > 0 ? (
                         (session.lessons || []).map((lesson) => (
                             <div key={lesson.id} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-50 hover:border-blue-100 hover:bg-blue-50/30 transition-all group/lesson">
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/lessons/${lesson.id}`)}>
                                     <div className={`h-10 w-10 flex items-center justify-center rounded-xl ${(lesson.type || lesson.Type) === 'Video' ? 'bg-blue-50 text-[#0487e2]' : 'bg-slate-50 text-slate-500'}`}>
                                         {(lesson.type || lesson.Type) === 'Video' ? <Video size={18} /> : ((lesson.type || lesson.Type) === 'Quiz' ? <CheckSquare size={18} /> : <FileText size={18} />)}
                                     </div>

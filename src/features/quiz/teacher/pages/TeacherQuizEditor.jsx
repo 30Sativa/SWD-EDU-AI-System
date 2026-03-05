@@ -1,22 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
     Plus,
     Trash2,
     Edit3,
-    PlusCircle,
-    CheckCircle2,
-    BrainCircuit,
-    Eye,
-    ChevronRight,
     Check,
     FileText,
     Target,
-    Settings,
-    Layout,
-    Clock,
-    TrendingUp
+    BrainCircuit,
+    Layout
 } from 'lucide-react';
 import {
     Spin,
@@ -32,8 +25,7 @@ import {
     Empty,
     Tag,
     Space,
-    Breadcrumb,
-    Progress
+    Breadcrumb
 } from 'antd';
 import {
     getQuizDetail,
@@ -161,181 +153,179 @@ export default function TeacherQuizEditor() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc]">
-                <div className="flex flex-col items-center">
-                    <Spin size="large" />
-                    <p className="mt-6 text-slate-400 font-bold animate-pulse text-xs tracking-widest uppercase">Đang xây dựng giao diện bài thi...</p>
-                </div>
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+                <Spin size="large" />
+                <p className="mt-4 text-slate-500 font-medium">Đang tải cấu trúc bài thi...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] pb-20 font-sans text-slate-800">
-            {/* Glossy Header Area */}
-            <div className="bg-white border-b border-slate-100/60 sticky top-0 z-40 backdrop-blur-md bg-white/80">
-                <div className="max-w-7xl mx-auto px-6 py-4">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div className="flex items-center gap-4">
+        <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800 pb-20">
+            <div className="max-w-5xl mx-auto space-y-6">
+
+                {/* Header & Breadcrumb */}
+                <div className="flex flex-col gap-4">
+                    <Breadcrumb
+                        className="text-xs font-medium"
+                        items={[
+                            { title: <a onClick={() => navigate('/dashboard/teacher/courses')} className="text-slate-400 hover:text-[#0487e2]">Khóa học</a> },
+                            { title: <span className="text-slate-400 cursor-pointer hover:text-[#0487e2]" onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/quizzes`)}>Danh sách Quiz</span> },
+                            { title: <span className="text-slate-600 font-bold">{quiz?.title}</span> },
+                        ]}
+                    />
+
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
                             <Button
+                                type="text"
                                 icon={<ArrowLeft size={18} />}
                                 onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/quizzes`)}
-                                className="flex items-center justify-center h-10 w-10 p-0 rounded-full border-slate-200 text-slate-500 hover:bg-[#0463ca] hover:text-white transition-all shadow-sm"
+                                className="h-8 w-8 !p-0 flex items-center justify-center text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 -ml-2"
                             />
-                            <div className="h-10 w-[1px] bg-slate-200 mx-1 hidden md:block"></div>
-                            <div>
-                                <Breadcrumb
-                                    separator={<span className="text-slate-300">/</span>}
-                                    items={[
-                                        { title: <span className="text-slate-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px] inline-block">Summative Quizzes</span> },
-                                        { title: <span className="text-[#0463ca] font-bold">{quiz?.title}</span> }
-                                    ]}
-                                    className="text-xs mb-0.5"
-                                />
-                                <h1 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                                    Thiết kế nội dung câu hỏi
-                                </h1>
-                            </div>
+                            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#0463ca] m-0">
+                                Thiết kế nội dung
+                            </h1>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <div className="hidden lg:flex flex-col items-end mr-4">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 text-right">Tổng điểm / Câu hỏi</span>
-                                <span className="text-lg font-black text-[#0463ca]">
+
+                        <div className="flex items-center gap-4">
+                            <div className="flex flex-col items-end border-r border-slate-200 pr-4">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Tổng điểm / Câu hỏi</span>
+                                <span className="text-lg font-bold text-[#0487e2]">
                                     {totalPoints}đ <span className="text-slate-300 mx-1">|</span> {questions.length} câu
                                 </span>
                             </div>
                             <Button
                                 type="primary"
-                                icon={<PlusCircle size={20} />}
+                                icon={<Plus size={18} />}
                                 onClick={() => handleOpenModal()}
-                                className="h-11 px-6 rounded-xl bg-[#0463ca] hover:!bg-[#0352a8] font-bold border-none shadow-xl shadow-blue-100/50"
+                                className="bg-[#0487e2] hover:bg-[#0374c4] h-10 px-5 rounded-lg font-bold shadow-md border-none flex items-center"
                             >
                                 Thêm câu hỏi
                             </Button>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <main className="max-w-5xl mx-auto px-6 mt-8 space-y-8">
-                {/* Stats Dashboard for Editor */}
+                {/* Stats Dashboard */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                        <div className="flex items-center gap-3 mb-2 text-blue-600">
-                            <FileText size={18} />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Kiểu câu hỏi</span>
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                        <div className="flex items-center gap-2 mb-1.5 text-blue-600">
+                            <FileText size={16} />
+                            <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Kiểu bài thi</span>
                         </div>
-                        <div className="text-xl font-black text-slate-800">Trắc nghiệm</div>
+                        <div className="text-lg font-bold text-slate-800">Trắc nghiệm</div>
                     </div>
-                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                        <div className="flex items-center gap-3 mb-2 text-emerald-600">
-                            <Target size={18} />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Độ bao quát</span>
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                        <div className="flex items-center gap-2 mb-1.5 text-emerald-600">
+                            <Target size={16} />
+                            <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Độ bao quát</span>
                         </div>
-                        <div className="text-xl font-black text-slate-800">{questions.length > 5 ? "Tốt" : "Cần thêm"}</div>
+                        <div className="text-lg font-bold text-slate-800">{questions.length > 5 ? "Tốt" : "Cần thêm"}</div>
                     </div>
-                    <div className="md:col-span-2 bg-gradient-to-r from-indigo-50 to-blue-50 p-5 rounded-3xl border border-indigo-100/50 relative overflow-hidden">
-                        <div className="relative z-10 flex justify-between items-center h-full">
-                            <div className="space-y-1">
-                                <div className="text-[10px] font-black uppercase tracking-widest text-[#0463ca]">AI Assistant</div>
-                                <div className="text-sm font-bold text-slate-700">Tự động gợi ý giải thích & Phản hồi cho học sinh.</div>
-                            </div>
-                            <Button icon={<BrainCircuit className="text-[#0463ca]" />} className="bg-white border-indigo-200 rounded-xl h-10 w-10 flex items-center justify-center p-0" />
+                    <div className="md:col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex items-center justify-between relative overflow-hidden">
+                        <div className="space-y-1 z-10">
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-[#0487e2]">AI Assistant</div>
+                            <div className="text-sm font-semibold text-slate-700">Tự động gợi ý giải thích & Phản hồi cho học sinh.</div>
+                        </div>
+                        <div className="h-10 w-10 bg-white border border-blue-100 rounded-lg flex items-center justify-center text-[#0487e2] shadow-sm z-10">
+                            <BrainCircuit size={20} />
                         </div>
                     </div>
                 </div>
 
                 {/* List Group Title */}
-                <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-black text-slate-800 flex items-center gap-3">
-                        <Layout size={20} className="text-[#0463ca]" />
+                <div className="flex items-center justify-between pt-4">
+                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Layout size={18} className="text-[#0487e2]" />
                         Cấu trúc bài thi hiện tại
                     </h2>
-                    <Tag className="rounded-full bg-slate-200 text-slate-600 border-none font-black px-3 py-1">#{quiz?.title}</Tag>
+                    <Tag className="rounded-md bg-slate-100 text-slate-500 border-slate-200 font-bold px-2 py-0.5 m-0">#{quiz?.title}</Tag>
                 </div>
 
                 {/* Questions List */}
-                <div className="space-y-6">
+                <div className="space-y-4">
                     {questions.length > 0 ? (
                         questions.map((q, index) => (
                             <div key={q.id || index} className="group relative">
-                                <div className="absolute inset-0 bg-blue-100/10 rounded-[30px] -m-1 blur-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none"></div>
                                 <Card
-                                    className="rounded-[28px] border-slate-100 shadow-sm hover:shadow-lg transition-all duration-300 relative bg-white/70 backdrop-blur-xl overflow-hidden"
-                                    bodyStyle={{ padding: '24px 28px' }}
-                                    variant="borderless"
+                                    className="rounded-xl border-slate-200 shadow-sm hover:border-blue-200 hover:shadow transition-all duration-300 bg-white overflow-hidden"
+                                    bodyStyle={{ padding: '20px 24px' }}
                                 >
-                                    <div className="flex flex-col md:flex-row gap-6">
+                                    <div className="flex flex-col md:flex-row gap-5">
                                         {/* Question Number & Points */}
-                                        <div className="flex md:flex-col items-center md:items-start justify-between md:w-32 shrink-0 gap-4 pt-1">
-                                            <div className="h-10 w-10 bg-[#0463ca] text-white flex items-center justify-center rounded-2xl font-black text-lg shadow-lg shadow-blue-100">
+                                        <div className="flex md:flex-col items-center md:items-start justify-between md:w-24 shrink-0 gap-3">
+                                            <div className="h-9 w-9 bg-blue-50 text-[#0487e2] flex items-center justify-center rounded-lg font-bold text-base border border-blue-100">
                                                 {index + 1}
                                             </div>
-                                            <div className="space-y-1">
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Điểm số</div>
-                                                <div className="px-3 py-1 bg-blue-50 text-[#0463ca] rounded-full text-xs font-black inline-block">
-                                                    {q.point || 0} Points
+                                            <div className="flex flex-col items-end md:items-start">
+                                                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Điểm số</div>
+                                                <div className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-600 rounded text-xs font-bold">
+                                                    {q.point || 0} đ
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Question Content */}
-                                        <div className="flex-1 space-y-6">
-                                            <div className="space-y-3">
-                                                <div className="inline-flex items-center gap-2 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-black text-slate-500">
+                                        <div className="flex-1 space-y-4 min-w-0">
+                                            <div>
+                                                <div className="inline-flex items-center gap-1.5 mb-2 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold text-slate-500">
                                                     {q.type === 'MultipleChoice' ? 'TRẮC NGHIỆM' : 'NHIỀU ĐÁP ÁN'}
                                                 </div>
-                                                <div className="text-lg font-bold text-slate-800 leading-relaxed pr-8">
+                                                <div className="text-base font-bold text-slate-800 pr-12">
                                                     {q.text}
                                                 </div>
                                             </div>
 
                                             {/* Options Grid */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {q.options?.map((opt, oIdx) => (
                                                     <div
                                                         key={oIdx}
-                                                        className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${opt.isCorrect
-                                                                ? "bg-emerald-50 border-emerald-100 text-emerald-800 ring-1 ring-emerald-200/50"
-                                                                : "bg-slate-50 border-slate-200 text-slate-600 opacity-80"
+                                                        className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${opt.isCorrect
+                                                            ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                                                            : "bg-slate-50/50 border-slate-200 text-slate-600"
                                                             }`}
                                                     >
-                                                        <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ${opt.isCorrect ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"
+                                                        <div className={`h-5 w-5 rounded flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold ${opt.isCorrect ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"
                                                             }`}>
-                                                            {opt.isCorrect ? <Check size={14} /> : String.fromCharCode(65 + oIdx)}
+                                                            {opt.isCorrect ? <Check size={12} /> : String.fromCharCode(65 + oIdx)}
                                                         </div>
-                                                        <span className="text-sm font-bold flex-1">{opt.text}</span>
-                                                        {opt.isCorrect && <span className="text-[10px] font-black uppercase tracking-tighter text-emerald-600">Đúng</span>}
+                                                        <span className="text-sm font-medium flex-1 pt-0.5 leading-snug">{opt.text}</span>
                                                     </div>
                                                 ))}
                                             </div>
 
                                             {/* Explanation Area */}
                                             {q.explanation && (
-                                                <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 flex gap-3">
-                                                    <BrainCircuit size={18} className="text-indigo-400 shrink-0 mt-0.5" />
-                                                    <div className="space-y-1">
-                                                        <div className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Gợi ý & Giải thích của AI</div>
-                                                        <p className="text-sm text-indigo-700 font-medium leading-relaxed italic">{q.explanation}</p>
+                                                <div className="p-3 bg-blue-50/50 rounded-lg border border-blue-100 flex gap-2">
+                                                    <BrainCircuit size={16} className="text-[#0487e2] shrink-0 mt-0.5" />
+                                                    <div className="space-y-0.5">
+                                                        <div className="text-[10px] font-bold uppercase tracking-widest text-[#0487e2]">Giải thích & Gợi ý</div>
+                                                        <p className="text-xs text-slate-600 font-medium italic">{q.explanation}</p>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Floating Actions */}
-                                        <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                                            <Tooltip title="Chỉnh sửa câu hỏi">
+                                        <div className="absolute top-4 right-4 flex gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Tooltip title="Chỉnh sửa">
                                                 <Button
-                                                    icon={<Edit3 size={18} />}
+                                                    type="text"
+                                                    size="small"
+                                                    icon={<Edit3 size={14} />}
                                                     onClick={() => handleOpenModal(q)}
-                                                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white text-slate-500 border-slate-200 shadow-sm hover:text-[#0463ca] hover:border-[#0463ca] transition-all"
+                                                    className="h-8 w-8 flex items-center justify-center rounded-md bg-white text-slate-400 border border-slate-200 shadow-sm hover:text-[#0487e2] hover:bg-blue-50"
                                                 />
                                             </Tooltip>
                                             <Tooltip title="Xóa bỏ">
                                                 <Button
-                                                    icon={<Trash2 size={18} />}
+                                                    type="text"
+                                                    size="small"
+                                                    icon={<Trash2 size={14} />}
                                                     onClick={() => handleDeleteQuestion(q.id)}
-                                                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white text-rose-400 border-slate-200 shadow-sm hover:text-white hover:bg-rose-500 hover:border-rose-500 transition-all"
+                                                    className="h-8 w-8 flex items-center justify-center rounded-md bg-white text-slate-400 border border-slate-200 shadow-sm hover:text-rose-500 hover:bg-rose-50 hover:border-rose-200"
                                                 />
                                             </Tooltip>
                                         </div>
@@ -344,21 +334,19 @@ export default function TeacherQuizEditor() {
                             </div>
                         ))
                     ) : (
-                        <div className="py-20 bg-white rounded-[40px] border-2 border-dashed border-slate-200 text-center">
+                        <div className="py-16 bg-white rounded-xl border border-dashed border-slate-300 text-center">
                             <Empty
                                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                                 description={
-                                    <div className="max-w-xs mx-auto space-y-4">
-                                        <h3 className="text-lg font-black text-slate-800">Chưa có câu hỏi nào</h3>
-                                        <p className="text-slate-400 text-sm font-medium">Bắt đầu xây dựng bộ câu hỏi cho bài thi bằng cách thêm câu hỏi thủ công.</p>
+                                    <div className="space-y-3">
+                                        <p className="text-slate-500 font-medium">Chưa có câu hỏi nào trong bài thi này.</p>
                                         <Button
                                             type="primary"
-                                            size="large"
-                                            icon={<Plus size={18} />}
+                                            icon={<Plus size={16} />}
                                             onClick={() => handleOpenModal()}
-                                            className="h-12 px-8 rounded-2xl bg-[#0463ca] font-black border-none shadow-xl shadow-blue-100"
+                                            className="h-10 px-5 rounded-lg bg-[#0487e2] hover:bg-[#0374c4] font-bold border-none"
                                         >
-                                            Thêm ngay
+                                            Thêm câu hỏi ngay
                                         </Button>
                                     </div>
                                 }
@@ -368,107 +356,105 @@ export default function TeacherQuizEditor() {
                 </div>
 
                 {/* Quick Add Area at Bottom */}
-                <div className="pt-10 flex justify-center">
-                    <Button
-                        type="dashed"
-                        size="large"
-                        icon={<Plus size={24} />}
-                        onClick={() => handleOpenModal()}
-                        className="h-20 w-full rounded-[30px] border-2 border-slate-200 text-slate-400 font-bold hover:text-[#0463ca] hover:border-[#0463ca] transition-all group flex items-center justify-center gap-4 bg-white/50"
-                    >
-                        <span className="text-lg font-black tracking-tight group-hover:scale-105 transition-transform">Thêm câu hỏi tiếp theo</span>
-                    </Button>
-                </div>
-            </main>
+                {questions.length > 0 && (
+                    <div className="pt-6 flex justify-center">
+                        <Button
+                            type="dashed"
+                            icon={<Plus size={18} />}
+                            onClick={() => handleOpenModal()}
+                            className="h-12 w-full rounded-xl border-slate-300 text-slate-500 font-semibold hover:text-[#0487e2] hover:border-[#0487e2] hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
+                        >
+                            Thêm câu hỏi tiếp theo
+                        </Button>
+                    </div>
+                )}
+            </div>
 
-            {/* Premium Question Edit Modal */}
+            {/* Question Edit Modal */}
             <Modal
                 title={
-                    <div className="flex items-center gap-3 py-1">
-                        <div className="h-10 w-10 rounded-xl bg-[#0463ca]/10 flex items-center justify-center text-[#0463ca]">
-                            {editingQuestion ? <Edit3 size={20} /> : <PlusCircle size={20} />}
+                    <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-[#0487e2]">
+                            {editingQuestion ? <Edit3 size={18} /> : <Plus size={18} />}
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-lg font-black text-slate-800">{editingQuestion ? "Chỉnh sửa câu hỏi" : "Khởi tạo câu hỏi mới"}</span>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{quiz?.title}</span>
-                        </div>
+                        <span className="text-lg font-bold text-slate-800">
+                            {editingQuestion ? "Chỉnh sửa câu hỏi" : "Thêm câu hỏi mới"}
+                        </span>
                     </div>
                 }
                 open={isModalOpen}
                 onCancel={() => setIsModalOpen(false)}
                 footer={null}
-                width={750}
+                width={700}
                 centered
-                className="premium-modal"
+                className="custom-modal"
             >
                 <Form
                     form={form}
                     layout="vertical"
                     onFinish={handleQuestionSubmit}
-                    className="mt-6 space-y-6"
+                    className="mt-4 space-y-5"
                 >
-                    <div className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100/50">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <Form.Item label={<span className="text-xs font-black uppercase tracking-widest text-slate-500">Loại câu hỏi</span>}>
-                                <Radio.Group
-                                    value={questionType}
-                                    onChange={e => setQuestionType(e.target.value)}
-                                    className="custom-radio-premium w-full"
-                                >
-                                    <Space direction="vertical" className="w-full">
-                                        <Radio.Button value="MultipleChoice" className="w-full h-11 rounded-xl flex items-center justify-center font-bold">Trắc nghiệm (1 đáp án)</Radio.Button>
-                                        <Radio.Button value="MultipleResponse" className="w-full h-11 rounded-xl flex items-center justify-center font-bold">Nhiều đáp án (Checkboxes)</Radio.Button>
-                                    </Space>
-                                </Radio.Group>
-                            </Form.Item>
-
-                            <Form.Item
-                                label={<span className="text-xs font-black uppercase tracking-widest text-slate-500">Điểm số cho câu này</span>}
-                                name="point"
-                                rules={[{ required: true, message: 'Nhập điểm!' }]}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Form.Item label={<span className="font-semibold text-slate-700">Loại câu hỏi</span>} className="mb-0">
+                            <Radio.Group
+                                value={questionType}
+                                onChange={e => setQuestionType(e.target.value)}
+                                className="w-full flex"
                             >
-                                <Input type="number" step="0.5" placeholder="Ví dụ: 1.0" className="h-11 rounded-xl bg-white border-slate-100 font-black text-center text-lg text-[#0463ca]" />
-                            </Form.Item>
-                        </div>
+                                <Radio.Button value="MultipleChoice" className="flex-1 text-center h-10 leading-[38px] rounded-l-lg">Trắc nghiệm</Radio.Button>
+                                <Radio.Button value="MultipleResponse" className="flex-1 text-center h-10 leading-[38px] rounded-r-lg">Nhiều đáp án</Radio.Button>
+                            </Radio.Group>
+                        </Form.Item>
 
                         <Form.Item
-                            label={<span className="text-xs font-black uppercase tracking-widest text-slate-500">Nội dung câu hỏi</span>}
-                            name="text"
-                            rules={[{ required: true, message: 'Câu hỏi không được để trống' }]}
+                            label={<span className="font-semibold text-slate-700">Điểm số</span>}
+                            name="point"
+                            rules={[{ required: true, message: 'Nhập điểm!' }]}
+                            className="mb-0"
                         >
-                            <Input.TextArea placeholder="Nhập câu hỏi tại đây..." rows={4} className="rounded-2xl bg-white border-slate-100 p-4 text-base font-bold transition-all focus:shadow-md" />
+                            <Input type="number" step="0.5" placeholder="Ví dụ: 1.0" className="h-10 rounded-lg bg-white" />
                         </Form.Item>
                     </div>
 
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between px-2">
-                            <div className="text-xs font-black uppercase tracking-widest text-slate-400">Danh sách các phương án trả lời</div>
-                            <div className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">Tích vào ô đúng</div>
+                    <Form.Item
+                        label={<span className="font-semibold text-slate-700">Nội dung câu hỏi</span>}
+                        name="text"
+                        rules={[{ required: true, message: 'Câu hỏi không được để trống' }]}
+                        className="mb-0"
+                    >
+                        <Input.TextArea placeholder="Nhập câu hỏi tại đây..." rows={3} className="rounded-lg bg-white p-3 font-medium" />
+                    </Form.Item>
+
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <span className="font-semibold text-slate-700 text-sm">Các phương án trả lời</span>
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Chọn phương án đúng</span>
                         </div>
 
                         <Form.List name="options">
                             {(fields) => (
                                 <div className="space-y-3">
                                     {fields.map(({ key, name, ...restField }, index) => (
-                                        <div key={key} className="flex gap-3 items-center group/opt">
-                                            <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center font-black text-slate-400 group-focus-within/opt:bg-blue-600 group-focus-within/opt:text-white transition-all shadow-inner">
+                                        <div key={key} className="flex gap-3 items-center">
+                                            <div className="h-10 w-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-500 shadow-sm">
                                                 {String.fromCharCode(65 + index)}
                                             </div>
                                             <Form.Item
                                                 {...restField}
                                                 name={[name, 'text']}
-                                                rules={[{ required: true, message: 'Vui lòng nhập phương án' }]}
+                                                rules={[{ required: true, message: 'Nhập phương án' }]}
                                                 className="mb-0 flex-1"
                                             >
-                                                <Input placeholder={`Phương án ${index + 1}...`} className="h-12 rounded-2xl bg-white border-slate-100 font-bold" />
+                                                <Input placeholder={`Phương án ${index + 1}`} className="h-10 rounded-lg" />
                                             </Form.Item>
                                             <Form.Item
                                                 {...restField}
                                                 name={[name, 'isCorrect']}
                                                 valuePropName="checked"
-                                                className="mb-0"
+                                                className="mb-0 pt-1"
                                             >
-                                                <Checkbox className="scale-150 custom-checkbox-premium" />
+                                                <Checkbox className="scale-125" />
                                             </Form.Item>
                                         </div>
                                     ))}
@@ -479,19 +465,20 @@ export default function TeacherQuizEditor() {
 
                     <Form.Item
                         label={
-                            <div className="flex items-center gap-2 text-[#0463ca]">
-                                <BrainCircuit size={16} />
-                                <span className="text-xs font-black uppercase tracking-widest">Giải thích & Gợi ý (Cho AI)</span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-slate-700">Giải thích / Gợi ý</span>
+                                <Tag className="m-0 text-[10px] bg-blue-50 text-[#0487e2] border-blue-100 font-bold">Cho AI Assistant</Tag>
                             </div>
                         }
                         name="explanation"
+                        className="mb-0"
                     >
-                        <Input.TextArea rows={3} placeholder="Giải thích đáp án đúng để hệ thống AI có thể hỗ trợ học sinh học tập tốt hơn..." className="rounded-2xl p-4 bg-blue-50/30 border-blue-100 text-sm font-medium" />
+                        <Input.TextArea rows={2} placeholder="Giải thích đáp án để AI có thể hỗ trợ học sinh học tập tốt hơn..." className="rounded-lg p-3 text-sm" />
                     </Form.Item>
 
-                    <div className="flex gap-4 pt-6">
+                    <div className="flex gap-3 pt-4 border-t border-slate-100">
                         <Button
-                            className="h-14 px-10 rounded-2xl font-black border-slate-200 text-slate-400 hover:text-slate-600 transition-all flex-1"
+                            className="flex-1 h-11 rounded-lg font-semibold border-slate-200 text-slate-600 hover:bg-slate-50"
                             onClick={() => setIsModalOpen(false)}
                         >
                             Hủy bỏ
@@ -500,9 +487,9 @@ export default function TeacherQuizEditor() {
                             type="primary"
                             htmlType="submit"
                             loading={submitting}
-                            className="h-14 px-10 rounded-2xl font-black bg-[#0463ca] border-none shadow-xl shadow-blue-200 flex-1"
+                            className="flex-1 h-11 rounded-lg font-bold bg-[#0487e2] border-none shadow-md"
                         >
-                            {editingQuestion ? "Cập nhật câu hỏi" : "Lưu vào bài thi"}
+                            {editingQuestion ? "Cập nhật" : "Lưu câu hỏi"}
                         </Button>
                     </div>
                 </Form>
