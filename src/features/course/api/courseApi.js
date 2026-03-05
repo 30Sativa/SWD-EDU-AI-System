@@ -80,6 +80,10 @@ export const getCourseSections = async (courseId) => {
     return await axiosClient.get(`/api/courses/${courseId}/sections`);
 };
 
+export const getSectionDetail = async (courseId, sectionId) => {
+    return await axiosClient.get(`/api/courses/${courseId}/sections/${sectionId}`);
+};
+
 export const assignClassToCourse = async (courseId, classId) => {
     return await axiosClient.post(`/api/teacher/courses/${courseId}/classes/${classId}`);
 };

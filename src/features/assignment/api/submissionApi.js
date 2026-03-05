@@ -1,0 +1,27 @@
+import axiosClient from "../../../lib/axiosClient";
+
+/**
+ * Submissions APIs
+ */
+
+// Teacher: Get submissions for an assignment
+export const getSubmissionsByAssignment = (assignmentId) => {
+    return axiosClient.get(`/api/teacher/submissions/assignment/${assignmentId}`);
+};
+
+// Teacher: Grade a submission
+export const gradeSubmission = (submissionId, data) => {
+    // Expected data: { score, feedback, status }
+    return axiosClient.post(`/api/teacher/submissions/${submissionId}/grade`, data);
+};
+
+// Student: Submit an assignment
+export const submitAssignment = (assignmentId, data) => {
+    // Expected data: { content, attachments: [] }
+    return axiosClient.post(`/api/student/submissions/assignment/${assignmentId}`, data);
+};
+
+// Student: Get my submission for an assignment
+export const getMySubmission = (assignmentId) => {
+    return axiosClient.get(`/api/student/submissions/assignment/${assignmentId}/me`);
+};

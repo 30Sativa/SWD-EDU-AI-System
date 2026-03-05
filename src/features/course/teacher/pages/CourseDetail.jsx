@@ -14,7 +14,10 @@ import {
     GripVertical as DragHandle,
     BookOpen,
     Clock,
-    ArrowLeft
+    ArrowLeft,
+    ClipboardList,
+    MoreVertical,
+    Settings
 } from 'lucide-react';
 import {
     DndContext,
@@ -32,7 +35,7 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Spin, message, Modal, Form, Input, Select, Button, Tag, Empty, Switch } from 'antd';
+import { Spin, message, Modal, Form, Input, Select, Button, Tag, Empty, Switch, Dropdown, Menu } from 'antd';
 import {
     getTeacherCourseDetail,
     publishTeacherCourse,
@@ -44,7 +47,7 @@ import {
 } from '../../api/courseApi';
 import { createLesson, updateLesson, deleteLesson, getLessonsBySection, getLessonBlocks, createLessonBlock, updateLessonBlock, deleteLessonBlock } from '../../../lesson/api/lessonApi';
 import { getAssignmentsByCourse, createAssignment, updateAssignment, deleteAssignment, publishAssignment, unpublishAssignment } from '../../../assignment/api/assignmentApi';
-import { createFormativeQuiz, createSummativeQuiz } from '../../../quiz/teacher/api/quizApi';
+import { createFormativeQuiz, createSummativeQuiz, getLessonQuizzes, updateQuiz, deleteQuiz } from '../../../quiz/teacher/api/quizApi';
 
 
 const slugify = (text) => {
@@ -100,6 +103,7 @@ export default function CourseDetail() {
     const [quizForm] = Form.useForm();
     const [quizMode, setQuizMode] = useState('formative'); // 'formative' | 'summative'
     const [activeQuizTargetId, setActiveQuizTargetId] = useState(null);
+    const [editingQuiz, setEditingQuiz] = useState(null);
 
 
     const [form] = Form.useForm();
@@ -158,11 +162,57 @@ export default function CourseDetail() {
         }
     };
 
-    const openQuizModal = (targetId, mode) => {
+    const openQuizModal = (targetId, mode, quiz = null) => {
         setQuizMode(mode);
         setActiveQuizTargetId(targetId);
-        quizForm.resetFields();
+        setEditingQuiz(quiz);
+
+        if (quiz) {
+            quizForm.setFieldsValue({
+                title: quiz.title,
+                description: quiz.description,
+                timeLimit: quiz.timeLimit,
+                maxAttempts: quiz.maxAttempts,
+                passingScore: quiz.passingScore,
+                isPublished: quiz.isPublished,
+                isRequired: quiz.isRequired,
+                showAnswers: quiz.showAnswers,
+                shuffleQuestions: quiz.shuffleQuestions
+            });
+        } else {
+            quizForm.resetFields();
+            quizForm.setFieldsValue({
+                isPublished: true,
+                isRequired: true,
+                showAnswers: true,
+                shuffleQuestions: true,
+                maxAttempts: 1,
+                passingScore: 50,
+                timeLimit: 30
+            });
+        }
         setIsQuizModalOpen(true);
+    };
+
+    const handleDeleteQuiz = (quizId) => {
+        Modal.confirm({
+            title: 'Xóa bài kiểm tra này?',
+            content: 'Dữ liệu và kết quả liên quan sẽ bị xóa vĩnh viễn.',
+            okText: 'Xóa ngay',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                try {
+                    await deleteQuiz(quizId);
+                    message.success('Đã xóa Quiz thành công!');
+                    fetchDetail(); // Refresh UI
+                    // Also refresh section lessons if any are expanded
+                    sections.filter(s => s.isExpanded).forEach(s => fetchSectionLessons(s.id));
+                } catch {
+                    message.error('Lỗi khi xóa bài kiểm tra');
+                }
+            }
+        });
     };
 
     const handleQuizSubmit = async (values) => {
@@ -180,21 +230,39 @@ export default function CourseDetail() {
                 shuffleQuestions: values.shuffleQuestions ?? true
             };
 
-            if (quizMode === 'formative') {
+            if (editingQuiz) {
+                await updateQuiz(editingQuiz.id || editingQuiz.quizId, payload);
+                message.success('Cập nhật thông tin Quiz thành công!');
+            } else if (quizMode === 'formative') {
                 payload.lessonId = activeQuizTargetId;
-                await createFormativeQuiz(payload);
+                const res = await createFormativeQuiz(payload);
+                const newQuiz = res?.data || res;
                 message.success('Thêm bài kiểm tra tiến trình (Formative) thành công!');
+
+                // Navigate to editor immediately to add questions
+                if (newQuiz?.id) {
+                    navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${newQuiz.id}`);
+                }
             } else {
                 payload.courseId = activeQuizTargetId;
-                await createSummativeQuiz(payload);
+                const res = await createSummativeQuiz(payload);
+                const newQuiz = res?.data || res;
                 message.success('Thêm bài kiểm tra cuối khóa (Summative) thành công!');
+
+                // Navigate to editor immediately
+                if (newQuiz?.id) {
+                    navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${newQuiz.id}`);
+                }
             }
 
             setIsQuizModalOpen(false);
+            setEditingQuiz(null);
             quizForm.resetFields();
-            fetchDetail(); // Reload to show new status if possible
+            fetchDetail();
+            // Refresh expanded sections to show updated quiz count/data
+            sections.filter(s => s.isExpanded).forEach(s => fetchSectionLessons(s.id));
         } catch (error) {
-            message.error(error.response?.data?.message || 'Lỗi khi tạo bài kiểm tra');
+            message.error(error.response?.data?.message || 'Lỗi khi lưu bài kiểm tra');
         } finally {
             setSubmitting(false);
         }
@@ -301,10 +369,21 @@ export default function CourseDetail() {
             const res = await getLessonsBySection(sectionId);
             const lessons = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
 
+            // Fetch quizzes for each lesson to show status
+            const lessonsWithQuizzes = await Promise.all(lessons.map(async (lesson) => {
+                try {
+                    const quizRes = await getLessonQuizzes(lesson.id);
+                    const quizzes = quizRes?.data || quizRes || [];
+                    return { ...lesson, quizzes: Array.isArray(quizzes) ? quizzes : [] };
+                } catch {
+                    return { ...lesson, quizzes: [] };
+                }
+            }));
+
             setSections(prev => prev.map(sec =>
-                sec.id === sectionId ? { ...sec, lessons } : sec
+                sec.id === sectionId ? { ...sec, lessons: lessonsWithQuizzes } : sec
             ));
-            return lessons;
+            return lessonsWithQuizzes;
         } catch (error) {
             console.error("Error fetching lessons:", error);
             return [];
@@ -784,11 +863,11 @@ export default function CourseDetail() {
                             </div>
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => openQuizModal(courseId, 'summative')}
-                                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-bold text-sm shadow-sm transition-all active:scale-95"
+                                    onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/quizzes`)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-[#0463ca] text-white rounded-lg hover:bg-[#0352a8] font-bold text-sm shadow-sm transition-all active:scale-95"
                                 >
-                                    <CheckSquare size={18} />
-                                    Tạo Quiz cuối khóa
+                                    <ClipboardList size={18} />
+                                    Quản lý Quizzes
                                 </button>
                                 <button
                                     onClick={() => setIsSectionModalOpen(true)}
@@ -827,6 +906,10 @@ export default function CourseDetail() {
                                             setIsEditLessonModalOpen={setIsEditLessonModalOpen}
                                             editLessonForm={editLessonForm}
                                             openBlocksModal={openBlocksModal}
+                                            openQuizModal={openQuizModal}
+                                            handleDeleteQuiz={handleDeleteQuiz}
+                                            courseId={courseId}
+                                            navigate={navigate}
                                         />
                                     )) : (
                                         <div className="py-20 bg-white rounded-2xl border border-slate-200 border-dashed flex flex-col items-center justify-center text-center">
@@ -1270,11 +1353,14 @@ export default function CourseDetail() {
             <Modal
                 title={
                     <span className="font-bold text-xl">
-                        {quizMode === 'formative' ? 'Tạo Quiz bài học (Tiến trình)' : 'Tạo Quiz cuối khóa (Tổng kết)'}
+                        {editingQuiz ? 'Chỉnh sửa Quiz' : (quizMode === 'formative' ? 'Tạo Quiz bài học (Tiến trình)' : 'Tạo Quiz cuối khóa (Tổng kết)')}
                     </span>
                 }
                 open={isQuizModalOpen}
-                onCancel={() => setIsQuizModalOpen(false)}
+                onCancel={() => {
+                    setIsQuizModalOpen(false);
+                    setEditingQuiz(null);
+                }}
                 footer={null}
                 centered
                 width={650}
@@ -1317,9 +1403,12 @@ export default function CourseDetail() {
                     </div>
 
                     <div className="flex gap-3 pt-6 border-t border-slate-100 mt-4">
-                        <Button className="flex-1 h-11 rounded-xl font-bold text-slate-500 border-slate-200" onClick={() => setIsQuizModalOpen(false)}>Hủy</Button>
-                        <Button type="primary" htmlType="submit" loading={submitting} className="flex-1 h-11 rounded-xl bg-emerald-600 font-bold border-none shadow-lg shadow-emerald-100">
-                            Tạo Quiz
+                        <Button className="flex-1 h-11 rounded-xl font-bold text-slate-500 border-slate-200" onClick={() => {
+                            setIsQuizModalOpen(false);
+                            setEditingQuiz(null);
+                        }}>Hủy</Button>
+                        <Button type="primary" htmlType="submit" loading={submitting} className={`flex-1 h-11 rounded-xl font-bold border-none shadow-lg ${editingQuiz ? 'bg-blue-600 shadow-blue-100' : 'bg-emerald-600 shadow-emerald-100'}`}>
+                            {editingQuiz ? 'Lưu thay đổi' : 'Tạo Quiz'}
                         </Button>
                     </div>
                 </Form>
@@ -1342,7 +1431,11 @@ const SortableSection = React.memo(({
     setEditingLesson,
     setIsEditLessonModalOpen,
     editLessonForm,
-    openBlocksModal
+    openBlocksModal,
+    openQuizModal,
+    handleDeleteQuiz,
+    courseId,
+    navigate
 }) => {
     const {
         attributes,
@@ -1442,20 +1535,111 @@ const SortableSection = React.memo(({
                                             {lesson.type || lesson.Type || 'Nội dung'}
                                             <span className="w-1 h-1 rounded-full bg-slate-200" />
                                             {lesson.duration || lesson.Duration || '0m'}
+                                            {lesson.quizzes && lesson.quizzes.length > 0 && (
+                                                <>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                                    <span className="text-emerald-600 flex items-center gap-1 font-bold">
+                                                        <CheckSquare size={10} /> {lesson.quizzes.length} Quiz
+                                                    </span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1 opacity-10 group-hover/lesson:opacity-100 transition-opacity">
-                                    <button
-                                        className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-white rounded-lg transition-colors shadow-sm"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            openQuizModal(lesson.id, 'formative');
-                                        }}
-                                        title="Thêm Quiz bài học (Formative)"
-                                    >
-                                        <CheckSquare size={14} />
-                                    </button>
+                                    {(lesson.quizzes || []).length > 0 ? (
+                                        <Dropdown
+                                            trigger={['click']}
+                                            menu={{
+                                                className: "rounded-xl shadow-xl border border-slate-100 p-1.5 min-w-[180px]",
+                                                items: [
+                                                    {
+                                                        key: 'header',
+                                                        label: (
+                                                            <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">
+                                                                Quản lý Quizzes ({lesson.quizzes.length})
+                                                            </div>
+                                                        ),
+                                                        disabled: true,
+                                                    },
+                                                    ...lesson.quizzes.flatMap((quiz, qIdx) => [
+                                                        {
+                                                            key: `${quiz.id || quiz.quizId}-edit-questions`,
+                                                            onClick: () => navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id || quiz.quizId}`),
+                                                            label: (
+                                                                <div className="flex items-center gap-2 font-bold text-slate-700 text-xs">
+                                                                    <CheckSquare size={14} className="text-[#0463ca]" />
+                                                                    Thiết kế câu hỏi
+                                                                </div>
+                                                            ),
+                                                            className: "rounded-lg h-9"
+                                                        },
+                                                        {
+                                                            key: `${quiz.id || quiz.quizId}-edit-settings`,
+                                                            onClick: () => openQuizModal(lesson.id, 'formative', quiz),
+                                                            label: (
+                                                                <div className="flex items-center gap-2 font-bold text-slate-600 text-xs">
+                                                                    <Settings size={14} />
+                                                                    Cài đặt Quiz
+                                                                </div>
+                                                            ),
+                                                            className: "rounded-lg h-9"
+                                                        },
+                                                        {
+                                                            key: `${quiz.id || quiz.quizId}-delete`,
+                                                            danger: true,
+                                                            onClick: () => handleDeleteQuiz(quiz.id || quiz.quizId),
+                                                            label: (
+                                                                <div className="flex items-center gap-2 font-bold text-xs">
+                                                                    <Trash2 size={14} />
+                                                                    Xóa bài Quiz
+                                                                </div>
+                                                            ),
+                                                            className: "rounded-lg h-9"
+                                                        }
+                                                    ]),
+                                                    { type: 'divider' },
+                                                    {
+                                                        key: 'add-new-quiz',
+                                                        onClick: () => openQuizModal(lesson.id, 'formative'),
+                                                        label: (
+                                                            <div className="flex items-center gap-2 font-bold text-slate-500 text-xs">
+                                                                <Plus size={14} />
+                                                                Thêm Quiz mới
+                                                            </div>
+                                                        ),
+                                                        className: "rounded-lg h-9 bg-slate-50"
+                                                    }
+                                                ]
+                                            }}
+                                        >
+                                            <span onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    className="p-2 text-[#0463ca] hover:bg-white rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
+                                                >
+                                                    <div className="relative">
+                                                        <CheckSquare size={16} />
+                                                        <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center border border-white font-bold">
+                                                            {lesson.quizzes.length}
+                                                        </span>
+                                                    </div>
+                                                    <ChevronDown size={12} className="opacity-50" />
+                                                </button>
+                                            </span>
+                                        </Dropdown>
+                                    ) : (
+                                        <button
+                                            className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-white rounded-lg transition-colors shadow-sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openQuizModal(lesson.id, 'formative');
+                                            }}
+                                            title="Thêm Quiz bài học (Formative)"
+                                        >
+                                            <CheckSquare size={14} />
+                                        </button>
+                                    )}
+
                                     <button
                                         className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-white rounded-lg transition-colors shadow-sm"
                                         onClick={(e) => {

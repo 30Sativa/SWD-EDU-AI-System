@@ -25,6 +25,16 @@ export const removeStudentFromClass = (id, studentId) => {
     return axiosClient.delete(`/api/teacher/classes/${id}/students/${studentId}`);
 };
 
+export const importStudentsToClass = (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axiosClient.post(`/api/teacher/classes/${id}/students/import`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+};
+
 export const getClassDetail = (id) => {
     return axiosClient.get(`/api/manager/classes/${id}`);
 };

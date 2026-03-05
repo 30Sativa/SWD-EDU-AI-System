@@ -12,6 +12,8 @@ import ProtectedRoute from "./ProtectedRoute";
 import TeacherDashboard from "../features/dashboard/teacher/pages/TeacherDashboard";
 import CourseManagement from "../features/course/teacher/pages/CourseManagement";
 import TeacherCourseDetail from "../features/course/teacher/pages/CourseDetail";
+import TeacherQuizList from "../features/quiz/teacher/pages/TeacherQuizList";
+import TeacherQuizEditor from "../features/quiz/teacher/pages/TeacherQuizEditor";
 import StudentDashboard from "../features/dashboard/student/pages/StudentDashboard";
 import ClassManagement from "../features/classes/teacher/pages/ClassManagement";
 import ClassStudentList from "../features/classes/teacher/pages/ClassStudentList";
@@ -70,6 +72,8 @@ export default function RouteMap() {
             <Route index element={<TeacherDashboard />} />
             <Route path="courses" element={<CourseManagement />} />
             <Route path="courses/:courseId" element={<TeacherCourseDetail />} />
+            <Route path="courses/:courseId/quizzes" element={<TeacherQuizList />} />
+            <Route path="courses/:courseId/quizzes/:quizId" element={<TeacherQuizEditor />} />
             <Route path="classes/:classId/students" element={<ClassStudentList />} />
             <Route path="classes" element={<ClassManagement />} />
             <Route path="question-bank" element={<QuestionBank />} />

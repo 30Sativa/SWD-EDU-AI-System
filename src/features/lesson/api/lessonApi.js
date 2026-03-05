@@ -43,3 +43,27 @@ export const updateLessonBlock = (lessonId, id, data) => {
 export const deleteLessonBlock = (lessonId, id) => {
     return axiosClient.delete(`/api/teacher/lessons/${lessonId}/blocks/${id}`);
 };
+
+/**
+ * Lesson FAQs APIs
+ */
+
+export const getLessonFaqs = (lessonId) => {
+    return axiosClient.get(`/api/teacher/lessons/${lessonId}/faqs`);
+};
+
+export const createLessonFaq = (lessonId, data) => {
+    return axiosClient.post(`/api/teacher/lessons/${lessonId}/faqs`, data);
+};
+
+export const getLessonFaqDetail = (lessonId, id) => {
+    return axiosClient.get(`/api/teacher/lessons/${lessonId}/faqs/${id}`);
+};
+
+export const updateLessonFaq = (lessonId, id, data) => {
+    return axiosClient.put(`/api/teacher/lessons/${lessonId}/faqs/${id}`, data);
+};
+
+export const deleteLessonFaq = (lessonId, id) => {
+    return axiosClient.delete(`/api/teacher/lessons/${lessonId}/faqs/${id}`);
+};

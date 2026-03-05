@@ -42,3 +42,38 @@ export const updateQuestionInQuiz = (quizId, questionId, data) => {
 export const deleteQuestionInQuiz = (quizId, questionId) => {
     return axiosClient.delete(`/api/teacher/quizzes/${quizId}/questions/${questionId}`);
 };
+
+// Get Quiz Detail (Teacher/Student)
+export const getQuizDetail = (quizId) => {
+    return axiosClient.get(`/api/student/quizzes/${quizId}`);
+};
+
+// Get Course Quizzes
+export const getCourseQuizzes = (courseId) => {
+    return axiosClient.get(`/api/student/quizzes/course/${courseId}`);
+};
+
+// Get Lesson Quizzes
+export const getLessonQuizzes = (lessonId) => {
+    return axiosClient.get(`/api/student/quizzes/lesson/${lessonId}`);
+};
+
+/**
+ * Student Quiz Attempt APIs
+ */
+
+// Start Attempt
+export const startQuizAttempt = (quizId) => {
+    return axiosClient.post(`/api/student/quizzes/${quizId}/attempts/start`);
+};
+
+// Submit Attempt
+export const submitQuizAttempt = (attemptId, data) => {
+    // Expected data: { answers: [{ questionId, selectedOptionIds: [], textAnswer: "" }] }
+    return axiosClient.post(`/api/student/quizzes/attempts/${attemptId}/submit`, data);
+};
+
+// Get Attempt Result
+export const getQuizAttemptResult = (attemptId) => {
+    return axiosClient.get(`/api/student/quizzes/attempts/${attemptId}/result`);
+};

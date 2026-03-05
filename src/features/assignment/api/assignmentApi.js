@@ -23,3 +23,7 @@ export const unpublishAssignment = (assignmentId) => {
 export const getAssignmentsByCourse = (courseId) => {
     return axiosClient.get(`/api/teacher/assignments/course/${courseId}`);
 };
+
+export const getStudentAssignmentsByCourse = (courseId) => {
+    return axiosClient.get(`/api/student/assignments/course/${courseId}`);
+};
