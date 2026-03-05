@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
-import { loginAPI } from '../api/authApi';
+import { loginAPI, googleLoginAPI } from '../api/authApi';
+import { GoogleLogin } from '@react-oauth/google';
 
 const parseJwt = (token) => {
     try {
@@ -132,6 +133,61 @@ export default function Login() {
         }
     };
 
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setIsLoading(true);
+        setError('');
+        try {
+            const idToken = credentialResponse.credential;
+            const response = await googleLoginAPI(idToken);
+
+            const token = response.accessToken || response.token || response.data?.accessToken || response.data?.token;
+
+            if (token) {
+                localStorage.setItem('accessToken', token);
+                const decoded = parseJwt(token);
+                const role = decoded?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded?.role;
+
+                if (role) {
+                    localStorage.setItem('userRole', role);
+                    let name = response.userName || response.data?.userName || response.userInfo?.userName;
+
+                    if (!name) {
+                        name = decoded?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
+                            || decoded?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/name']
+                            || decoded?.name
+                            || decoded?.unique_name;
+                    }
+
+                    if (!name) name = 'User';
+                    localStorage.setItem('userName', name);
+                    message.success('Đăng nhập bằng Google thành công!');
+
+                    const lowerRole = String(role).toLowerCase();
+                    if (lowerRole.includes('admin')) navigate('/dashboard/admin');
+                    else if (lowerRole.includes('teacher')) navigate('/dashboard/teacher');
+                    else if (lowerRole.includes('user') || lowerRole.includes('student')) navigate('/dashboard/student');
+                    else if (lowerRole.includes('manager')) navigate('/dashboard/manager');
+                    else navigate('/');
+                } else {
+                    throw new Error("Không tìm thấy thông tin vai trò");
+                }
+            } else {
+                throw new Error("Không nhận được token từ hệ thống");
+            }
+        } catch (err) {
+            console.error("Google Login failed:", err);
+            const errorMsg = err.response?.data?.message || 'Đăng nhập bằng Google thất bại.';
+            setError(errorMsg);
+            message.error(errorMsg);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleGoogleError = () => {
+        message.error('Đăng nhập bằng Google thất bại. Vui lòng thử lại.');
+    };
+
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-[#F8FAFC] relative overflow-hidden">
             {/* Abstract Background Shapes */}
@@ -203,9 +259,13 @@ export default function Login() {
                             </button>
                         </div>
                         <div className="flex justify-end">
-                            <a href="#" className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
+                            <button
+                                type="button"
+                                onClick={() => navigate('/forgot-password')}
+                                className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+                            >
                                 Quên mật khẩu?
-                            </a>
+                            </button>
                         </div>
                     </div>
 
@@ -223,6 +283,29 @@ export default function Login() {
                             </>
                         )}
                     </button>
+
+                    <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-200"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-white text-gray-500">Hoặc tiếp tục với</span>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-center">
+                        <div className="w-full">
+                            <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={handleGoogleError}
+                                useOneTap
+                                width="100%"
+                                theme="outline"
+                                shape="pill"
+                                text="signin_with"
+                            />
+                        </div>
+                    </div>
                 </form>
 
 
