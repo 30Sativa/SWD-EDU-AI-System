@@ -17,20 +17,6 @@ import {
   Trash2,
   Rocket
 } from 'lucide-react';
-
-const slugify = (text) => {
-  if (!text) return "";
-  return text
-    .toString()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[đĐ]/g, 'd')
-    .replace(/([^0-9a-z-\s])/g, '')
-    .replace(/(\s+)/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
-};
 import {
   Table,
   Button,
@@ -46,12 +32,26 @@ import {
   Form,
   Radio
 } from 'antd';
-import { getMyCourses, getCourseTemplates, createTeacherCourse, cloneTeacherCourse, publishTeacherCourse, assignClassToCourse, getTeacherCourseDetail } from '../../api/courseApi';
+import { getMyCourses, getCourseTemplates, createTeacherCourse, cloneTeacherCourse, publishTeacherCourse, assignClassToCourse, getTeacherCourseDetail, updateTeacherCourse } from '../../api/courseApi';
 import { getSubjects } from '../../../subject/api/subjectApi';
 import { getCurrentUser } from '../../../user/api/userApi';
 import { getGradeLevels } from '../../../grade/api/gradeApi';
 import { getCourseCategories } from '../../../category/api/categoryApi';
-import { getClasses } from '../../../classes/api/classApi';
+import { getTeacherHomeroomClasses } from '../../../classes/api/classApi';
+
+const slugify = (text) => {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .replace(/([^0-9a-z-\s])/g, '')
+    .replace(/(\s+)/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
 
 export default function CourseManagement() {
   const navigate = useNavigate();
@@ -60,6 +60,9 @@ export default function CourseManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [userId, setUserId] = useState(null);
+
+  // THÊM MỚI: State quản lý chế độ hiển thị (Grid/List)
+  const [viewMode, setViewMode] = useState('grid');
 
   // Create Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -101,7 +104,7 @@ export default function CourseManagement() {
         getSubjects(),
         getGradeLevels(),
         getCourseCategories({ pageSize: 100 }),
-        getClasses()
+        getTeacherHomeroomClasses()
       ]);
       setTemplates(templatesRes?.data?.items || templatesRes?.items || templatesRes?.data || []);
       setSubjects(subjectsRes?.data?.items || subjectsRes?.items || subjectsRes?.data || []);
@@ -119,7 +122,6 @@ export default function CourseManagement() {
     const fetchUser = async () => {
       try {
         const res = await getCurrentUser();
-        // Handle inconsistent API response structures
         const id = res?.id || res?.data?.id || localStorage.getItem('userId');
         if (id) setUserId(String(id));
       } catch (err) {
@@ -140,13 +142,11 @@ export default function CourseManagement() {
           message.error('Không tìm thấy thông tin tài khoản. Vui lòng đăng nhập lại.');
           return;
         }
-
         const payload = {
           templateId: values.templateId,
           teacherId: currentUserId,
           newCode: values.newCode
         };
-
         await cloneTeacherCourse(payload);
         message.success('Clone khóa học từ template thành công!');
       } else {
@@ -159,7 +159,7 @@ export default function CourseManagement() {
           gradeLevelId: values.gradeLevelId,
           categoryId: values.categoryId,
           level: parseInt(values.level || 1),
-          language: values.language || "Vietnamese",
+          language: values.language || "vi",
           totalLessons: 0,
           totalDuration: 0
         };
@@ -170,7 +170,6 @@ export default function CourseManagement() {
       form.resetFields();
       fetchCourses();
     } catch (error) {
-      // Detailed error handling
       const errorData = error.response?.data;
       const errorMsg = errorData?.message || errorData?.Message || 'Có lỗi xảy ra khi tạo khóa học';
       message.error(errorMsg);
@@ -183,16 +182,24 @@ export default function CourseManagement() {
     try {
       setSubmitting(true);
       const payload = {
-        ...values,
-        slug: slugify(values.title),
-        level: parseInt(values.level),
+        title: values.title,
+        description: values.description || "",
+        thumbnail: editingCourse?.thumbnail || "",
+        level: parseInt(values.level) || 1,
+        language: values.language || "vi"
       };
       await updateTeacherCourse(editingCourse.id, payload);
       message.success('Cập nhật khóa học thành công!');
       setIsEditModalOpen(false);
       fetchCourses();
-    } catch {
-      message.error('Lỗi khi cập nhật thông tin khóa học');
+    } catch (error) {
+      const errorData = error.response?.data;
+      let errorMsg = errorData?.Message || errorData?.title || errorData?.message || 'Lỗi khi cập nhật thông tin khóa học';
+      if (errorData?.errors) {
+        const validationErrors = Object.values(errorData.errors).flat().join(", ");
+        errorMsg = `${errorMsg}: ${validationErrors}`;
+      }
+      message.error(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -206,7 +213,11 @@ export default function CourseManagement() {
       setIsAssignModalOpen(false);
       fetchCourses();
     } catch (error) {
-      message.error(error.response?.data?.message || 'Lỗi khi gán lớp vào khóa học');
+      if (error.response?.status === 500) {
+        message.error('Không thể gán. Hãy đảm bảo Lớp và Khóa học cùng khối, hoặc bạn đã được phân công dạy Lớp đó.');
+      } else {
+        message.error(error.response?.data?.message || error.response?.data?.Message || 'Lỗi khi gán lớp vào khóa học');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -218,23 +229,18 @@ export default function CourseManagement() {
       message.warning('Vui lòng chọn một template để xem trước');
       return;
     }
-
     try {
       setPreviewLoading(true);
       setIsPreviewModalOpen(true);
-
-      // Thử lấy detail qua API teacher detail hoặc API sections
       const res = await getTeacherCourseDetail(templateId).catch(() => null);
       let data = res?.data || res;
 
       if (!data || !(data.sections || data.items || data.Sections)) {
-        // Fallback sang API sections (lấy từ courseApi vừa thêm)
         const { getCourseSections } = await import('../../api/courseApi');
         const sectionsRes = await getCourseSections(templateId).catch(() => null);
         const sections = sectionsRes?.data?.items || sectionsRes?.items || sectionsRes?.data || [];
         data = { ...data, sections };
       }
-
       setPreviewData(data);
     } catch {
       message.error('Không thể tải cấu trúc template');
@@ -246,75 +252,67 @@ export default function CourseManagement() {
   const filteredCourses = useMemo(() => courses.filter(course => {
     const matchesSearch = (course.title || course.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.code?.toLowerCase().includes(searchTerm.toLowerCase());
-
     let matchesStatus = true;
     if (statusFilter !== 'all') {
       const isActive = course.status === 'Active' || course.status === 'Published';
       if (statusFilter === 'active') matchesStatus = isActive;
       if (statusFilter === 'draft') matchesStatus = !isActive;
     }
-
     return matchesSearch && matchesStatus;
   }), [courses, searchTerm, statusFilter]);
 
+  // Cột cho dạng Table (List View)
   const columns = [
     {
       title: 'KHÓA HỌC',
       key: 'course',
       width: 350,
-      render: (_, record) => (
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-lg overflow-hidden bg-blue-50 flex items-center justify-center text-[#0487e2] shrink-0 border border-slate-100 relative group/thumb">
-            {record.thumbnail ? (
-              <img src={record.thumbnail} alt={record.title} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
-            ) : (
-              <BookOpen size={24} />
-            )}
-            {record.isFeatured && (
-              <div className="absolute top-0 right-0 p-0.5">
-                <div className="w-2 h-2 bg-amber-400 rounded-full ring-1 ring-white" />
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-700 text-[15px] truncate">{record.title || record.name}</span>
+      render: (_, record) => {
+        const imgSrc = record.thumbnail || record.imageUrl || record.coverUrl || record.picture || record.image;
+        return (
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-lg overflow-hidden bg-blue-50 flex items-center justify-center text-[#0487e2] shrink-0 border border-slate-100 relative group/thumb">
+              <BookOpen size={24} className="absolute z-0" />
+              {imgSrc && (
+                <img src={imgSrc} alt={record.title} className="absolute inset-0 z-10 w-full h-full object-cover text-[#0487e2]" onError={(e) => { e.target.style.display = 'none'; }} />
+              )}
               {record.isFeatured && (
-                <Tag color="gold" className="m-0 text-[10px] font-bold uppercase px-1 leading-tight rounded-sm border-none">VIP</Tag>
+                <div className="absolute top-0 right-0 p-0.5">
+                  <div className="w-2 h-2 bg-amber-400 rounded-full ring-1 ring-white" />
+                </div>
               )}
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{record.code}</span>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-700 text-[15px] truncate">{record.title || record.name}</span>
+                {record.isFeatured && (
+                  <Tag color="gold" className="m-0 text-[10px] font-bold uppercase px-1 leading-tight rounded-sm border-none">VIP</Tag>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{record.code}</span>
+              </div>
             </div>
           </div>
-        </div>
-      )
+        );
+      }
     },
     {
       title: 'PHÂN LOẠI',
       key: 'level',
       render: (_, record) => {
-        // Mapping levels with support for both string and number
-        const difficultyMap = {
-          1: 'Cơ bản',
-          2: 'Trung bình',
-          3: 'Nâng cao'
-        };
+        const difficultyMap = { 1: 'Cơ bản', 2: 'Trung bình', 3: 'Nâng cao' };
         const levelVal = record.level ?? record.Level ?? record.difficultyLevel ?? record.DifficultyLevel;
         const levelText = difficultyMap[Number(levelVal)] || record.levelName || record.LevelName || (levelVal ? `Cấp độ ${levelVal} ` : 'Chưa định nghĩa');
 
-        // Resolve names with fallback for various cases
         const gradeId = record.gradeLevelId || record.GradeLevelId || record.gradeId || record.GradeId;
-        const gradeName = record.gradeLevelName || record.GradeLevelName || record.gradeName || record.GradeName ||
-          grades.find(g => g.id === gradeId)?.name;
+        const gradeName = record.gradeLevelName || record.GradeLevelName || record.gradeName || record.GradeName || grades.find(g => g.id === gradeId)?.name;
 
         const catId = record.categoryId || record.CategoryId;
-        const categoryName = record.categoryName || record.CategoryName ||
-          categories.find(c => c.id === catId)?.name;
+        const categoryName = record.categoryName || record.CategoryName || categories.find(c => c.id === catId)?.name;
 
         const subId = record.subjectId || record.SubjectId;
-        const subjectName = record.subjectName || record.SubjectName ||
-          subjects.find(s => s.id === subId)?.name;
+        const subjectName = record.subjectName || record.SubjectName || subjects.find(s => s.id === subId)?.name;
 
         return (
           <div className="flex flex-col gap-1">
@@ -363,11 +361,11 @@ export default function CourseManagement() {
         const rawStatus = (status ?? record.statusCode ?? record.statusTitle ?? '').toString().toLowerCase();
         const isActive = rawStatus === 'active' || rawStatus === 'published' || record.statusCode === 1;
         return (
-          <span className={`inline - flex items - center gap - 1.5 px - 2.5 py - 1 rounded - full text - xs font - bold border ${isActive
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${isActive
             ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
             : 'bg-slate-50 text-slate-500 border-slate-100'
             } `}>
-            <span className={`w - 1.5 h - 1.5 rounded - full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'} `} />
+            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'} `} />
             {isActive ? 'Hoạt động' : 'Bản nháp'}
           </span>
         );
@@ -399,8 +397,13 @@ export default function CourseManagement() {
                       await publishTeacherCourse(record.id);
                       message.success('Xuất bản khóa học thành công!');
                       fetchCourses();
-                    } catch {
-                      message.error('Lỗi khi xuất bản khóa học');
+                    } catch (error) {
+                      const errorMsg = error.response?.data?.Message || error.response?.data?.message || 'Lỗi khi xuất bản khóa học';
+                      if (errorMsg === "Course not ready.") {
+                        message.error("Khóa học chưa sẵn sàng. Vui lòng cập nhật đầy đủ Tên khóa học, Mô tả và Ảnh bìa.");
+                      } else {
+                        message.error(errorMsg);
+                      }
                     }
                   }}
                 />
@@ -412,24 +415,29 @@ export default function CourseManagement() {
                 shape="circle"
                 icon={<Eye size={16} />}
                 className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
-                onClick={() => navigate(`/dashboard/teacher/courses/${record.id}`)}
-              />
-            </Tooltip>
-
-            <Tooltip title="Gán vào lớp">
-              <Button
-                type="text"
-                shape="circle"
-                icon={<Users size={16} />}
-                className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setAssigningCourse(record);
-                  assignForm.resetFields();
-                  setIsAssignModalOpen(true);
+                  navigate(`/dashboard/teacher/courses/${record.id}`);
                 }}
               />
             </Tooltip>
+
+            {isPublished && (
+              <Tooltip title="Gán vào lớp">
+                <Button
+                  type="text"
+                  shape="circle"
+                  icon={<Users size={16} />}
+                  className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAssigningCourse(record);
+                    assignForm.resetFields();
+                    setIsAssignModalOpen(true);
+                  }}
+                />
+              </Tooltip>
+            )}
 
             <Tooltip title="Chỉnh sửa">
               <Button
@@ -447,7 +455,7 @@ export default function CourseManagement() {
                     gradeLevelId: record.gradeLevelId,
                     categoryId: record.categoryId,
                     level: record.level || 1,
-                    language: record.language || "Vietnamese",
+                    language: record.language || "vi",
                     description: record.description
                   });
                   setIsEditModalOpen(true);
@@ -464,7 +472,7 @@ export default function CourseManagement() {
     <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Header */}
+        {/* CẤU TRÚC HEADER ĐƯỢC GIỮ NGUYÊN */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Quản lý Khóa học</h1>
@@ -488,7 +496,7 @@ export default function CourseManagement() {
         {/* Main Content Card */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
 
-          {/* Toolbar */}
+          {/* Toolbar - Cập nhật logic active cho icon chuyển view */}
           <div className="px-5 py-4 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center">
             <div className="text-sm font-medium text-slate-500">
               Hiển thị {filteredCourses.length} khóa học
@@ -515,20 +523,189 @@ export default function CourseManagement() {
                 ]}
               />
 
-              <div className="flex bg-white rounded-lg border border-slate-200 p-1">
-                <Button type="text" className="h-8 w-8 !p-0 flex items-center justify-center rounded text-[#0487e2] bg-blue-50"><ListIcon size={16} /></Button>
-                <Button type="text" className="h-8 w-8 !p-0 flex items-center justify-center rounded text-slate-400 hover:text-slate-600"><LayoutGrid size={16} /></Button>
+              {/* Nút chuyển đổi ViewMode */}
+              <div className="flex bg-slate-100/70 rounded-lg border border-slate-200 p-1">
+                <Button
+                  type="text"
+                  className={`h-8 w-8 !p-0 flex items-center justify-center rounded transition-all ${viewMode === 'list' ? 'bg-white text-[#0487e2] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  onClick={() => setViewMode('list')}
+                >
+                  <ListIcon size={16} />
+                </Button>
+                <Button
+                  type="text"
+                  className={`h-8 w-8 !p-0 flex items-center justify-center rounded transition-all ${viewMode === 'grid' ? 'bg-white text-[#0487e2] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  onClick={() => setViewMode('grid')}
+                >
+                  <LayoutGrid size={16} />
+                </Button>
               </div>
             </div>
           </div>
 
-          {/* Table */}
+          {/* KẾT QUẢ HIỂN THỊ DỰA THEO VIEW MODE */}
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center">
               <Spin size="large" />
               <p className="mt-4 text-slate-500 font-medium">Đang tải dữ liệu...</p>
             </div>
+          ) : filteredCourses.length === 0 ? (
+            <div className="py-16 flex flex-col items-center">
+              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-slate-300">
+                <BookOpen size={32} />
+              </div>
+              <Empty description={<span className="text-slate-400 font-medium">Không tìm thấy khóa học nào</span>} />
+            </div>
+          ) : viewMode === 'grid' ? (
+            /* --- GRID VIEW LÀM MỚI TẠI ĐÂY --- */
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 bg-slate-50/30">
+              {filteredCourses.map(course => {
+                const rawStatus = (course.status ?? course.statusCode ?? course.statusTitle ?? '').toString().toLowerCase();
+                const isActive = rawStatus === 'active' || rawStatus === 'published' || course.statusCode === 1;
+
+                const difficultyMap = { 1: 'Cơ bản', 2: 'Trung bình', 3: 'Nâng cao' };
+                const levelVal = course.level ?? course.Level ?? course.difficultyLevel;
+                const levelText = difficultyMap[Number(levelVal)] || course.levelName || (levelVal ? `Cấp độ ${levelVal}` : '');
+
+                const gradeId = course.gradeLevelId || course.GradeLevelId || course.gradeId;
+                const gradeName = course.gradeLevelName || grades.find(g => g.id === gradeId)?.name;
+                const catId = course.categoryId || course.CategoryId;
+                const categoryName = course.categoryName || categories.find(c => c.id === catId)?.name;
+                const imgSrc = course.thumbnail || course.imageUrl || course.coverUrl || course.picture || course.image;
+
+                return (
+                  <div
+                    key={course.id}
+                    onClick={() => navigate(`/dashboard/teacher/courses/${course.id}`)}
+                    className="group bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col h-full hover:border-blue-200"
+                  >
+                    {/* Card Image Area */}
+                    <div className="h-40 relative bg-blue-50/50 flex items-center justify-center overflow-hidden">
+                      <BookOpen size={48} className="absolute z-0 text-blue-200 group-hover:scale-110 transition-transform duration-500" />
+                      {imgSrc && (
+                        <img src={imgSrc} alt={course.title} className="absolute inset-0 z-10 w-full h-full object-cover group-hover:scale-105 transition-all duration-500" onError={(e) => { e.target.style.display = 'none'; }} />
+                      )}
+
+                      {/* Badges Over Image */}
+                      <div className="absolute top-3 left-3 flex flex-col gap-2">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold shadow-sm backdrop-blur-md ${isActive ? 'bg-emerald-500/90 text-white' : 'bg-slate-600/90 text-white'} `}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-slate-300'} `} />
+                          {isActive ? 'Hoạt động' : 'Bản nháp'}
+                        </span>
+                      </div>
+
+                      {course.isFeatured && (
+                        <div className="absolute top-3 right-3 shadow-sm">
+                          <Tag color="gold" className="m-0 text-[10px] font-bold uppercase px-2 py-1 rounded-md border-none shadow-sm">VIP</Tag>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Content */}
+                    <div className="p-4 flex-1 flex flex-col">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="font-bold text-slate-800 text-[15px] leading-tight line-clamp-2 group-hover:text-[#0487e2] transition-colors">
+                          {course.title || course.name}
+                        </h3>
+                      </div>
+
+                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+                        {course.code}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mb-4 mt-auto">
+                        {levelText && (
+                          <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-1 rounded">
+                            {levelText}
+                          </span>
+                        )}
+                        {(gradeName || categoryName) && (
+                          <span className="bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-medium px-2 py-1 rounded flex items-center gap-1">
+                            <Layers size={10} /> {gradeName || categoryName}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Divider & Metrics */}
+                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <div className="flex gap-3">
+                          <div className="text-xs font-bold text-amber-500 flex items-center gap-1">
+                            <CheckCircle2 size={12} className="text-amber-300" />
+                            {course.rating ?? course.averageRating ?? '0.0'}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                            <Clock size={12} />
+                            {course.totalLessons ?? course.lessonCount ?? 0} bài
+                          </div>
+                        </div>
+
+                        {/* Card Actions (Mô phỏng lại Tác vụ trên Table) */}
+                        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                          {!isActive && (
+                            <Tooltip title="Xuất bản">
+                              <Button
+                                type="text" shape="circle" size="small"
+                                icon={<Rocket size={14} />}
+                                className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 flex items-center justify-center"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    await publishTeacherCourse(course.id);
+                                    message.success('Xuất bản thành công!');
+                                    fetchCourses();
+                                  } catch (error) {
+                                    message.error(error.response?.data?.Message || 'Lỗi khi xuất bản khóa học');
+                                  }
+                                }}
+                              />
+                            </Tooltip>
+                          )}
+                          {isActive && (
+                            <Tooltip title="Gán vào lớp">
+                              <Button
+                                type="text" shape="circle" size="small"
+                                icon={<Users size={14} />}
+                                className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 flex items-center justify-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setAssigningCourse(course);
+                                  assignForm.resetFields();
+                                  setIsAssignModalOpen(true);
+                                }}
+                              />
+                            </Tooltip>
+                          )}
+                          <Tooltip title="Chỉnh sửa">
+                            <Button
+                              type="text" shape="circle" size="small"
+                              icon={<Edit size={14} />}
+                              className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 flex items-center justify-center"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCourse(course);
+                                editForm.setFieldsValue({
+                                  title: course.title,
+                                  code: course.code,
+                                  subjectId: course.subjectId,
+                                  gradeLevelId: course.gradeLevelId,
+                                  categoryId: course.categoryId,
+                                  level: course.level || 1,
+                                  language: course.language || "vi",
+                                  description: course.description
+                                });
+                                setIsEditModalOpen(true);
+                              }}
+                            />
+                          </Tooltip>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
+            /* --- BẢNG LIST VIEW NHƯ CŨ CỦA BẠN --- */
             <Table
               columns={columns}
               dataSource={filteredCourses}
@@ -539,16 +716,6 @@ export default function CourseManagement() {
                 className: "px-5 py-4"
               }}
               className="custom-table"
-              locale={{
-                emptyText: (
-                  <div className="py-12 flex flex-col items-center">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-slate-300">
-                      <BookOpen size={32} />
-                    </div>
-                    <Empty description={<span className="text-slate-400 font-medium">Không tìm thấy khóa học nào</span>} />
-                  </div>
-                )
-              }}
               onRow={(record) => ({
                 onClick: () => navigate(`/dashboard/teacher/courses/${record.id}`),
                 className: "cursor-pointer hover:bg-slate-50 transition-colors"
@@ -558,6 +725,7 @@ export default function CourseManagement() {
         </div>
       </div>
 
+      {/* TOÀN BỘ MODALS BÊN DƯỚI ĐƯỢC GIỮ NGUYÊN KHÔNG THAY ĐỔI */}
       {/* Create Course Modal */}
       <Modal
         title={null}
@@ -569,9 +737,6 @@ export default function CourseManagement() {
       >
         <div className="pt-4 px-2">
           <div className="mb-6 text-center">
-            <div className="w-12 h-12 bg-blue-50 text-[#0487e2] rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <BookOpen size={24} />
-            </div>
             <h3 className="text-xl font-bold text-slate-800">Tạo Khóa Học Mới</h3>
             <p className="text-slate-500 text-sm mt-1">Khởi tạo nhanh khóa học để bắt đầu thiết kế bài giảng</p>
           </div>
@@ -675,10 +840,10 @@ export default function CourseManagement() {
                       <Select.Option value={3}>Nâng cao</Select.Option>
                     </Select>
                   </Form.Item>
-                  <Form.Item name="language" label="Ngôn Ngữ" initialValue="Vietnamese">
+                  <Form.Item name="language" label="Ngôn Ngữ" initialValue="vi">
                     <Select className="h-11 [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent hover:[&>.ant-select-selector]:!bg-white">
-                      <Select.Option value="Vietnamese">Tiếng Việt</Select.Option>
-                      <Select.Option value="English">Tiếng Anh</Select.Option>
+                      <Select.Option value="vi">Tiếng Việt</Select.Option>
+                      <Select.Option value="en">Tiếng Anh</Select.Option>
                     </Select>
                   </Form.Item>
                 </div>
@@ -711,15 +876,15 @@ export default function CourseManagement() {
       >
         <div className="pt-4">
           <Form form={editForm} layout="vertical" onFinish={handleEditSubmit}>
-            <Form.Item name="title" label="Tên Khóa Học" rules={[{ required: true }]}>
+            <Form.Item name="title" label="Tên Khóa Học" rules={[{ required: true, message: 'Vui lòng nhập tên khóa học!' }]}>
               <Input className="h-11 rounded-lg" />
             </Form.Item>
 
             <div className="grid grid-cols-2 gap-4">
-              <Form.Item name="code" label="Mã Khóa" rules={[{ required: true }]}>
+              <Form.Item name="code" label="Mã Khóa" rules={[{ required: true, message: 'Vui lòng nhập mã khóa!' }]}>
                 <Input className="h-11 rounded-lg uppercase" />
               </Form.Item>
-              <Form.Item name="subjectId" label="Môn Học" rules={[{ required: true }]}>
+              <Form.Item name="subjectId" label="Môn Học" rules={[{ required: true, message: 'Vui lòng chọn môn học!' }]}>
                 <Select className="h-11">
                   {subjects.map(s => <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>)}
                 </Select>
@@ -727,12 +892,12 @@ export default function CourseManagement() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Form.Item name="gradeLevelId" label="Khối Lớp" rules={[{ required: true }]}>
+              <Form.Item name="gradeLevelId" label="Khối Lớp" rules={[{ required: true, message: 'Vui lòng chọn khối lớp!' }]}>
                 <Select className="h-11">
                   {grades.map(g => <Select.Option key={g.id} value={g.id}>{g.name}</Select.Option>)}
                 </Select>
               </Form.Item>
-              <Form.Item name="categoryId" label="Danh Mục" rules={[{ required: true }]}>
+              <Form.Item name="categoryId" label="Danh Mục" rules={[{ required: true, message: 'Vui lòng chọn danh mục!' }]}>
                 <Select className="h-11">
                   {categories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
                 </Select>
@@ -749,8 +914,8 @@ export default function CourseManagement() {
               </Form.Item>
               <Form.Item name="language" label="Ngôn Ngữ">
                 <Select className="h-11">
-                  <Select.Option value="Vietnamese">Tiếng Việt</Select.Option>
-                  <Select.Option value="English">Tiếng Anh</Select.Option>
+                  <Select.Option value="vi">Tiếng Việt</Select.Option>
+                  <Select.Option value="en">Tiếng Anh</Select.Option>
                 </Select>
               </Form.Item>
             </div>
@@ -790,14 +955,24 @@ export default function CourseManagement() {
               name="classId"
               label="Chọn Lớp Học"
               rules={[{ required: true, message: 'Vui lòng chọn lớp học!' }]}
-              extra="Chỉ các lớp bạn được phân công mới xuất hiện ở đây."
+              extra="Chỉ hiển thị các lớp do bạn phụ trách và có cùng khối Lớp với Khóa học."
             >
               <Select placeholder="Tìm và chọn lớp..." className="h-11">
-                {classes.map(c => (
-                  <Select.Option key={c.id} value={c.id}>
-                    {c.name} - {c.gradeName || 'Khối N/A'}
-                  </Select.Option>
-                ))}
+                {classes
+                  .filter(c => {
+                    const cGradeId = c.gradeLevelId || c.gradeId;
+                    const courseGradeId = assigningCourse?.gradeLevelId || assigningCourse?.gradeId;
+                    if (!courseGradeId || !cGradeId) return true;
+                    return String(cGradeId) === String(courseGradeId);
+                  })
+                  .map(c => {
+                    const gradeName = c.gradeName || grades.find(g => g.id === c.gradeLevelId || g.id === c.gradeId)?.name || 'Khối N/A';
+                    return (
+                      <Select.Option key={c.id} value={c.id}>
+                        {c.name} - {gradeName}
+                      </Select.Option>
+                    );
+                  })}
               </Select>
             </Form.Item>
 
@@ -810,6 +985,7 @@ export default function CourseManagement() {
           </Form>
         </div>
       </Modal>
+
       {/* Template Preview Modal */}
       <Modal
         title={<div className="flex items-center gap-2"><Eye size={20} className="text-[#0487e2]" /><span className="font-bold">Cấu trúc Template</span></div>}
