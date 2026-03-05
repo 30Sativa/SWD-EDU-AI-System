@@ -1,10 +1,11 @@
-import { Search, Filter, Users, Calendar, BookOpen, Layers, Edit, Eye, MoreVertical } from 'lucide-react';
+import { Search, Filter, Users, Calendar, BookOpen, Layers, Edit, Eye, MoreVertical, Book } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getTeacherHomeroomClasses } from '../../api/classApi';
-import { Spin, Table, Button, Input, Select, Tag, Tooltip, Empty, message } from 'antd';
+import { getTeacherHomeroomClasses, getTeacherAssignedClasses } from '../../api/classApi';
+import { Spin, Table, Button, Input, Select, Tag, Tooltip, Empty, message, Tabs } from 'antd';
 import { getGradeLevels } from '../../../grade/api/gradeApi';
 import { getTerms } from '../../../term/api/termApi';
+import { getCurrentUser } from '../../../user/api/userApi';
 
 function extractList(res) {
     if (!res) return [];
@@ -15,11 +16,13 @@ function extractList(res) {
 const ClassManagement = () => {
     const navigate = useNavigate();
     const [classes, setClasses] = useState([]);
+    const [assignedClasses, setAssignedClasses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [gradesMap, setGradesMap] = useState({});
     const [termsMap, setTermsMap] = useState({});
+    const [activeTab, setActiveTab] = useState('homeroom');
 
     useEffect(() => {
         const fetchDependencies = async () => {
@@ -46,28 +49,35 @@ const ClassManagement = () => {
         };
         fetchDependencies();
 
-        const fetchClasses = async () => {
+        const fetchData = async () => {
             try {
                 setLoading(true);
-                const res = await getTeacherHomeroomClasses();
+                const userRes = await getCurrentUser();
+                const userId = userRes?.data?.id || userRes?.id;
 
-                let allItems = extractList(res);
-                setClasses(allItems);
+                const [classesRes, assignedRes] = await Promise.all([
+                    getTeacherHomeroomClasses(),
+                    userId ? getTeacherAssignedClasses(userId) : Promise.resolve({ data: [] })
+                ]);
+
+                setClasses(extractList(classesRes));
+                setAssignedClasses(extractList(assignedRes));
             } catch (err) {
                 console.error('Lỗi tải danh sách lớp:', err);
                 message.error('Không thể tải danh sách lớp học');
-                setClasses([]);
             } finally {
                 setLoading(false);
             }
         };
-        fetchClasses();
+        fetchData();
     }, []);
 
-    const filteredClasses = classes.filter(c => {
+    const currentData = activeTab === 'homeroom' ? classes : assignedClasses;
+
+    const filteredClasses = currentData.filter(c => {
         const term = searchTerm.toLowerCase();
-        const title = (c.name ?? c.title ?? '').toLowerCase();
-        const code = (c.code ?? '').toLowerCase();
+        const title = (c.name ?? c.className ?? c.title ?? '').toLowerCase();
+        const code = (c.code ?? c.classCode ?? '').toLowerCase();
 
         const matchesSearch = title.includes(term) || code.includes(term);
 
@@ -92,8 +102,8 @@ const ClassManagement = () => {
                         <BookOpen size={24} />
                     </div>
                     <div>
-                        <div className="font-bold text-slate-700 text-[15px]">{record.name}</div>
-                        <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{record.code || '---'}</div>
+                        <div className="font-bold text-slate-700 text-[15px]">{record.name || record.className}</div>
+                        <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{record.code || record.classCode || '---'}</div>
                     </div>
                 </div>
             )
@@ -103,6 +113,12 @@ const ClassManagement = () => {
             key: 'info',
             render: (_, record) => (
                 <div className="space-y-1">
+                    {activeTab === 'assigned' && record.subjectName && (
+                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 mb-1">
+                            <Book size={14} />
+                            <span>Môn: {record.subjectName}</span>
+                        </div>
+                    )}
                     <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
                         <Layers size={14} className="text-slate-400" />
                         <span>{record.gradeName || gradesMap[record.gradeLevelId] || gradesMap[record.gradeId] || `Khối ${record.gradeLevelId || record.gradeId || '?'}`}</span>
@@ -160,7 +176,7 @@ const ClassManagement = () => {
                             className="text-slate-400 hover:text-blue-600 hover:bg-blue-50"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/dashboard/teacher/classes/${record.id}/students`);
+                                navigate(`/dashboard/teacher/classes/${record.id || record.classId}/students`);
                             }}
                         />
                     </Tooltip>
@@ -195,6 +211,37 @@ const ClassManagement = () => {
 
                 {/* Main Content Card */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+
+                    {/* Tabs */}
+                    <div className="px-5 pt-4 bg-white border-b border-slate-100">
+                        <Tabs
+                            activeKey={activeTab}
+                            onChange={setActiveTab}
+                            className="teacher-classes-tabs"
+                            items={[
+                                {
+                                    key: 'homeroom',
+                                    label: (
+                                        <span className="flex items-center gap-2 px-1 pb-1">
+                                            <Users size={18} />
+                                            Lớp chủ nhiệm
+                                            <Tag className="ml-1 rounded-full border-none bg-blue-50 text-blue-600 font-bold">{classes.length}</Tag>
+                                        </span>
+                                    )
+                                },
+                                {
+                                    key: 'assigned',
+                                    label: (
+                                        <span className="flex items-center gap-2 px-1 pb-1">
+                                            <Book size={18} />
+                                            Lớp bộ môn
+                                            <Tag className="ml-1 rounded-full border-none bg-emerald-50 text-emerald-600 font-bold">{assignedClasses.length}</Tag>
+                                        </span>
+                                    )
+                                }
+                            ]}
+                        />
+                    </div>
 
                     {/* Toolbar */}
                     <div className="px-5 py-4 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -235,7 +282,7 @@ const ClassManagement = () => {
                         <Table
                             columns={columns}
                             dataSource={filteredClasses}
-                            rowKey="id"
+                            rowKey={(record) => record.id || `${record.classId}-${record.subjectId}`}
                             pagination={{
                                 pageSize: 10,
                                 showSizeChanger: false,
@@ -246,14 +293,18 @@ const ClassManagement = () => {
                                 emptyText: (
                                     <div className="py-12 flex flex-col items-center">
                                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-slate-300">
-                                            <BookOpen size={32} />
+                                            {activeTab === 'homeroom' ? <BookOpen size={32} /> : <Book size={32} />}
                                         </div>
-                                        <Empty description={<span className="text-slate-400 font-medium">Không tìm thấy lớp học nào</span>} />
+                                        <Empty description={<span className="text-slate-400 font-medium">
+                                            {activeTab === 'homeroom'
+                                                ? 'Bạn không làm chủ nhiệm lớp học nào'
+                                                : 'Bạn chưa được phân công môn học cho lớp nào'}
+                                        </span>} />
                                     </div>
                                 )
                             }}
                             onRow={(record) => ({
-                                onClick: () => navigate(`/dashboard/teacher/classes/${record.id}/students`),
+                                onClick: () => navigate(`/dashboard/teacher/classes/${record.id || record.classId}/students`),
                                 className: "cursor-pointer hover:bg-slate-50 transition-colors"
                             })}
                         />

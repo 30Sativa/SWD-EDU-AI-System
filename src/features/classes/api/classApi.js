@@ -44,3 +44,11 @@ export const deleteClass = (id) => {
 export const assignSubjectTeacher = (id, data) => {
     return axiosClient.post(`/api/manager/classes/${id}/subject-teachers`, data);
 };
+
+export const getSubjectTeachers = (id) => {
+    return axiosClient.get(`/api/manager/classes/${id}/subject-teachers`);
+};
+
+export const getTeacherAssignedClasses = (teacherId) => {
+    return axiosClient.get(`/api/manager/classes/teacher/${teacherId}/class-subjects`);
+};

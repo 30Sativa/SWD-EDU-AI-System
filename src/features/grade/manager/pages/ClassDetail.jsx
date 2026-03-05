@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Spin, Button, message, Tag, Descriptions, Form, Select, Card, Empty } from 'antd';
 import { ArrowLeft, BookOpen, Users, UserPlus, ShieldPlus } from 'lucide-react';
-import { getClassDetail, assignSubjectTeacher } from '../../../classes/api/classApi';
+import { getClassDetail, assignSubjectTeacher, getSubjectTeachers } from '../../../classes/api/classApi';
 import { getGradeLevels } from '../../api/gradeApi';
 import { getUsers, ROLE_ENUM } from '../../../user/api/userApi';
 import { getTerms } from '../../../term/api/termApi';
@@ -22,16 +22,18 @@ export default function ClassDetail() {
 
     const [assignForm] = Form.useForm();
     const [assignSubmitting, setAssignSubmitting] = useState(false);
+    const [subjectTeachers, setSubjectTeachers] = useState([]);
 
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [classRes, gradeRes, teacherRes, termRes, subjectRes] = await Promise.all([
+            const [classRes, gradeRes, teacherRes, termRes, subjectRes, subjectTeachersRes] = await Promise.all([
                 getClassDetail(id),
                 getGradeLevels(),
                 getUsers({ RoleFilter: ROLE_ENUM.TEACHER, PageSize: 100 }),
                 getTerms().catch(() => ({ data: [] })),
-                getSubjects().catch(() => ({ data: [] }))
+                getSubjects().catch(() => ({ data: [] })),
+                getSubjectTeachers(id).catch(() => ({ data: [] }))
             ]);
 
             setClassData(classRes.data || classRes);
@@ -45,6 +47,7 @@ export default function ClassDetail() {
             setTeachers(Array.isArray(teacherItems) ? teacherItems : []);
             setTerms(Array.isArray(termItems) ? termItems : []);
             setSubjects(Array.isArray(subjectItems) ? subjectItems : []);
+            setSubjectTeachers(subjectTeachersRes?.data || []);
 
         } catch (error) {
             console.error(error);
@@ -165,11 +168,36 @@ export default function ClassDetail() {
 
                         {/* Subject Teachers List */}
                         <Card variant="borderless" className="shadow-sm rounded-2xl [&>.ant-card-head]:border-b-slate-100" title={<span className="text-lg font-bold text-slate-700 flex items-center gap-2"><Users size={20} className="text-emerald-500" />Giáo viên Bộ môn hiện tại</span>}>
-                            <div className="text-center py-10 bg-slate-50/50 rounded-xl border-2 border-slate-100 border-dashed">
-                                <ShieldPlus size={40} className="mx-auto text-slate-300 mb-3" />
-                                <p className="text-slate-500 font-medium text-base">Tính năng danh sách đang được cập nhật</p>
-                                <p className="text-slate-400 text-sm mt-1">Các giáo viên bộ môn được phân công sẽ xuất hiện tại đây.</p>
-                            </div>
+                            {subjectTeachers.length > 0 ? (
+                                <div className="space-y-4">
+                                    {subjectTeachers.map((st, index) => (
+                                        <div key={index} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-xl border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/10 transition-all group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold shadow-sm">
+                                                    {(st.fullName || 'T').charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-slate-700">{st.subjectName}</h4>
+                                                    <p className="text-slate-500 text-sm font-medium flex items-center gap-1">
+                                                        <span>{st.fullName}</span>
+                                                        <span className="text-slate-300">•</span>
+                                                        <span className="text-slate-400 text-xs">{st.email}</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {/* Delete functionality will be added here if needed */}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-10 bg-slate-50/50 rounded-xl border-2 border-slate-100 border-dashed">
+                                    <ShieldPlus size={40} className="mx-auto text-slate-300 mb-3" />
+                                    <p className="text-slate-500 font-medium text-base">Chưa có giáo viên bộ môn nào được phân công</p>
+                                    <p className="text-slate-400 text-sm mt-1">Sử dụng bảng bên phải để bắt đầu phân công.</p>
+                                </div>
+                            )}
                         </Card>
                     </div>
 
