@@ -14,11 +14,13 @@ builder.Configuration.AddEnvironmentVariables();
 //  CHECK CONFIG NGAY SAU KHI BUILD CONFIG
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var apiKey = builder.Configuration["Gemini:ApiKey"];
+var emailPassword = builder.Configuration["EmailSettings:Password"];
 Console.WriteLine("===== JWT CONFIG CHECK =====");
 Console.WriteLine("Issuer   : " + jwtSection["Issuer"]);
 Console.WriteLine("Audience : " + jwtSection["Audience"]);
 Console.WriteLine("Secret   : " + jwtSection["Secret"]);
 Console.WriteLine("ApiKey   : " + apiKey);
+Console.WriteLine("Emaill Setting password" + emailPassword);
 Console.WriteLine("============================");
 
 //  nếu thiếu thì cho chết sớm
