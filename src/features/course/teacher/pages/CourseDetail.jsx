@@ -150,13 +150,25 @@ export default function CourseDetail() {
     }, [courseId, fetchDetail]);
 
     const handlePublish = async () => {
+        if (!course?.title?.trim() || !course?.description?.trim() || !course?.thumbnail?.trim()) {
+            message.warning('Vui lòng cập nhật đầy đủ Tên khóa học, Mô tả và Ảnh bìa (Thumbnail) trước khi xuất bản.');
+            form.setFieldsValue(course);
+            setIsEditModalOpen(true);
+            return;
+        }
+
         try {
             setSubmitting(true);
             await publishTeacherCourse(courseId);
             message.success('Xuất bản khóa học thành công!');
             fetchDetail();
         } catch (error) {
-            message.error(error.response?.data?.message || 'Lỗi khi xuất bản khóa học');
+            const errorMsg = error.response?.data?.Message || error.response?.data?.message || 'Lỗi khi xuất bản khóa học';
+            if (errorMsg === "Course not ready.") {
+                message.error('Khóa học chưa sẵn sàng. Vui lòng cập nhật đầy đủ Tên khóa học, Mô tả và Ảnh bìa.');
+            } else {
+                message.error(errorMsg);
+            }
         } finally {
             setSubmitting(false);
         }
@@ -167,18 +179,26 @@ export default function CourseDetail() {
             setSubmitting(true);
             const payload = {
                 title: values.title,
-                slug: slugify(values.title),
-                description: values.description,
-                thumbnail: values.thumbnail,
-                level: parseInt(values.level),
-                language: values.language || "Vietnamese"
+                description: values.description || "",
+                thumbnail: values.thumbnail || "",
+                level: parseInt(values.level) || 1,
+                language: values.language || "vi"
             };
             await updateTeacherCourse(courseId, payload);
             message.success('Cập nhật thông tin thành công!');
             setIsEditModalOpen(false);
             fetchDetail();
         } catch (error) {
-            message.error('Không thể cập nhật thông tin');
+            console.error(error);
+            const errorData = error.response?.data;
+            let errorMsg = errorData?.Message || errorData?.title || errorData?.message || 'Không thể cập nhật thông tin';
+
+            if (errorData?.errors) {
+                const validationErrors = Object.values(errorData.errors).flat().join(", ");
+                errorMsg = `${errorMsg}: ${validationErrors}`;
+            }
+
+            message.error(errorMsg);
         } finally {
             setSubmitting(false);
         }
@@ -448,13 +468,18 @@ export default function CourseDetail() {
                 {/* --- COURSE INFO CARD --- */}
                 <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
                     <div className="flex flex-col md:flex-row gap-6">
-                        <div className="flex-shrink-0">
-                            {course.thumbnail ? (
-                                <img src={course.thumbnail} className="w-24 h-24 rounded-lg object-cover shadow-sm" alt="Thumbnail" />
-                            ) : (
-                                <div className="w-24 h-24 bg-[#0487e2]/10 text-[#0487e2] rounded-lg flex items-center justify-center text-3xl font-bold">
-                                    <BookOpen size={36} />
-                                </div>
+                        <div className="flex-shrink-0 relative w-24 h-24 rounded-lg overflow-hidden bg-blue-50 flex items-center justify-center border border-slate-100 shadow-sm text-[#0487e2]">
+                            <BookOpen size={36} className="absolute z-0 opacity-50" />
+                            {course.thumbnail && (
+                                <img
+                                    src={course.thumbnail}
+                                    className="absolute inset-0 z-10 w-full h-full object-cover"
+                                    alt="Thumbnail"
+                                    onError={(e) => {
+                                        // Hide on error to show background icon
+                                        e.target.style.display = 'none';
+                                    }}
+                                />
                             )}
                         </div>
 
@@ -574,7 +599,7 @@ export default function CourseDetail() {
                 className="rounded-2xl"
             >
                 <Form form={form} layout="vertical" onFinish={handleUpdateSubmit} className="pt-4">
-                    <Form.Item name="title" label="Tên khóa học" rules={[{ required: true }]}>
+                    <Form.Item name="title" label="Tên khóa học" rules={[{ required: true, message: 'Vui lòng nhập tên khóa học!' }]}>
                         <Input className="h-11 rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white font-medium shadow-none" />
                     </Form.Item>
 
@@ -592,8 +617,8 @@ export default function CourseDetail() {
                         </Form.Item>
                         <Form.Item name="language" label="Ngôn ngữ">
                             <Select className="h-11 [&>.ant-select-selector]:!rounded-lg [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent">
-                                <Select.Option value="Vietnamese">Tiếng Việt</Select.Option>
-                                <Select.Option value="English">Tiếng Anh</Select.Option>
+                                <Select.Option value="vi">Tiếng Việt</Select.Option>
+                                <Select.Option value="en">Tiếng Anh</Select.Option>
                             </Select>
                         </Form.Item>
                     </div>

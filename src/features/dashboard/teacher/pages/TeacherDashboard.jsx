@@ -30,7 +30,7 @@ import {
 } from 'recharts';
 import { getMyCourses } from '../../../course/api/courseApi';
 import { getClasses } from '../../../classes/api/classApi';
-import { Spin } from 'antd';
+import { Spin, message } from 'antd';
 
 // Fallback data when API chưa trả đủ / cho biểu đồ
 const defaultSparkline = [{ v: 10 }, { v: 15 }, { v: 12 }, { v: 20 }, { v: 25 }, { v: 22 }, { v: 30 }];
@@ -102,6 +102,14 @@ export default function TeacherDashboard() {
       data: defaultSparkline,
       color: '#10b981'
     },
+    {
+      label: 'Khóa học được xuất bản',
+      value: publishedCount,
+      change: '—',
+      trend: 'neutral',
+      data: defaultSparkline,
+      color: '#6366f1'
+    },
   ];
 
   const courseDistributionData = [
@@ -148,9 +156,12 @@ export default function TeacherDashboard() {
             {isCreateOpen && (
               <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
 
-                <button className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
-                  <FileText size={16} className="text-[#0487e2]" />
-                  <span>Tạo bài học</span>
+                <button
+                  onClick={() => navigate('/dashboard/teacher/courses')}
+                  className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 text-sm text-gray-700 transition-colors"
+                >
+                  <BookOpen size={16} className="text-[#0487e2]" />
+                  <span>Tạo khóa học mới</span>
                 </button>
                 <button className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
                   <HelpCircle size={16} className="text-[#0487e2]" />
@@ -163,7 +174,7 @@ export default function TeacherDashboard() {
       </header>
 
       {/* Stats Grid with Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {summaryCards.map((card, index) => (
           <div key={index} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] flex flex-col justify-between h-40 relative overflow-hidden group">
             <div className="relative z-10 flex justify-between items-start">
@@ -331,7 +342,10 @@ export default function TeacherDashboard() {
             </div>
 
             <div className="grid grid-cols-1 gap-2.5">
-              <button className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 backdrop-blur-sm transition-all group text-left">
+              <button
+                onClick={() => message.info('Tính năng đang được phát triển. Vui lòng thử lại sau!')}
+                className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 backdrop-blur-sm transition-all group text-left"
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-1.5 bg-white/20 rounded-lg"><HelpCircle size={16} /></div>
                   <span className="font-medium text-sm">Tạo Đề thi</span>
@@ -339,7 +353,10 @@ export default function TeacherDashboard() {
                 <ArrowRight size={16} className="opacity-70 group-hover:translate-x-1 group-hover:opacity-100 transition-all" />
               </button>
 
-              <button className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 backdrop-blur-sm transition-all group text-left">
+              <button
+                onClick={() => message.info('Tính năng đang được phát triển. Vui lòng thử lại sau!')}
+                className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 backdrop-blur-sm transition-all group text-left"
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-1.5 bg-white/20 rounded-lg"><CheckSquare size={16} /></div>
                   <span className="font-medium text-sm">Chấm bài Tự động</span>
@@ -347,7 +364,10 @@ export default function TeacherDashboard() {
                 <ArrowRight size={16} className="opacity-70 group-hover:translate-x-1 group-hover:opacity-100 transition-all" />
               </button>
 
-              <button className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 backdrop-blur-sm transition-all group text-left">
+              <button
+                onClick={() => message.info('Tính năng đang được phát triển. Vui lòng thử lại sau!')}
+                className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 backdrop-blur-sm transition-all group text-left"
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-1.5 bg-white/20 rounded-lg"><PenTool size={16} /></div>
                   <span className="font-medium text-sm">Soạn Giáo án</span>
@@ -355,7 +375,10 @@ export default function TeacherDashboard() {
                 <ArrowRight size={16} className="opacity-70 group-hover:translate-x-1 group-hover:opacity-100 transition-all" />
               </button>
 
-              <button className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 backdrop-blur-sm transition-all group text-left">
+              <button
+                onClick={() => message.info('Tính năng đang được phát triển. Vui lòng thử lại sau!')}
+                className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 backdrop-blur-sm transition-all group text-left"
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-1.5 bg-white/20 rounded-lg"><BarChart2 size={16} /></div>
                   <span className="font-medium text-sm">Phân tích Học sinh</span>

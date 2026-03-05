@@ -180,19 +180,20 @@ export default function CreateTemplate() {
 
         try {
             setLoading(true);
-            message.loading({ content: 'Đang lưu từng chương vào hệ thống...', key: 'save_struct' });
+            message.loading({ content: 'Đang lưu cấu trúc vào hệ thống...', key: 'save_struct' });
 
-            // Lưu từng chương một bằng API POST để đảm bảo vào DB chuẩn
-            for (let i = 0; i < scannedSections.length; i++) {
-                const sec = scannedSections[i];
-                const payload = {
-                    title: sec.title || sec.Title,
-                    slug: slugify(sec.title || sec.Title),
-                    description: sec.description || sec.Description || "",
-                    sortOrder: i + 1
-                };
-                await createSection(createdCourseId, payload);
-            }
+            const payload = scannedSections.map((sec, i) => ({
+                title: sec.title || sec.Title,
+                description: sec.description || sec.Description || "",
+                sortOrder: sec.sortOrder || (i + 1),
+                lessons: Array.isArray(sec.lessons || sec.Lessons) ? (sec.lessons || sec.Lessons).map((l, j) => ({
+                    title: l.title || l.Title,
+                    description: l.description || l.Description || "",
+                    sortOrder: l.sortOrder || (j + 1)
+                })) : []
+            }));
+
+            await saveCourseStructure(createdCourseId, payload);
 
             message.success({ content: 'Lưu toàn bộ cấu trúc khóa học thành công!', key: 'save_struct' });
             setCurrentStep(3); // Complete
@@ -211,11 +212,33 @@ export default function CreateTemplate() {
     };
 
     const addSection = () => {
-        setScannedSections([...scannedSections, { title: 'Chương mới', description: '' }]);
+        setScannedSections([...scannedSections, { title: 'Chương mới', description: '', lessons: [] }]);
     };
 
     const removeSection = (index) => {
         setScannedSections(scannedSections.filter((_, i) => i !== index));
+    };
+
+    const handleLessonChange = (sIdx, lIdx, field, value) => {
+        const newSections = [...scannedSections];
+        const lessons = newSections[sIdx].lessons || newSections[sIdx].Lessons || [];
+        lessons[lIdx][field] = value;
+        newSections[sIdx].lessons = lessons;
+        setScannedSections(newSections);
+    };
+
+    const addLesson = (sIdx) => {
+        const newSections = [...scannedSections];
+        const lessons = newSections[sIdx].lessons || newSections[sIdx].Lessons || [];
+        newSections[sIdx].lessons = [...lessons, { title: 'Bài học mới', description: '' }];
+        setScannedSections(newSections);
+    };
+
+    const removeLesson = (sIdx, lIdx) => {
+        const newSections = [...scannedSections];
+        const lessons = newSections[sIdx].lessons || newSections[sIdx].Lessons || [];
+        newSections[sIdx].lessons = lessons.filter((_, i) => i !== lIdx);
+        setScannedSections(newSections);
     };
 
     const stepItems = [
@@ -408,17 +431,54 @@ export default function CreateTemplate() {
                                             </div>
                                             <div className="flex-1 space-y-3">
                                                 <Input
-                                                    value={section.title}
+                                                    value={section.title || section.Title}
                                                     onChange={(e) => handleSectionChange(index, 'title', e.target.value)}
                                                     placeholder="Tên chương..."
                                                     className="font-bold text-slate-700 h-10"
                                                 />
                                                 <TextArea
-                                                    value={section.description}
+                                                    value={section.description || section.Description}
                                                     onChange={(e) => handleSectionChange(index, 'description', e.target.value)}
                                                     placeholder="Mô tả chương (Tùy chọn)..."
                                                     rows={2}
                                                 />
+
+                                                {/* Lessons Editor */}
+                                                <div className="mt-4 pt-4 border-t border-slate-100">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <h4 className="text-sm font-bold text-slate-600">Bài học trong chương</h4>
+                                                        <Button type="dashed" size="small" icon={<Plus size={14} />} onClick={() => addLesson(index)}>
+                                                            Thêm bài học
+                                                        </Button>
+                                                    </div>
+
+                                                    <div className="space-y-2 pl-4 border-l-2 border-blue-200 ml-2">
+                                                        {(section.lessons || section.Lessons || []).length === 0 ? (
+                                                            <div className="text-xs text-slate-400 italic">Chưa có bài học nào.</div>
+                                                        ) : (
+                                                            (section.lessons || section.Lessons || []).map((lesson, lIdx) => (
+                                                                <div key={lIdx} className="flex items-center gap-2">
+                                                                    <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0">
+                                                                        {index + 1}.{lIdx + 1}
+                                                                    </div>
+                                                                    <Input
+                                                                        value={lesson.title || lesson.Title}
+                                                                        onChange={(e) => handleLessonChange(index, lIdx, 'title', e.target.value)}
+                                                                        placeholder="Tên bài học..."
+                                                                        className="flex-1 text-sm bg-slate-50 border-slate-200"
+                                                                    />
+                                                                    <Button
+                                                                        type="text"
+                                                                        danger
+                                                                        size="small"
+                                                                        icon={<Trash2 size={14} />}
+                                                                        onClick={() => removeLesson(index, lIdx)}
+                                                                    />
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                             <Button
                                                 type="text"
