@@ -40,9 +40,9 @@ import {
     getTeacherCourseDetail,
     publishTeacherCourse,
     updateTeacherCourse,
-    createSection,
-    updateSection,
-    deleteSection,
+    createTeacherSection,
+    updateTeacherSection,
+    deleteTeacherSection,
     getCourseSections
 } from '../../api/courseApi';
 import { createLesson, updateLesson, deleteLesson, getLessonsBySection, getLessonBlocks, createLessonBlock, updateLessonBlock, deleteLessonBlock } from '../../../lesson/api/lessonApi';
@@ -334,15 +334,33 @@ export default function CourseDetail() {
                 }
             }
 
-            // Preserving existing state (lessons and isExpanded) via functional update
+            // Standardizing mapping and filtering soft-deleted sections
             setSections(prev => {
-                return structure.map(sec => {
-                    const existing = prev.find(s => s.id === sec.id);
-                    return {
-                        ...sec,
-                        lessons: existing?.lessons || sec.lessons || sec.Lessons || sec.items || sec.Items || sec.subSections || [],
-                        isExpanded: existing?.isExpanded || false
-                    };
+                console.log("Raw structure to map:", structure);
+                const mapped = structure
+                    .filter(sec => {
+                        // More aggressive deletion check
+                        const isDel = sec.isDeleted || sec.IsDeleted || sec.status === 'Deleted' || sec.Status === 'Deleted' || sec.isdeleted || sec.deleted === true;
+                        return !isDel;
+                    })
+                    .map(sec => {
+                        const secId = sec.id || sec.Id || sec.sectionId || sec.SectionId;
+                        const secSortOrder = sec.sortOrder ?? sec.SortOrder ?? sec.order ?? sec.Order ?? 0;
+                        const existing = prev.find(s => (s.id || s.Id) === secId);
+                        return {
+                            ...sec,
+                            id: secId,
+                            sortOrder: Number(secSortOrder),
+                            lessons: existing?.lessons || sec.lessons || sec.Lessons || sec.items || sec.Items || sec.subSections || [],
+                            isExpanded: existing?.isExpanded || false
+                        };
+                    });
+
+                // Stable sort by sortOrder, then by original ID to prevent jumping
+                return [...mapped].sort((a, b) => {
+                    const diff = a.sortOrder - b.sortOrder;
+                    if (diff !== 0) return diff;
+                    return String(a.id).localeCompare(String(b.id));
                 });
             });
 
@@ -509,7 +527,7 @@ export default function CourseDetail() {
                 description: values.description || "",
                 sortOrder: sections.length + 1
             };
-            await createSection(courseId, payload);
+            await createTeacherSection(courseId, payload);
             message.success('Thêm chương mới thành công!');
             setIsSectionModalOpen(false);
             sectionForm.resetFields();
@@ -525,13 +543,15 @@ export default function CourseDetail() {
     const handleUpdateSection = async (values) => {
         try {
             setSubmitting(true);
+            const currentOrder = editingSection.sortOrder ?? editingSection.order ?? editingSection.SortOrder ?? (sections.findIndex(s => s.id === editingSection.id) + 1);
             const payload = {
                 title: values.title,
                 slug: slugify(values.title),
                 description: values.description || "",
-                sortOrder: editingSection.sortOrder || 1
+                sortOrder: Number(currentOrder),
+                order: Number(currentOrder) // Include both just in case
             };
-            await updateSection(courseId, editingSection.id, payload);
+            await updateTeacherSection(courseId, editingSection.id, payload);
             message.success('Cập nhật chương thành công!');
             setIsEditSectionModalOpen(false);
             setEditingSection(null);
@@ -544,7 +564,16 @@ export default function CourseDetail() {
         }
     };
 
-    const handleDeleteSection = (sectionId) => {
+    const handleDeleteSection = (sectionIdOrObj) => {
+        const targetSectionId = typeof sectionIdOrObj === 'object'
+            ? (sectionIdOrObj.id || sectionIdOrObj.Id || sectionIdOrObj.sectionId || sectionIdOrObj.SectionId)
+            : sectionIdOrObj;
+
+        if (!targetSectionId) {
+            message.warning("Không tìm thấy mã chương!");
+            return;
+        }
+
         Modal.confirm({
             title: 'Xóa chương này?',
             content: 'Toàn bộ bài học trong chương cũng sẽ bị xóa vĩnh viễn.',
@@ -552,12 +581,28 @@ export default function CourseDetail() {
             okType: 'danger',
             cancelText: 'Hủy',
             onOk: async () => {
+                const prevSectionsState = [...sections];
                 try {
-                    await deleteSection(courseId, sectionId);
-                    message.success('Đã xóa chương thành công!');
-                    fetchDetail();
-                } catch {
-                    message.error('Lỗi khi xóa chương');
+                    // Force immediately remove from UI with case-insensitive comparison
+                    setSections(prev => prev.filter(s => {
+                        const sid = String(s.id || s.Id || s.sectionId || s.SectionId || "").toLowerCase();
+                        const tid = String(targetSectionId || "").toLowerCase();
+                        return sid !== tid && sid !== "";
+                    }));
+
+                    message.loading({ content: 'Đang xử lý xóa...', key: 'deleting_section' });
+                    await deleteTeacherSection(courseId, targetSectionId);
+                    message.success({ content: 'Đã xóa chương thành công!', key: 'deleting_section' });
+
+                    // Delay refresh to let server update consistency 
+                    setTimeout(() => fetchDetail(), 1000);
+                } catch (error) {
+                    console.error("Delete section failed:", error);
+                    message.error({
+                        content: error.response?.data?.message || 'Lỗi khi xóa chương',
+                        key: 'deleting_section'
+                    });
+                    setSections(prevSectionsState); // Rollback on error
                 }
             }
         });
@@ -736,7 +781,7 @@ export default function CourseDetail() {
                 description: movedSection.description || movedSection.Description || "",
                 sortOrder: newIndex + 1
             };
-            await updateSection(courseId, movedSection.id, payload);
+            await updateTeacherSection(courseId, movedSection.id, payload);
             message.success({ content: 'Đã cập nhật thứ tự chương', key: 'sort_update' });
         } catch {
             message.error({ content: 'Lỗi khi cập nhật thứ tự', key: 'sort_update' });
@@ -1717,7 +1762,7 @@ const SortableSection = React.memo(({
                             className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteSection(session.id);
+                                handleDeleteSection(session);
                             }}
                         >
                             <Trash2 size={14} />

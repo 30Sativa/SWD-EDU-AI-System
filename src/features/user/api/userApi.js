@@ -63,6 +63,10 @@ export const getCurrentUser = () => {
     return axiosClient.get('/api/users/me');
 };
 
+export const updateMyProfile = (data) => {
+    return axiosClient.put('/api/users/me/profile', data);
+};
+
 export const importUsers = (file) => {
     const formData = new FormData();
     formData.append('file', file);

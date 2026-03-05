@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { message, Button, Divider } from 'antd';
+import { Modal, Form, Input, Select, DatePicker, message, Button, Divider } from 'antd';
+import dayjs from 'dayjs';
 import {
     User,
     Mail,
@@ -12,29 +13,68 @@ import {
     ExternalLink,
     Award,
     CheckCircle2,
-    Camera
+    Camera,
+    Info
 } from 'lucide-react';
-import { getCurrentUser, getRoleName } from '../api/userApi';
+import { getCurrentUser, getRoleName, updateMyProfile } from '../api/userApi';
 
 export default function Profile() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
 
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [form] = Form.useForm();
+
+    const fetchProfile = async () => {
+        try {
+            setLoading(true);
+            const response = await getCurrentUser();
+            const userData = response?.data || response;
+            setUser(userData);
+        } catch (error) {
+            console.error('Failed to fetch profile:', error);
+            message.error('Không thể tải thông tin cá nhân');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const response = await getCurrentUser();
-                const userData = response?.data || response;
-                setUser(userData);
-            } catch (error) {
-                console.error('Failed to fetch profile:', error);
-                message.error('Không thể tải thông tin cá nhân');
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchProfile();
     }, []);
+
+    const handleOpenEditModal = () => {
+        const profile = user.profile || {};
+        form.setFieldsValue({
+            fullName: user.fullName || profile.fullName,
+            phoneNumber: user.phoneNumber || profile.phoneNumber,
+            dateOfBirth: profile.dateOfBirth ? dayjs(profile.dateOfBirth) : null,
+            gender: profile.gender || 'Other',
+            address: user.address || profile.address,
+            bio: profile.bio || ''
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdateProfile = async (values) => {
+        try {
+            setSubmitting(true);
+            const payload = {
+                ...values,
+                dateOfBirth: values.dateOfBirth ? values.dateOfBirth.format('YYYY-MM-DD') : null
+            };
+            await updateMyProfile(payload);
+            message.success('Cập nhật hồ sơ thành công!');
+            setIsEditModalOpen(false);
+            fetchProfile(); // Refresh data
+        } catch (error) {
+            console.error('Update profile error:', error);
+            message.error(error.response?.data?.message || 'Lỗi khi cập nhật hồ sơ');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     if (loading) return (
         <div className="flex flex-col justify-center items-center h-[70vh] gap-4">
@@ -75,6 +115,7 @@ export default function Profile() {
                 </div>
                 <Button
                     icon={<Edit2 size={16} />}
+                    onClick={handleOpenEditModal}
                     className="h-10 px-5 rounded-lg font-medium border-slate-300 text-slate-700 hover:text-slate-900 hover:border-slate-400"
                 >
                     Chỉnh sửa hồ sơ
@@ -181,6 +222,20 @@ export default function Profile() {
                             </div>
 
                             <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ngày sinh</label>
+                                <p className="text-base font-semibold text-slate-700 border-b border-slate-50 pb-2">
+                                    {user.profile?.dateOfBirth ? dayjs(user.profile.dateOfBirth).format('DD/MM/YYYY') : <span className="text-slate-300 font-normal italic">Chưa cập nhật</span>}
+                                </p>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Giới tính</label>
+                                <p className="text-base font-semibold text-slate-700 border-b border-slate-50 pb-2">
+                                    {user.profile?.gender === 'Male' ? 'Nam' : user.profile?.gender === 'Female' ? 'Nữ' : user.profile?.gender === 'Other' ? 'Khác' : <span className="text-slate-300 font-normal italic">Chưa cập nhật</span>}
+                                </p>
+                            </div>
+
+                            <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vai trò</label>
                                 <p className="text-base font-semibold text-slate-700 border-b border-slate-50 pb-2">{getRoleName(user.role)}</p>
                             </div>
@@ -189,6 +244,13 @@ export default function Profile() {
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Địa chỉ</label>
                                 <p className="text-base font-semibold text-slate-700 border-b border-slate-50 pb-2">
                                     {user.profile?.address || user.address || <span className="text-slate-300 font-normal italic">Chưa cập nhật</span>}
+                                </p>
+                            </div>
+
+                            <div className="md:col-span-2 space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Giới thiệu (Bio)</label>
+                                <p className="text-base font-semibold text-slate-700 border-b border-slate-50 pb-2 whitespace-pre-line">
+                                    {user.profile?.bio || <span className="text-slate-300 font-normal italic">Chưa có thông tin giới thiệu bản thân</span>}
                                 </p>
                             </div>
                         </div>
@@ -202,6 +264,108 @@ export default function Profile() {
                     </div>
                 </div>
             </div>
+
+            {/* Edit Profile Modal */}
+            <Modal
+                title={
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-[#0487e2]">
+                            <Edit2 size={20} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-800">Chỉnh sửa hồ sơ</h3>
+                            <p className="text-xs text-slate-400 font-medium">Cập nhật thông tin cá nhân của bạn</p>
+                        </div>
+                    </div>
+                }
+                open={isEditModalOpen}
+                onCancel={() => setIsEditModalOpen(false)}
+                footer={null}
+                width={650}
+                centered
+                destroyOnClose
+            >
+                <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={handleUpdateProfile}
+                    className="mt-6"
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                        <Form.Item
+                            label={<span className="font-semibold text-slate-700">Họ và tên</span>}
+                            name="fullName"
+                            rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}
+                        >
+                            <Input placeholder="Nguyễn Văn A" className="h-11 rounded-lg" />
+                        </Form.Item>
+
+                        <Form.Item
+                            label={<span className="font-semibold text-slate-700">Số điện thoại</span>}
+                            name="phoneNumber"
+                        >
+                            <Input placeholder="0987xxxxxx" className="h-11 rounded-lg" />
+                        </Form.Item>
+
+                        <Form.Item
+                            label={<span className="font-semibold text-slate-700">Ngày sinh</span>}
+                            name="dateOfBirth"
+                        >
+                            <DatePicker
+                                className="w-full h-11 rounded-lg"
+                                format="DD/MM/YYYY"
+                                placeholder="Chọn ngày sinh"
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            label={<span className="font-semibold text-slate-700">Giới tính</span>}
+                            name="gender"
+                        >
+                            <Select className="h-11 [&>.ant-select-selector]:!rounded-lg [&>.ant-select-selector]:!h-11 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center">
+                                <Select.Option value="Male">Nam</Select.Option>
+                                <Select.Option value="Female">Nữ</Select.Option>
+                                <Select.Option value="Other">Khác</Select.Option>
+                            </Select>
+                        </Form.Item>
+
+                        <div className="md:col-span-2">
+                            <Form.Item
+                                label={<span className="font-semibold text-slate-700">Địa chỉ</span>}
+                                name="address"
+                            >
+                                <Input.TextArea placeholder="Nhập địa chỉ của bạn" rows={2} className="rounded-lg p-3" />
+                            </Form.Item>
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <Form.Item
+                                label={<span className="font-semibold text-slate-700">Giới thiệu bản thân (Bio)</span>}
+                                name="bio"
+                            >
+                                <Input.TextArea placeholder="Chia sẻ một chút về bản thân bạn..." rows={3} className="rounded-lg p-3" />
+                            </Form.Item>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-6 border-t border-slate-100 mt-4">
+                        <Button
+                            className="flex-1 h-11 rounded-lg font-semibold border-slate-200 text-slate-600 hover:bg-slate-50"
+                            onClick={() => setIsEditModalOpen(false)}
+                        >
+                            Hủy bỏ
+                        </Button>
+                        <Button
+                            type="primary"
+                            htmlType="submit"
+                            loading={submitting}
+                            className="flex-1 h-11 rounded-lg font-bold bg-[#0487e2] border-none shadow-md"
+                        >
+                            Lưu thay đổi
+                        </Button>
+                    </div>
+                </Form>
+            </Modal>
         </div>
     );
 }

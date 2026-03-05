@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import StudentHeader from './StudentHeader';
 import Footer from './Footer';
 import ScrollToTop from './ScrollToTop';
+import CheckProfileWrapper from './CheckProfileWrapper';
 
 export default function StudentLayout() {
     return (
@@ -11,7 +12,9 @@ export default function StudentLayout() {
             <StudentHeader />
 
             <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
-                <Outlet />
+                <CheckProfileWrapper>
+                    <Outlet />
+                </CheckProfileWrapper>
             </main>
 
             <Footer />
