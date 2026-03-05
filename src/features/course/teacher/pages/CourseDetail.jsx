@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import dayjs from 'dayjs';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Eye,
@@ -32,7 +33,7 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Spin, message, Modal, Form, Input, Select, Button, Tag, Empty, Switch } from 'antd';
+import { Spin, message, Modal, Form, Input, Select, Button, Tag, Empty, Switch, DatePicker, InputNumber } from 'antd';
 import {
     getTeacherCourseDetail,
     publishTeacherCourse,
@@ -136,11 +137,14 @@ export default function CourseDetail() {
             const payload = {
                 courseId: courseId,
                 title: values.title,
-                description: values.description || ""
+                description: values.description || "",
+                dueDate: values.dueDate ? values.dueDate.toISOString() : null,
+                maxScore: parseInt(values.maxScore) || 10
             };
 
             if (editingAssignment) {
-                await updateAssignment(editingAssignment.id, payload);
+                const editId = editingAssignment.id || editingAssignment.Id || editingAssignment.assignmentId || editingAssignment.AssignmentId;
+                await updateAssignment(editId, payload);
                 message.success('Cập nhật bài tập thành công!');
             } else {
                 await createAssignment(payload);
@@ -203,13 +207,17 @@ export default function CourseDetail() {
     const toggleAssignmentPublish = async (assignment) => {
         try {
             message.loading({ content: 'Đang xử lý...', key: 'publish_assignment' });
-            const isPublished = assignment.isPublished || assignment.IsPublished;
+            // Detect publish status as boolean, supporting both Boolean and String 'true' from backend
+            const rawStatus = assignment.isPublished ?? assignment.IsPublished ?? assignment.status ?? false;
+            const isPublished = rawStatus === true || rawStatus === "true" || rawStatus === "Published" || rawStatus === 1;
+
+            const assignmentId = assignment.id || assignment.Id || assignment.assignmentId || assignment.AssignmentId || assignment.courseAssignmentId;
 
             if (isPublished) {
-                await unpublishAssignment(assignment.id);
+                await unpublishAssignment(assignmentId);
                 message.success({ content: 'Đã ẩn bài tập!', key: 'publish_assignment' });
             } else {
-                await publishAssignment(assignment.id);
+                await publishAssignment(assignmentId);
                 message.success({ content: 'Đã công bố bài tập!', key: 'publish_assignment' });
             }
             fetchAssignments();
@@ -871,48 +879,80 @@ export default function CourseDetail() {
                         </div>
 
                         <div className="space-y-4">
-                            {assignments.length > 0 ? assignments.map((assignment, index) => (
-                                <div key={assignment.id} className="bg-white border border-slate-200 rounded-xl p-4 flex justify-between items-center hover:border-blue-300 transition-all">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h4 className="font-bold text-slate-800">{assignment.title || assignment.Title}</h4>
-                                            <Tag color={assignment.isPublished || assignment.IsPublished ? "success" : "default"}>
-                                                {assignment.isPublished || assignment.IsPublished ? "Đã công bố" : "Đang ẩn"}
-                                            </Tag>
+                            {assignments.length > 0 ? assignments.map((assignment, index) => {
+                                const assignmentId = assignment.id || assignment.Id || assignment.assignmentId || assignment.AssignmentId || assignment.courseAssignmentId;
+                                return (
+                                    <div key={assignmentId} className="bg-white border border-slate-200 rounded-xl p-4 flex justify-between items-center hover:border-blue-300 transition-all">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="font-bold text-slate-800">{assignment.title || assignment.Title}</h4>
+                                                {(() => {
+                                                    const rawStatus = assignment.isPublished ?? assignment.IsPublished ?? assignment.status ?? false;
+                                                    const isPublished = rawStatus === true || rawStatus === "true" || rawStatus === "Published" || rawStatus === 1;
+                                                    return (
+                                                        <>
+                                                            <Tag color={isPublished ? "success" : "default"}>
+                                                                {isPublished ? "Đã công bố" : "Đang ẩn"}
+                                                            </Tag>
+                                                        </>
+                                                    );
+                                                })()}
+                                            </div>
+                                            <p className="text-sm text-slate-500 mb-2">{assignment.description || assignment.Description || "Không có mô tả"}</p>
+                                            <div className="flex items-center gap-4 text-[11px] font-bold uppercase tracking-wider">
+                                                <div className="flex items-center gap-1.5 text-slate-400">
+                                                    <Clock size={12} className="text-slate-300" />
+                                                    Hạn nộp: <span className={assignment.dueDate || assignment.DueDate ? "text-slate-600" : "text-slate-300 italic"}>
+                                                        {(assignment.dueDate || assignment.DueDate)
+                                                            ? dayjs(assignment.dueDate || assignment.DueDate).format('HH:mm, DD/MM/YYYY')
+                                                            : "Chưa thiết lập"}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 text-slate-400 border-l border-slate-200 pl-4">
+                                                    <CheckSquare size={12} className="text-slate-300" />
+                                                    Điểm tối đa: <span className="text-[#0487e2]">{assignment.maxScore || assignment.MaxScore || 10}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <p className="text-sm text-slate-500">{assignment.description || assignment.Description || "Không có mô tả"}</p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => toggleAssignmentPublish(assignment)}
+                                                className="h-8 px-3 flex items-center justify-center text-xs font-bold text-slate-600 border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-lg"
+                                            >
+                                                {(() => {
+                                                    const rawStatus = assignment.isPublished ?? assignment.IsPublished ?? assignment.status ?? false;
+                                                    const isPublished = rawStatus === true || rawStatus === "true" || rawStatus === "Published" || rawStatus === 1;
+                                                    return isPublished ? "Ẩn" : "Công bố";
+                                                })()}
+                                            </button>
+                                            <button
+                                                className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 focus:bg-blue-50 rounded-lg transition-colors border border-transparent shadow-sm"
+                                                onClick={() => {
+                                                    const editId = assignment.id || assignment.Id;
+                                                    setEditingAssignment(assignment);
+                                                    assignmentForm.setFieldsValue({
+                                                        title: assignment.title || assignment.Title,
+                                                        description: assignment.description || assignment.Description,
+                                                        dueDate: (assignment.dueDate || assignment.DueDate) ? dayjs(assignment.dueDate || assignment.DueDate) : null,
+                                                        maxScore: assignment.maxScore || assignment.MaxScore || 10
+                                                    });
+                                                    setIsAssignmentModalOpen(true);
+                                                }}
+                                                title="Chỉnh sửa"
+                                            >
+                                                <Edit3 size={14} />
+                                            </button>
+                                            <button
+                                                className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 focus:bg-rose-50 rounded-lg transition-colors border border-transparent shadow-sm"
+                                                onClick={() => handleDeleteAssignment(assignmentId)}
+                                                title="Xóa"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => toggleAssignmentPublish(assignment)}
-                                            className="h-8 px-3 flex items-center justify-center text-xs font-bold text-slate-600 border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-lg"
-                                        >
-                                            {assignment.isPublished || assignment.IsPublished ? "Ẩn" : "Công bố"}
-                                        </button>
-                                        <button
-                                            className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 focus:bg-blue-50 rounded-lg transition-colors border border-transparent shadow-sm"
-                                            onClick={() => {
-                                                setEditingAssignment(assignment);
-                                                assignmentForm.setFieldsValue({
-                                                    title: assignment.title || assignment.Title,
-                                                    description: assignment.description || assignment.Description
-                                                });
-                                                setIsAssignmentModalOpen(true);
-                                            }}
-                                            title="Chỉnh sửa"
-                                        >
-                                            <Edit3 size={14} />
-                                        </button>
-                                        <button
-                                            className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 focus:bg-rose-50 rounded-lg transition-colors border border-transparent shadow-sm"
-                                            onClick={() => handleDeleteAssignment(assignment.id)}
-                                            title="Xóa"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-                            )) : (
+                                );
+                            }) : (
                                 <div className="py-20 bg-white rounded-2xl border border-slate-200 border-dashed flex flex-col items-center justify-center text-center">
                                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-slate-200">
                                         <FileText size={32} />
@@ -1256,6 +1296,15 @@ export default function CourseDetail() {
                         <Input.TextArea rows={4} className="rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white" />
                     </Form.Item>
 
+                    <div className="grid grid-cols-2 gap-4">
+                        <Form.Item name="dueDate" label="Hạn nộp bài">
+                            <DatePicker showTime className="w-full h-11 rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white" placeholder="Chọn ngày giờ" />
+                        </Form.Item>
+                        <Form.Item name="maxScore" label="Điểm tối đa" initialValue={10}>
+                            <InputNumber min={0} max={100} className="w-full h-11 rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white flex items-center" />
+                        </Form.Item>
+                    </div>
+
                     <div className="flex gap-3 pt-4 border-t border-slate-100 mt-2">
                         <Button className="flex-1 h-11 rounded-xl font-bold text-slate-500 border-slate-200" onClick={() => {
                             setIsAssignmentModalOpen(false);
@@ -1446,6 +1495,16 @@ const SortableSection = React.memo(({
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1 opacity-10 group-hover/lesson:opacity-100 transition-opacity">
+                                    <button
+                                        className="p-2 text-slate-400 hover:text-blue-500 hover:bg-white rounded-lg transition-colors shadow-sm"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/dashboard/teacher/courses/${courseId}/lessons/${lesson.id}`);
+                                        }}
+                                        title="Xem chi tiết bài học"
+                                    >
+                                        <Eye size={14} />
+                                    </button>
                                     <button
                                         className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-white rounded-lg transition-colors shadow-sm"
                                         onClick={(e) => {
