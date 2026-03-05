@@ -8,6 +8,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Collections.Generic;
 
 namespace EduAISystem.WebAPI.Controllers.Manager
 {
@@ -124,6 +125,28 @@ namespace EduAISystem.WebAPI.Controllers.Manager
             }, cancellationToken);
 
             return Ok(ApiResponse<object>.Ok(null, "Phân công giáo viên bộ môn thành công"));
+        }
+
+        [HttpGet("{id:guid}/subject-teachers")]
+        [SwaggerOperation(
+            Summary = "Danh sách GV bộ môn của lớp",
+            Description = "Lấy danh sách tất cả giáo viên được phân công dạy bộ môn trong lớp học theo classId")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<ClassSubjectTeacherResponseDto>>))]
+        public async Task<IActionResult> GetClassSubjectTeachers(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new GetClassSubjectTeachersQuery { ClassId = id }, cancellationToken);
+            return Ok(ApiResponse<List<ClassSubjectTeacherResponseDto>>.Ok(result, "Danh sách giáo viên bộ môn của lớp"));
+        }
+
+        [HttpGet("teacher/{teacherId:guid}/class-subjects")]
+        [SwaggerOperation(
+            Summary = "Danh sách lớp GV được phân công",
+            Description = "Lấy danh sách các lớp mà giáo viên đó được phân công dạy bộ môn theo teacherId")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<TeacherClassSubjectResponseDto>>))]
+        public async Task<IActionResult> GetTeacherClassSubjects(Guid teacherId, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new GetTeacherClassSubjectsQuery { TeacherId = teacherId }, cancellationToken);
+            return Ok(ApiResponse<List<TeacherClassSubjectResponseDto>>.Ok(result, "Danh sách lớp giáo viên được phân công"));
         }
     }
 }

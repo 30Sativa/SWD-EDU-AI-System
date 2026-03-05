@@ -93,5 +93,17 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             var classDetail = await _mediator.Send(new GetClassByIdQuery { Id = classId }, cancellationToken);
             return classDetail != null && classDetail.TeacherId == _currentUser.UserId;
         }
+
+        [HttpGet("subject-assignments")]
+        [SwaggerOperation(
+            Summary = "Danh sách lớp GV được phân công bộ môn",
+            Description = "Lấy danh sách tất cả các lớp mà giáo viên hiện tại được phân công dạy bộ môn (ClassSubjectTeachers)")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<TeacherClassSubjectResponseDto>>))]
+        public async Task<IActionResult> GetMySubjectAssignments(CancellationToken cancellationToken)
+        {
+            var teacherId = _currentUser.UserId;
+            var result = await _mediator.Send(new GetTeacherClassSubjectsQuery { TeacherId = teacherId }, cancellationToken);
+            return Ok(ApiResponse<List<TeacherClassSubjectResponseDto>>.Ok(result, "Danh sách lớp được phân công dạy bộ môn"));
+        }
     }
 }
