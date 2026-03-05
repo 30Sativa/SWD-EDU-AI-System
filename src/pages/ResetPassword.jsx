@@ -8,7 +8,6 @@ export default function ResetPassword() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token');
-    const email = searchParams.get('email');
 
     const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
@@ -19,11 +18,11 @@ export default function ResetPassword() {
     const [isSuccess, setIsSuccess] = useState(false);
 
     useEffect(() => {
-        if (!token || !email) {
+        if (!token) {
             message.error('Liên kết không hợp lệ hoặc đã hết hạn.');
             navigate('/login');
         }
-    }, [token, email, navigate]);
+    }, [token, navigate]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -39,9 +38,9 @@ export default function ResetPassword() {
         setIsLoading(true);
         try {
             await resetPasswordAPI({
-                email,
                 token,
-                newPassword: formData.password
+                newPassword: formData.password,
+                confirmPassword: formData.confirmPassword
             });
             setIsSuccess(true);
             message.success('Đặt lại mật khẩu thành công!');

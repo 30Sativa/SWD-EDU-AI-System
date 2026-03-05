@@ -22,3 +22,7 @@ export const forgotPasswordAPI = async (email) => {
 export const resetPasswordAPI = async (values) => {
     return axiosClient.post('/api/Auth/reset-password', values);
 };
+
+export const verifyEmailAPI = async (token) => {
+    return axiosClient.post('/api/Auth/verify-email', { token });
+};
