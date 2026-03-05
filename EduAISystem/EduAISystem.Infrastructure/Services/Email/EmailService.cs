@@ -9,11 +9,12 @@ namespace EduAISystem.Infrastructure.Services.Email
     /// <summary>
     /// Email service dùng MailKit + SMTP.
     /// Config trong appsettings.json:
-    /// "Email": {
-    ///   "SmtpHost": "smtp.gmail.com",
-    ///   "SmtpPort": 587,
+    /// "EmailSettings": {
+    ///   "SmtpServer": "smtp.gmail.com",
+    ///   "Port": 587,
     ///   "SenderEmail": "your@gmail.com",
     ///   "SenderName": "EduAI System",
+    ///   "Username": "your@gmail.com",
     ///   "Password": "app_password_here"
     /// }
     /// </summary>
@@ -86,11 +87,12 @@ namespace EduAISystem.Infrastructure.Services.Email
         // =============================================
         private async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
         {
-            var smtpHost = _config["Email:SmtpHost"] ?? "smtp.gmail.com";
-            var smtpPort = int.Parse(_config["Email:SmtpPort"] ?? "587");
-            var senderEmail = _config["Email:SenderEmail"] ?? "";
-            var senderName = _config["Email:SenderName"] ?? "EduAI System";
-            var password = _config["Email:Password"] ?? "";
+            var smtpHost = _config["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
+            var smtpPort = int.Parse(_config["EmailSettings:Port"] ?? "587");
+            var senderEmail = _config["EmailSettings:SenderEmail"] ?? "";
+            var senderName = _config["EmailSettings:SenderName"] ?? "EduAI System";
+            var username = _config["EmailSettings:Username"] ?? senderEmail;
+            var password = _config["EmailSettings:Password"] ?? "";
 
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(senderName, senderEmail));
@@ -100,7 +102,7 @@ namespace EduAISystem.Infrastructure.Services.Email
 
             using var client = new SmtpClient();
             await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls);
-            await client.AuthenticateAsync(senderEmail, password);
+            await client.AuthenticateAsync(username, password);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);
         }
