@@ -19,5 +19,11 @@ namespace EduAISystem.Application.Abstractions.Persistence
             bool? isActiveFilter,
             bool? includeDeleted = false,
             CancellationToken cancellationToken = default);
+
+        /// <summary>Lấy user theo GoogleId (cho Google OAuth login)</summary>
+        Task<UserDomain?> GetByGoogleIdAsync(string googleId, CancellationToken cancellationToken = default);
+
+        /// <summary>Cập nhật toàn bộ user (IsEmailVerified, GoogleId, PasswordHash, IsActive...)</summary>
+        Task UpdateAsync(UserDomain user, CancellationToken cancellationToken = default);
     }
 }

@@ -24,11 +24,14 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 Email = user.Email,
                 PasswordHash = user.PasswordHash,
                 IsActive = user.IsActive,
+                IsEmailVerified = user.IsEmailVerified,
+                GoogleId = user.GoogleId,
                 Role = (int)user.Role,
                 CreatedAt = user.CreatedAt,
                 UserProfile = new Entities.UserProfile
                 {
-                    FullName = user.UserProfile?.FullName ?? string.Empty
+                    FullName = user.UserProfile?.FullName ?? string.Empty,
+                    AvatarUrl = user.UserProfile?.AvatarUrl
                 }
             };
             _context.Users.Add(entity);
@@ -131,6 +134,8 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 entity.Email,
                 entity.PasswordHash,
                 entity.IsActive ?? false,
+                entity.IsEmailVerified ?? false,
+                entity.GoogleId,
                 (UserRoleDomain)entity.Role,
                 entity.CreatedAt ?? DateTime.MinValue,
                 entity.DeletedAt);
@@ -168,6 +173,8 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 entity.Email,
                 entity.PasswordHash,
                 entity.IsActive ?? false,
+                entity.IsEmailVerified ?? false,
+                entity.GoogleId,
                 (UserRoleDomain)entity.Role,
                 entity.CreatedAt ?? DateTime.MinValue
             );
@@ -223,6 +230,8 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                     u.Email,
                     u.PasswordHash,
                     u.IsActive ?? false,
+                    u.IsEmailVerified ?? false,
+                    u.GoogleId,
                     (UserRoleDomain)u.Role,
                     u.CreatedAt ?? DateTime.MinValue,
                     u.DeletedAt);
@@ -246,6 +255,42 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 Page = page,
                 PageSize = pageSize
             };
+        }
+
+        public async Task<UserDomain?> GetByGoogleIdAsync(string googleId, CancellationToken cancellationToken = default)
+        {
+            var entity = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.GoogleId == googleId && u.DeletedAt == null, cancellationToken);
+
+            if (entity == null) return null;
+
+            return new UserDomain(
+                entity.Id,
+                entity.Email,
+                entity.PasswordHash,
+                entity.IsActive ?? false,
+                entity.IsEmailVerified ?? false,
+                entity.GoogleId,
+                (UserRoleDomain)entity.Role,
+                entity.CreatedAt ?? DateTime.MinValue);
+        }
+
+        public async Task UpdateAsync(UserDomain user, CancellationToken cancellationToken = default)
+        {
+            var entity = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == user.Id, cancellationToken);
+
+            if (entity == null) return;
+
+            entity.PasswordHash = user.PasswordHash;
+            entity.IsEmailVerified = user.IsEmailVerified;
+            entity.IsActive = user.IsActive;
+            entity.IsFirstLogin = user.IsFirstLogin;
+            entity.GoogleId = user.GoogleId;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
         }
     }
 }

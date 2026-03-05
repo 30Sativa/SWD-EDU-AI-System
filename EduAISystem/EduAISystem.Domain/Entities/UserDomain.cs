@@ -13,6 +13,7 @@ namespace EduAISystem.Domain.Entities
         public UserRoleDomain Role { get; private set; }
         public bool IsFirstLogin { get; private set; }
         public bool IsEmailVerified { get; private set; }
+        public string? GoogleId { get; private set; }
 
         public DateTime CreatedAt { get; private set; }
         public DateTime? DeletedAt { get; private set; }
@@ -42,6 +43,8 @@ namespace EduAISystem.Domain.Entities
             string email,
             string passwordHash,
             bool isActive,
+            bool isEmailVerified,
+            string? googleId,
             UserRoleDomain role,
             DateTime createdAt,
             DateTime? deletedAt = null)
@@ -50,11 +53,13 @@ namespace EduAISystem.Domain.Entities
             Email = email;
             PasswordHash = passwordHash;
             IsActive = isActive;
+            IsEmailVerified = isEmailVerified;
+            GoogleId = googleId;
             Role = role;
             CreatedAt = createdAt;
             DeletedAt = deletedAt;
         }
-        // Factory method to create a new UserDomain
+        // Factory method to create a new UserDomain (self-register → cần verify email)
         public static UserDomain Create(
             string email,
             string passwordHash,
@@ -71,8 +76,39 @@ namespace EduAISystem.Domain.Entities
                 UserProfile = profile,
                 Role = role,
                 IsActive = true,
+                IsEmailVerified = false, // phải verify email trước khi login
                 CreatedAt = DateTime.UtcNow
             };
+        }
+
+        // Factory method: tạo user từ Google OAuth (email đã trusted, không cần verify)
+        public static UserDomain CreateViaGoogle(
+            string email,
+            string googleId,
+            string fullName,
+            string? avatarUrl,
+            UserRoleDomain role)
+        {
+            var userId = Guid.NewGuid();
+            var profile = new UserProfileDomain(userId, fullName, avatarUrl);
+            return new UserDomain
+            {
+                Id = userId,
+                Email = email,
+                PasswordHash = string.Empty, // không cần password khi dùng Google
+                GoogleId = googleId,
+                UserProfile = profile,
+                Role = role,
+                IsActive = true,
+                IsEmailVerified = true, // Google đã verify rồi
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+
+        public void LinkGoogleAccount(string googleId)
+        {
+            GoogleId = googleId;
+            IsEmailVerified = true; // link Google → coi như verified
         }
         // Factory method to create an imported UserDomain
         public static UserDomain CreateImported(string email, string passwordHash, string fullName, UserRoleDomain role)
@@ -115,7 +151,11 @@ namespace EduAISystem.Domain.Entities
 
         }
 
-        public bool CanLogin() => IsActive;
+        /// <summary>
+        /// User có thể login nếu: đang active VÀ email đã được verify
+        /// (Google user luôn verified; user tự đăng ký cần xác nhận qua email)
+        /// </summary>
+        public bool CanLogin() => IsActive && IsEmailVerified;
 
  
         public void ChangePassword(string newHash)

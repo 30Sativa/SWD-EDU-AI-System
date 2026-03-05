@@ -55,7 +55,12 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<ISubmissionRepository, SubmissionRepository>();
             services.AddScoped<ILessonBlockRepository, LessonBlockRepository>();
             services.AddScoped<ILessonFaqRepository, LessonFaqRepository>();
-            // 3. Services khác (nếu có)
+            // 3. Auth Token Repositories
+            services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+            services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();
+            // 4. Google OAuth
+            services.AddScoped<IGoogleTokenVerifier, GoogleTokenVerifier>();
+            // 5. Services khác (nếu có)
             services.Configure<GeminiSettings>(
                     configuration.GetSection("Gemini"));
 

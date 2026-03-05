@@ -58,6 +58,8 @@ public partial class EduAiDbV5Context : DbContext
 
     public virtual DbSet<PasswordReset> PasswordResets { get; set; }
 
+    public virtual DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; }
+
     public virtual DbSet<Question> Questions { get; set; }
 
     public virtual DbSet<QuestionOption> QuestionOptions { get; set; }
@@ -606,6 +608,25 @@ public partial class EduAiDbV5Context : DbContext
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("FK__PasswordR__UserI__6D0D32F4");
         });
+
+        modelBuilder.Entity<EmailVerificationToken>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("EmailVerificationTokens");
+
+            entity.HasIndex(e => e.Token).IsUnique()
+                .HasDatabaseName("UQ_EmailVerificationTokens_Token");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Token).HasMaxLength(64);
+            entity.Property(e => e.IsUsed).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+
+            entity.HasOne(d => d.User).WithMany(p => p.EmailVerificationTokens)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_EmailVerificationTokens_Users");
+        });
+
 
         modelBuilder.Entity<Question>(entity =>
         {
