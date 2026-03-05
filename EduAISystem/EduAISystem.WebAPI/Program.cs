@@ -20,7 +20,7 @@ Console.WriteLine("Issuer   : " + jwtSection["Issuer"]);
 Console.WriteLine("Audience : " + jwtSection["Audience"]);
 Console.WriteLine("Secret   : " + jwtSection["Secret"]);
 Console.WriteLine("ApiKey   : " + apiKey);
-Console.WriteLine("Emaill Setting password" + emailPassword);
+Console.WriteLine("Emaill Setting password: " + emailPassword);
 Console.WriteLine("============================");
 
 //  nếu thiếu thì cho chết sớm
