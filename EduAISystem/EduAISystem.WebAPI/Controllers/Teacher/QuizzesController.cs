@@ -3,6 +3,7 @@ using EduAISystem.Application.Features.Quiz.Commands;
 using EduAISystem.Application.Features.Quiz.DTOs.Request;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace EduAISystem.WebAPI.Controllers.Teacher
 {
@@ -11,10 +12,12 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
     public class QuizzesController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly ILogger<QuizzesController> _logger;
 
-        public QuizzesController(IMediator mediator)
+        public QuizzesController(IMediator mediator, ILogger<QuizzesController> logger)
         {
             _mediator = mediator;
+            _logger = logger;
         }
 
         [HttpPost("formative")]
@@ -22,8 +25,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             [FromBody] CreateFormativeQuizRequestDto dto,
             CancellationToken cancellationToken)
         {
-            var quizId = await _mediator.Send(new CreateFormativeQuizCommand(dto), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(quizId, "Tạo formative quiz thành công!"));
+            try
+            {
+                var quizId = await _mediator.Send(new CreateFormativeQuizCommand(dto), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(quizId, "Tạo formative quiz thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI TẠO FORMATIVE QUIZ] MãTrace: {TraceId} | MãBàiHọc: {LessonId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, dto?.LessonId, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         [HttpPost("summative")]
@@ -31,8 +45,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             [FromBody] CreateSummativeQuizRequestDto dto,
             CancellationToken cancellationToken)
         {
-            var quizId = await _mediator.Send(new CreateSummativeQuizCommand(dto), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(quizId, "Tạo summative quiz thành công!"));
+            try
+            {
+                var quizId = await _mediator.Send(new CreateSummativeQuizCommand(dto), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(quizId, "Tạo summative quiz thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI TẠO SUMMATIVE QUIZ] MãTrace: {TraceId} | MãKhoáHọc: {CourseId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, dto?.CourseId, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         [HttpPost("{quizId:guid}/questions")]
@@ -41,8 +66,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             [FromBody] AddQuestionRequestDto dto,
             CancellationToken cancellationToken)
         {
-            var questionId = await _mediator.Send(new AddQuestionToQuizCommand(quizId, dto), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(questionId, "Thêm câu hỏi vào quiz thành công!"));
+            try
+            {
+                var questionId = await _mediator.Send(new AddQuestionToQuizCommand(quizId, dto), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(questionId, "Thêm câu hỏi vào quiz thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI THÊM CÂU HỎI VÀO QUIZ] MãTrace: {TraceId} | MãQuiz: {QuizId} | Nội dung câu hỏi: {QuestionText} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, quizId, dto?.QuestionText?[..Math.Min(dto.QuestionText.Length, 100)], ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         [HttpPut("{quizId:guid}")]
@@ -51,8 +87,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             [FromBody] UpdateQuizRequestDto dto,
             CancellationToken cancellationToken)
         {
-            var updatedId = await _mediator.Send(new UpdateQuizCommand(quizId, dto), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(updatedId, "Cập nhật quiz thành công!"));
+            try
+            {
+                var updatedId = await _mediator.Send(new UpdateQuizCommand(quizId, dto), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(updatedId, "Cập nhật quiz thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI CẬP NHẬT QUIZ] MãTrace: {TraceId} | MãQuiz: {QuizId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, quizId, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         [HttpDelete("{quizId:guid}")]
@@ -60,8 +107,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             Guid quizId,
             CancellationToken cancellationToken)
         {
-            await _mediator.Send(new DeleteQuizCommand(quizId), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(quizId, "Xoá quiz thành công!"));
+            try
+            {
+                await _mediator.Send(new DeleteQuizCommand(quizId), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(quizId, "Xoá quiz thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI XOÁ QUIZ] MãTrace: {TraceId} | MãQuiz: {QuizId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, quizId, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         [HttpPut("{quizId:guid}/questions/{questionId:guid}")]
@@ -71,8 +129,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             [FromBody] UpdateQuestionRequestDto dto,
             CancellationToken cancellationToken)
         {
-            await _mediator.Send(new UpdateQuestionInQuizCommand(quizId, questionId, dto), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(questionId, "Cập nhật câu hỏi thành công!"));
+            try
+            {
+                await _mediator.Send(new UpdateQuestionInQuizCommand(quizId, questionId, dto), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(questionId, "Cập nhật câu hỏi thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI CẬP NHẬT CÂU HỎI TRONG QUIZ] MãTrace: {TraceId} | MãQuiz: {QuizId} | MãCâuHỏi: {QuestionId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, quizId, questionId, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         [HttpDelete("{quizId:guid}/questions/{questionId:guid}")]
@@ -81,8 +150,20 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             Guid questionId,
             CancellationToken cancellationToken)
         {
-            await _mediator.Send(new DeleteQuestionFromQuizCommand(quizId, questionId), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(questionId, "Xoá câu hỏi thành công!"));
+            try
+            {
+                await _mediator.Send(new DeleteQuestionFromQuizCommand(quizId, questionId), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(questionId, "Xoá câu hỏi thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI XOÁ CÂU HỎI KHỎI QUIZ] MãTrace: {TraceId} | MãQuiz: {QuizId} | MãCâuHỏi: {QuestionId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, quizId, questionId, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
     }
 }
+
