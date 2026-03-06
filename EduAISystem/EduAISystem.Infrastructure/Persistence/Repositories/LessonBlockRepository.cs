@@ -32,7 +32,9 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                     Content = b.Content,
                     SortOrder = b.SortOrder,
                     IsRequired = b.IsRequired ?? true,
-                    EstimatedMinutes = b.EstimatedMinutes
+                    EstimatedMinutes = b.EstimatedMinutes,
+                    IsAiGenerated = b.IsAiGenerated,
+                    AiSourceType = b.AiSourceType
                 })
                 .ToListAsync(cancellationToken);
         }
@@ -50,7 +52,9 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                     Content = b.Content,
                     SortOrder = b.SortOrder,
                     IsRequired = b.IsRequired ?? true,
-                    EstimatedMinutes = b.EstimatedMinutes
+                    EstimatedMinutes = b.EstimatedMinutes,
+                    IsAiGenerated = b.IsAiGenerated,
+                    AiSourceType = b.AiSourceType
                 })
                 .FirstOrDefaultAsync(cancellationToken);
         }
@@ -114,6 +118,39 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             _context.LessonBlocks.Remove(entity);
             await _context.SaveChangesAsync(cancellationToken);
             return true;
+        }
+
+        /// <summary>
+        /// Thêm một batch blocks do AI sinh ra vào lesson.
+        /// </summary>
+        public async Task<List<Guid>> AddAiGeneratedBatchAsync(
+            Guid lessonId,
+            List<(string BlockType, string Content, int SortOrder, int? EstimatedMinutes)> blocks,
+            string aiSourceType,
+            CancellationToken cancellationToken = default)
+        {
+            var ids = new List<Guid>();
+
+            foreach (var (blockType, content, sortOrder, estimatedMinutes) in blocks)
+            {
+                var entity = new LessonBlock
+                {
+                    Id = Guid.NewGuid(),
+                    LessonId = lessonId,
+                    BlockType = blockType,
+                    Content = content,
+                    SortOrder = sortOrder,
+                    IsRequired = true,
+                    EstimatedMinutes = estimatedMinutes,
+                    IsAiGenerated = true,
+                    AiSourceType = aiSourceType
+                };
+                _context.LessonBlocks.Add(entity);
+                ids.Add(entity.Id);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            return ids;
         }
     }
 }

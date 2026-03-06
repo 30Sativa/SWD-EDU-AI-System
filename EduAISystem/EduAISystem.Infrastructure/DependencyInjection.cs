@@ -56,6 +56,7 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<ISubmissionRepository, SubmissionRepository>();
             services.AddScoped<ILessonBlockRepository, LessonBlockRepository>();
             services.AddScoped<ILessonFaqRepository, LessonFaqRepository>();
+            services.AddScoped<ILessonAiService, LessonAiService>();
             // 3. Auth Token Repositories
             services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
             services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();
@@ -71,6 +72,7 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<IFileStorageService, CloudinaryFileStorageService>();
 
             services.AddHttpClient<ICourseAiService, CourseAiService>();
+            services.AddHttpClient<ILessonAiService, LessonAiService>();
             // services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IExcelUserParser, ExcelUserParser>();
             services.AddScoped<IEmailService, EmailService>();

@@ -13,4 +13,12 @@ namespace EduAISystem.Application.Features.Lessons.Commands
     public record UpdateLessonBlockCommand(Guid Id, UpdateLessonBlockRequestDto Dto) : IRequest<bool>;
 
     public record DeleteLessonBlockCommand(Guid Id) : IRequest<bool>;
+
+    /// <summary>
+    /// Yêu cầu AI sinh danh sách LessonBlock theo chuẩn sư phạm từ nội dung text/PDF.
+    /// Lesson phải có CanUseAI = true. AI là optional – CRUD thủ công vẫn hoạt động.
+    /// </summary>
+    public record GenerateAiLessonBlocksCommand(Guid LessonId, GenerateAiLessonBlocksRequestDto Dto)
+        : IRequest<GenerateAiLessonBlocksResult>;
 }
+
