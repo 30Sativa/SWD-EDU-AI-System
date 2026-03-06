@@ -13,7 +13,11 @@ public partial class Submission
 
     public string? Content { get; set; }
 
-    public string? FileUrl { get; set; }
+    public string? FileUrl { get; set; }       // URL file trên cloud (Azure Blob / Cloudinary)
+    public string? FileName { get; set; }      // Tên file gốc để hiển thị
+    public long? FileSize { get; set; }         // Kích thước file (bytes)
+    public string? FileType { get; set; }      // "PDF", "DOCX", "JPG", ...
+    public DateTime? UploadedAt { get; set; }  // Thời điểm upload file
 
     public decimal? Score { get; set; }
 

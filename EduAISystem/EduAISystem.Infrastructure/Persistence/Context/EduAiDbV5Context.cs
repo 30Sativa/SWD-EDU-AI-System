@@ -133,8 +133,11 @@ public partial class EduAiDbV5Context : DbContext
 
             entity.HasOne(d => d.Document).WithMany(p => p.AilessonDrafts)
                 .HasForeignKey(d => d.DocumentId)
+                .IsRequired(false)                         // DocumentId có thể null
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__AILessonD__Docum__373B3228");
+
+            entity.Property(e => e.InputSourceType).HasMaxLength(50);
         });
 
         modelBuilder.Entity<AilessonDraftBlock>(entity =>
@@ -192,6 +195,10 @@ public partial class EduAiDbV5Context : DbContext
                 .HasColumnType("decimal(5, 2)");
             entity.Property(e => e.Title).HasMaxLength(200);
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.AllowedFileTypes).HasMaxLength(200);
+            entity.Property(e => e.MaxFileSizeMB).HasDefaultValue(10);
+            entity.Property(e => e.AllowTextSubmit).HasDefaultValue(true);
+            entity.Property(e => e.AllowFileSubmit).HasDefaultValue(true);
 
             entity.HasOne(d => d.Course).WithMany(p => p.Assignments)
                 .HasForeignKey(d => d.CourseId)
@@ -462,6 +469,16 @@ public partial class EduAiDbV5Context : DbContext
             entity.Property(e => e.Title).HasMaxLength(200);
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysdatetime())");
             entity.Property(e => e.VideoUrl).HasMaxLength(500);
+            // === Cột mới: Tài liệu & AI ===
+            entity.Property(e => e.MaterialUrl).HasMaxLength(500);
+            entity.Property(e => e.MaterialType).HasMaxLength(50);
+            entity.Property(e => e.VideoType)
+                .HasMaxLength(20)
+                .HasDefaultValue("Link");
+            entity.Property(e => e.CanUseAI).HasDefaultValue(true);
+            entity.Property(e => e.AIProcessingStatus)
+                .HasMaxLength(20)
+                .HasDefaultValue("None");
 
             entity.HasOne(d => d.Section).WithMany(p => p.Lessons)
                 .HasForeignKey(d => d.SectionId)
@@ -874,7 +891,9 @@ public partial class EduAiDbV5Context : DbContext
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.Feedback).HasMaxLength(1000);
-            entity.Property(e => e.FileUrl).HasMaxLength(500);
+            entity.Property(e => e.FileUrl);           // NVARCHAR(MAX) - không giới hạn
+            entity.Property(e => e.FileName).HasMaxLength(255);
+            entity.Property(e => e.FileType).HasMaxLength(50);
             entity.Property(e => e.Score).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)

@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Features.Lessons.Commands;
 using EduAISystem.Application.Features.Lessons.DTOs.Request;
 using EduAISystem.Application.Features.Lessons.Queries;
@@ -68,6 +69,34 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         {
             await _mediator.Send(new DeleteLessonCommand(id));
             return NoContent();
+        }
+
+        // POST: api/teacher/lessons/{id}/upload-material
+        [HttpPost("{id:guid}/upload-material")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadMaterial(
+            Guid id,
+            IFormFile file,
+            [FromServices] IFileStorageService fileStorageService,
+            CancellationToken cancellationToken)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("File không hợp lệ.");
+
+            using var stream = file.OpenReadStream();
+            var uploadResult = await fileStorageService.UploadAsync(
+                stream,
+                file.FileName,
+                file.ContentType,
+                "lessons",
+                cancellationToken);
+
+            return Ok(new
+            {
+                MaterialUrl = uploadResult.FileUrl,
+                MaterialType = uploadResult.FileType,
+                VideoType = uploadResult.FileType == "MP4" ? "File" : null
+            });
         }
     }
 }

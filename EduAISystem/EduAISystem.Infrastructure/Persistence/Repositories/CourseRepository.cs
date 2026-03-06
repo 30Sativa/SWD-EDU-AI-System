@@ -361,6 +361,11 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                         MapLessonStatusToEnum(lessonEntity.Status),
                         lessonEntity.IsPreview,
                         lessonEntity.IsActive,
+                        lessonEntity.MaterialUrl,
+                        lessonEntity.MaterialType,
+                        lessonEntity.VideoType ?? "Link",
+                        lessonEntity.CanUseAI ?? true,
+                        lessonEntity.AIProcessingStatus ?? "None",
                         lessonEntity.CreatedAt,
                         lessonEntity.UpdatedAt,
                         lessonEntity.DeletedAt

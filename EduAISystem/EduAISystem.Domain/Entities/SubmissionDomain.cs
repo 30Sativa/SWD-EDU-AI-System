@@ -13,6 +13,9 @@ namespace EduAISystem.Domain.Entities
         public string? Content { get; private set; }
 
         public string? FileUrl { get; private set; }
+        public string? FileName { get; private set; }
+        public long? FileSize { get; private set; }
+        public string? FileType { get; private set; }
 
         public decimal? Score { get; private set; }
 
@@ -32,6 +35,9 @@ namespace EduAISystem.Domain.Entities
             Guid studentId,
             string? content,
             string? fileUrl,
+            string? fileName,
+            long? fileSize,
+            string? fileType,
             decimal? score,
             string? feedback,
             SubmissionStatusDomain status,
@@ -43,6 +49,9 @@ namespace EduAISystem.Domain.Entities
             StudentId = studentId;
             Content = content;
             FileUrl = fileUrl;
+            FileName = fileName;
+            FileSize = fileSize;
+            FileType = fileType;
             Score = score;
             Feedback = feedback;
             Status = status;
@@ -54,7 +63,10 @@ namespace EduAISystem.Domain.Entities
             Guid assignmentId,
             Guid studentId,
             string? content,
-            string? fileUrl)
+            string? fileUrl,
+            string? fileName,
+            long? fileSize,
+            string? fileType)
         {
             if (assignmentId == Guid.Empty)
                 throw new ArgumentException("AssignmentId là bắt buộc.");
@@ -68,15 +80,21 @@ namespace EduAISystem.Domain.Entities
                 StudentId = studentId,
                 Content = content,
                 FileUrl = fileUrl,
+                FileName = fileName,
+                FileSize = fileSize,
+                FileType = fileType,
                 Status = SubmissionStatusDomain.Submitted,
                 SubmittedAt = DateTime.UtcNow
             };
         }
 
-        public void Resubmit(string? content, string? fileUrl)
+        public void Resubmit(string? content, string? fileUrl, string? fileName, long? fileSize, string? fileType)
         {
             Content = content;
             FileUrl = fileUrl;
+            FileName = fileName;
+            FileSize = fileSize;
+            FileType = fileType;
             Status = SubmissionStatusDomain.Submitted;
             SubmittedAt = DateTime.UtcNow;
             Score = null;

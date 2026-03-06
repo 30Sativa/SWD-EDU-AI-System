@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Submissions.Commands;
 using EduAISystem.Application.Features.Submissions.DTOs.Request;
@@ -24,16 +25,42 @@ namespace EduAISystem.WebAPI.Controllers.Student
         }
 
         [HttpPost("assignment/{assignmentId:guid}")]
+        [Consumes("multipart/form-data")]
         [SwaggerOperation(
             Summary = "HS - Nộp bài assignment",
-            Description = "Học sinh nộp bài (text/fileUrl) cho một assignment; nếu đã có bài trước đó thì sẽ ghi nhận lần nộp mới nhất"
+            Description = "Học sinh nộp bài (text và file upload) cho một assignment; nếu đã có bài trước đó thì sẽ ghi nhận lần nộp mới nhất"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
         public async Task<IActionResult> Submit(
             Guid assignmentId,
-            [FromBody] SubmitAssignmentRequestDto dto,
+            [FromForm] string? content,
+            IFormFile? file,
+            [FromServices] IFileStorageService fileStorageService,
             CancellationToken cancellationToken)
         {
+            string? fileUrl = null;
+            string? fileName = null;
+            long? fileSize = null;
+            string? fileType = null;
+
+            if (file != null && file.Length > 0)
+            {
+                using var stream = file.OpenReadStream();
+                var uploadResult = await fileStorageService.UploadAsync(
+                    stream,
+                    file.FileName,
+                    file.ContentType,
+                    "submissions",
+                    cancellationToken);
+
+                fileUrl = uploadResult.FileUrl;
+                fileName = uploadResult.FileName;
+                fileSize = uploadResult.FileSizeBytes;
+                fileType = uploadResult.FileType;
+            }
+
+            var dto = new SubmitAssignmentRequestDto(content, fileUrl, fileName, fileSize, fileType);
+
             var id = await _mediator.Send(
                 new SubmitAssignmentCommand(assignmentId, dto),
                 cancellationToken);

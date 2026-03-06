@@ -20,6 +20,12 @@ namespace EduAISystem.Domain.Entities
         public string? VideoUrl { get; set; }
 
         public string? Content { get; set; }
+        
+        public string? MaterialUrl { get; set; }
+        public string? MaterialType { get; set; }
+        public string? VideoType { get; set; }
+        public bool? CanUseAI { get; set; }
+        public string? AIProcessingStatus { get; set; }
 
         public int SortOrder { get; set; }
 
@@ -51,6 +57,11 @@ namespace EduAISystem.Domain.Entities
             LessonStatusDomain status,
             bool? isPreview,
             bool? isActive,
+            string? materialUrl,
+            string? materialType,
+            string? videoType,
+            bool? canUseAi,
+            string? aiProcessingStatus,
             DateTime? createdAt,
             DateTime? updatedAt,
             DateTime? deletedAt)
@@ -66,6 +77,11 @@ namespace EduAISystem.Domain.Entities
             Status = status;
             IsPreview = isPreview;
             IsActive = isActive;
+            MaterialUrl = materialUrl;
+            MaterialType = materialType;
+            VideoType = videoType;
+            CanUseAI = canUseAi;
+            AIProcessingStatus = aiProcessingStatus;
             CreatedAt = createdAt;
             UpdatedAt = updatedAt;
             DeletedAt = deletedAt;
@@ -94,6 +110,11 @@ namespace EduAISystem.Domain.Entities
                 Status = LessonStatusDomain.Draft,
                 IsPreview = isPreview,
                 IsActive = true,
+                MaterialUrl = null,
+                MaterialType = null,
+                VideoType = "Link",
+                CanUseAI = true,
+                AIProcessingStatus = "None",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = null,
                 DeletedAt = null

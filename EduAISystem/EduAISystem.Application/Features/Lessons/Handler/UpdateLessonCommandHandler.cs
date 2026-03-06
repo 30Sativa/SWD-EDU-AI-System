@@ -30,6 +30,12 @@ namespace EduAISystem.Application.Features.Lessons.Handler
             lesson.Duration = request.Request.Duration;
             lesson.IsPreview = request.Request.IsPreview;
             lesson.IsActive = request.Request.IsActive;
+            
+            if (request.Request.VideoType != null) lesson.VideoType = request.Request.VideoType;
+            if (request.Request.MaterialUrl != null) lesson.MaterialUrl = request.Request.MaterialUrl;
+            if (request.Request.MaterialType != null) lesson.MaterialType = request.Request.MaterialType;
+            if (request.Request.CanUseAI != null) lesson.CanUseAI = request.Request.CanUseAI;
+            if (request.Request.AIProcessingStatus != null) lesson.AIProcessingStatus = request.Request.AIProcessingStatus;
             lesson.UpdatedAt = DateTime.UtcNow;
 
             await _lessonRepository.UpdateAsync(lesson);

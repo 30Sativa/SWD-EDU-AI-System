@@ -1,4 +1,5 @@
 using EduAISystem.Application.Abstractions.Common;
+using EduAISystem.Infrastructure.Services.FileStorage;
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Infrastructure.Persistence.Context;
@@ -63,6 +64,11 @@ namespace EduAISystem.Infrastructure
             // 5. Services khác (nếu có)
             services.Configure<GeminiSettings>(
                     configuration.GetSection("Gemini"));
+
+            // 6. File Storage (Cloudinary)
+            services.Configure<CloudinarySettings>(
+                    configuration.GetSection("Cloudinary"));
+            services.AddScoped<IFileStorageService, CloudinaryFileStorageService>();
 
             services.AddHttpClient<ICourseAiService, CourseAiService>();
             // services.AddScoped<IEmailService, EmailService>();

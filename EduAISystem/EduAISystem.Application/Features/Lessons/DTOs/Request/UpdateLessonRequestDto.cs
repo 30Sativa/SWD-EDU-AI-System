@@ -11,7 +11,12 @@ namespace EduAISystem.Application.Features.Lessons.DTOs.Request
         public string Title { get; set; } = null!;
         public string Slug { get; set; } = null!;
         public string? VideoUrl { get; set; }
+        public string? VideoType { get; set; } // "Link" or "File"
         public string? Content { get; set; }
+        public string? MaterialUrl { get; set; }
+        public string? MaterialType { get; set; }
+        public bool? CanUseAI { get; set; }
+        public string? AIProcessingStatus { get; set; }
         public int SortOrder { get; set; }
         public int? Duration { get; set; }
         public string? Status { get; set; }

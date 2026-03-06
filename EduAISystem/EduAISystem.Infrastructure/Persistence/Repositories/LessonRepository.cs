@@ -104,6 +104,11 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             entity.Status = MapStatusToString(lesson.Status);
             entity.IsPreview = lesson.IsPreview;
             entity.IsActive = lesson.IsActive;
+            entity.MaterialUrl = lesson.MaterialUrl;
+            entity.MaterialType = lesson.MaterialType;
+            entity.VideoType = lesson.VideoType ?? "Link";
+            entity.CanUseAI = lesson.CanUseAI;
+            entity.AIProcessingStatus = lesson.AIProcessingStatus;
             entity.UpdatedAt = lesson.UpdatedAt;
 
             await _dbContext.SaveChangesAsync();
@@ -144,6 +149,11 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 MapStatusToEnum(entity.Status),
                 entity.IsPreview,
                 entity.IsActive,
+                entity.MaterialUrl,
+                entity.MaterialType,
+                entity.VideoType,
+                entity.CanUseAI,
+                entity.AIProcessingStatus,
                 entity.CreatedAt,
                 entity.UpdatedAt,
                 entity.DeletedAt
@@ -165,6 +175,11 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 Status = MapStatusToString(d.Status),
                 IsPreview = d.IsPreview,
                 IsActive = d.IsActive,
+                MaterialUrl = d.MaterialUrl,
+                MaterialType = d.MaterialType,
+                VideoType = d.VideoType ?? "Link",
+                CanUseAI = d.CanUseAI ?? true,
+                AIProcessingStatus = d.AIProcessingStatus ?? "None",
                 CreatedAt = d.CreatedAt,
                 UpdatedAt = d.UpdatedAt,
                 DeletedAt = d.DeletedAt

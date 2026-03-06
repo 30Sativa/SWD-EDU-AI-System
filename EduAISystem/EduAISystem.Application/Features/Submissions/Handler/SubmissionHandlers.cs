@@ -55,14 +55,17 @@ namespace EduAISystem.Application.Features.Submissions.Handler
                     request.AssignmentId,
                     studentId,
                     dto.Content,
-                    dto.FileUrl);
+                    dto.FileUrl,
+                    dto.FileName,
+                    dto.FileSize,
+                    dto.FileType);
 
                 await _submissionRepository.CreateAsync(submission, cancellationToken);
                 return submission.Id;
             }
             else
             {
-                existing.Resubmit(dto.Content, dto.FileUrl);
+                existing.Resubmit(dto.Content, dto.FileUrl, dto.FileName, dto.FileSize, dto.FileType);
                 await _submissionRepository.UpdateAsync(existing, cancellationToken);
                 return existing.Id;
             }
