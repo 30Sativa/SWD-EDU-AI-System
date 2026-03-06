@@ -15,13 +15,18 @@ builder.Configuration.AddEnvironmentVariables();
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var apiKey = builder.Configuration["Gemini:ApiKey"];
 var emailPassword = builder.Configuration["EmailSettings:Password"];
+var cloudStorageConnectionString = builder.Configuration["Cloudinary:CloudName"];
+var cloudStorageApiKey = builder.Configuration["Cloudinary:ApiKey"];
+var cloudStorageApiSecret = builder.Configuration["Cloudinary:ApiSecret"];
 Console.WriteLine("===== JWT CONFIG CHECK =====");
 Console.WriteLine("Issuer   : " + jwtSection["Issuer"]);
 Console.WriteLine("Audience : " + jwtSection["Audience"]);
 Console.WriteLine("Secret   : " + jwtSection["Secret"]);
 Console.WriteLine("ApiKey   : " + apiKey);
 Console.WriteLine("Emaill Setting password:  " + emailPassword);
-
+Console.WriteLine("Cloud Storage Connection String: " + cloudStorageConnectionString);
+Console.WriteLine("Cloud Storage ApiKey: " + cloudStorageApiKey);
+Console.WriteLine("Cloud Storage ApiSecret: " + cloudStorageApiSecret);
 Console.WriteLine("============================");
 
 //  nếu thiếu thì cho chết sớm
