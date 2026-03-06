@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import ScrollToTop from './ScrollToTop';
 import Header from '../../features/dashboard/components/Header';
+import CheckProfileWrapper from './CheckProfileWrapper';
 
 const MENU_ITEMS = [
   { label: 'Tổng quan', icon: LayoutDashboard, path: 'dashboard', allowedRoles: ['admin', 'teacher', 'student', 'manager'] },
@@ -108,7 +109,9 @@ export default function Sidebar({ userRole = 'teacher' }) {
       <div className="flex-1 flex flex-col min-w-0">
         <Header userRole={detectedRole} basePath={BASE_PATH} />
         <main className="flex-1 overflow-auto bg-gray-50 p-6">
-          <Outlet />
+          <CheckProfileWrapper>
+            <Outlet />
+          </CheckProfileWrapper>
         </main>
       </div>
     </div>

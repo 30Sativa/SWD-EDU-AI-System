@@ -4,6 +4,7 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import Sidebar from "../components/layout/Sidebar";
 import StudentLayout from "../components/layout/StudentLayout";
+import CheckProfileWrapper from "../components/layout/CheckProfileWrapper";
 import Home from "../pages/Home";
 import Login from "../pages/Login";
 import ForgotPassword from "../pages/ForgotPassword";
@@ -55,7 +56,9 @@ const Layout = () => (
     <ScrollToTop />
     <Header />
     <main className="flex-grow">
-      <Outlet />
+      <CheckProfileWrapper>
+        <Outlet />
+      </CheckProfileWrapper>
     </main>
     <Footer />
   </div>

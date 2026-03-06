@@ -121,11 +121,19 @@ const ClassManagement = () => {
                     )}
                     <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
                         <Layers size={14} className="text-slate-400" />
-                        <span>{record.gradeName || gradesMap[record.gradeLevelId] || gradesMap[record.gradeId] || `Khối ${record.gradeLevelId || record.gradeId || '?'}`}</span>
+                        <span>
+                            {record.gradeName ||
+                                record.class?.gradeName ||
+                                gradesMap[record.gradeLevelId] ||
+                                gradesMap[record.gradeId] ||
+                                gradesMap[record.class?.gradeLevelId] ||
+                                gradesMap[record.class?.gradeId] ||
+                                `Khối ${record.gradeLevelId || record.gradeId || record.class?.gradeLevelId || record.class?.gradeId || '?'}`}
+                        </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
                         <Calendar size={14} className="text-slate-400" />
-                        <span>{record.termName || termsMap[record.termId] || 'Học kỳ -'}</span>
+                        <span>{record.termName || record.class?.termName || termsMap[record.termId] || termsMap[record.class?.termId] || 'Học kỳ -'}</span>
                     </div>
                 </div>
             )
@@ -133,17 +141,26 @@ const ClassManagement = () => {
         {
             title: 'SĨ SỐ',
             key: 'students',
-            render: (_, record) => (
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
-                        <Users size={16} />
+            render: (_, record) => {
+                const count = record.currentStudents ??
+                    record.studentCount ??
+                    record.studentList?.length ??
+                    record.students?.length ??
+                    record.class?.studentCount ??
+                    record.class?.currentStudents ??
+                    0;
+                return (
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
+                            <Users size={16} />
+                        </div>
+                        <div>
+                            <span className="block text-sm font-bold text-slate-700">{count}</span>
+                            <span className="text-[10px] text-slate-400 uppercase font-bold">Học viên</span>
+                        </div>
                     </div>
-                    <div>
-                        <span className="block text-sm font-bold text-slate-700">{record.currentStudents || record.studentCount || 0}</span>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold">Học viên</span>
-                    </div>
-                </div>
-            )
+                );
+            }
         },
         {
             title: 'TRẠNG THÁI',
