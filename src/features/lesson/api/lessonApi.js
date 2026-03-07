@@ -44,6 +44,28 @@ export const deleteLessonBlock = (lessonId, id) => {
     return axiosClient.delete(`/api/teacher/lessons/${lessonId}/blocks/${id}`);
 };
 
+export const generateAIBlocks = (lessonId, data) => {
+    // data: { inputSourceType, inputContent, lessonTitle, saveToDB }
+    // inputSourceType: 'Text' | 'PDF' | 'File'
+    return axiosClient.post(`/api/teacher/lessons/${lessonId}/blocks/generate-ai`, data);
+};
+
+export const getAIPreviewBlocks = (lessonId) => {
+    return axiosClient.get(`/api/teacher/lessons/${lessonId}/blocks/preview`);
+};
+
+export const saveAIPreviewBlocks = (lessonId, data) => {
+    // data: { blocks } - danh sách blocks đã chỉnh sửa từ preview
+    return axiosClient.post(`/api/teacher/lessons/${lessonId}/blocks/save-preview`, data);
+};
+
+export const generateAIBlocksStream = (lessonId, data) => {
+    // Đối với streaming, thường dùng fetch trực tiếp hoặc cấu hình axios responseType: 'stream'
+    // Tuy nhiên ở frontend (Browser), axios.post với responseType 'stream' không hoạt động như Node.js
+    // Ở đây định nghĩa endpoint, việc stream sẽ xử lý ở component sử dụng fetch/EventSource
+    return axiosClient.post(`/api/teacher/lessons/${lessonId}/blocks/generate-ai-stream`, data);
+};
+
 /**
  * Lesson FAQs APIs
  */
@@ -66,4 +88,18 @@ export const updateLessonFaq = (lessonId, id, data) => {
 
 export const deleteLessonFaq = (lessonId, id) => {
     return axiosClient.delete(`/api/teacher/lessons/${lessonId}/faqs/${id}`);
+};
+
+/**
+ * Lesson Material APIs
+ */
+
+export const uploadLessonMaterial = (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axiosClient.post(`/api/teacher/lessons/${id}/upload-material`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
 };

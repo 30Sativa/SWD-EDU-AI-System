@@ -119,26 +119,34 @@ const ClassManagement = () => {
                             <span>Môn: {record.subjectName}</span>
                         </div>
                     )}
-                    <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                        <Layers size={14} className="text-slate-400" />
-                        <span>
-                            {record.gradeName ||
-                                record.class?.gradeName ||
-                                gradesMap[record.gradeLevelId] ||
-                                gradesMap[record.gradeId] ||
-                                gradesMap[record.class?.gradeLevelId] ||
-                                gradesMap[record.class?.gradeId] ||
-                                `Khối ${record.gradeLevelId || record.gradeId || record.class?.gradeLevelId || record.class?.gradeId || '?'}`}
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                        <Calendar size={14} className="text-slate-400" />
-                        <span>{record.termName || record.class?.termName || termsMap[record.termId] || termsMap[record.class?.termId] || 'Học kỳ -'}</span>
-                    </div>
+                    {activeTab !== 'assigned' && (
+                        <>
+                            <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                <Layers size={14} className="text-slate-400" />
+                                <span>
+                                    {record.gradeLevelName ||
+                                        record.gradeName ||
+                                        record.class?.gradeLevelName ||
+                                        record.class?.gradeName ||
+                                        gradesMap[record.gradeLevelId] ||
+                                        gradesMap[record.gradeId] ||
+                                        gradesMap[record.class?.gradeLevelId] ||
+                                        gradesMap[record.class?.gradeId] ||
+                                        (record.gradeLevelId || record.gradeId || record.class?.gradeLevelId || record.class?.gradeId
+                                            ? `Khối ${record.gradeLevelId || record.gradeId || record.class?.gradeLevelId || record.class?.gradeId}`
+                                            : 'Khối ?')}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                <Calendar size={14} className="text-slate-400" />
+                                <span>{record.termName || record.class?.termName || termsMap[record.termId] || termsMap[record.class?.termId] || 'Học kỳ -'}</span>
+                            </div>
+                        </>
+                    )}
                 </div>
             )
         },
-        {
+        ...(activeTab !== 'assigned' ? [{
             title: 'SĨ SỐ',
             key: 'students',
             render: (_, record) => {
@@ -161,7 +169,7 @@ const ClassManagement = () => {
                     </div>
                 );
             }
-        },
+        }] : []),
         {
             title: 'TRẠNG THÁI',
             key: 'status',
