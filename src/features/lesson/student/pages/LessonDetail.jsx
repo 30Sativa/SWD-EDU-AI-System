@@ -231,11 +231,13 @@ export default function LessonDetail() {
         videoUrl: lessonData.videoUrl || lessonData.contentUrl
     };
 
-    // Formatting courseSections for UI
-    const mappedCourseSections = courseSections.map(s => ({
-        ...s,
-        lessons: s.lessons.map(item => ({
-            id: item.id || item.Id,
+    // Mapping sections từ courseData sang format UI cho sidebar
+    const apiSections = courseData?.sections || [];
+    const courseSections = apiSections.map(s => ({
+        id: s.id,
+        title: s.title || s.name || 'Chương học',
+        lessons: (s.items || []).map(item => ({
+            id: item.id,
             type: item.type?.toLowerCase() || 'video',
             title: item.title || item.name || 'Bài học',
             duration: item.duration || '45 p',
@@ -404,7 +406,7 @@ export default function LessonDetail() {
                             />
                         </div>
 
-                        {mappedCourseSections.map((section) => (
+                        {courseSections.map((section) => (
                             <div key={section.id} className="border border-slate-100 rounded-xl overflow-hidden bg-white">
                                 <button
                                     onClick={() => !section.isLocked && toggleSection(section.id)}
@@ -861,22 +863,22 @@ export default function LessonDetail() {
 
                     <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50/30 custom-scrollbar">
                         {chatMessages.map((msg) => (
-                            <div key={msg.id} className={`flex gap-3.5 ${msg.type === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
-                                <div className={`w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm border border-white ${msg.type === 'user' ? 'bg-gradient-to-br from-indigo-100 to-blue-100' : 'bg-gradient-to-br from-blue-600 to-indigo-600'
+                            <div key={msg.id} className={`flex gap-4 ${msg.type === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-white ${msg.type === 'user' ? 'bg-indigo-100' : 'bg-white'
                                     }`}>
-                                    {msg.type === 'user' ? <span className="text-[10px] font-black text-indigo-700">YOU</span> : <Bot size={18} className="text-white" />}
+                                    {msg.type === 'user' ? <span className="text-xs font-semibold text-indigo-600">You</span> : <Bot size={16} className="text-blue-600" />}
                                 </div>
-                                <div className={`max-w-[85%] space-y-2.5 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
-                                    <div className={`p-4 rounded-3xl text-[14px] leading-relaxed shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] transition-all ${msg.type === 'user'
+                                <div className={`max-w-[85%] space-y-3 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
+                                    <div className={`p-4 rounded-2xl text-[14px] leading-relaxed shadow-sm ${msg.type === 'user'
                                         ? 'bg-blue-600 text-white rounded-tr-sm'
-                                        : 'bg-white text-slate-800 border border-slate-100/80 rounded-tl-sm'
+                                        : 'bg-white text-slate-800 border border-slate-100 rounded-tl-sm'
                                         }`}>
                                         {msg.text}
                                     </div>
                                     {msg.suggestions && (
-                                        <div className="flex flex-wrap gap-2 pt-1 transition-all">
+                                        <div className="flex flex-wrap gap-2">
                                             {msg.suggestions.map((sug, i) => (
-                                                <button key={i} className="text-[10px] font-black tracking-wider uppercase bg-white border border-slate-100 text-[#215fe3] px-4 py-2 rounded-full hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300 shadow-sm hover:shadow-blue-200">
+                                                <button key={i} className="text-[11px] font-medium bg-white border border-blue-100 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm">
                                                     {sug}
                                                 </button>
                                             ))}

@@ -115,3 +115,7 @@ export const reorderTeacherSections = async (data) => {
 export const updateTeacherSectionStatus = async (sectionId, statusData) => {
     return await axiosClient.put(`/api/teacher/sections/${sectionId}/status`, statusData);
 };
+
+export const deleteSectionDirect = async (sectionId) => {
+    return await axiosClient.delete(`/api/teacher/sections/${sectionId}`);
+};
