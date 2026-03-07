@@ -13,14 +13,15 @@
 
 - **Đăng nhập / đăng ký**
   - [x] Đăng nhập (email + password) (`AuthController`)
+  - [x] Đăng nhập bằng Google (Tự động đăng ký qua id_token) (`AuthController`)
   - [x] Đăng ký tài khoản (`AuthController`)
   - [ ] Refresh token (cấp access token mới bằng `RefreshToken`)
   - [ ] Logout / revoke refresh token / đóng `LoginSession`
   - [ ] Quản lý phiên đăng nhập: list sessions, revoke từng session (phù hợp khi GV đăng nhập máy trường)
 - **Quên mật khẩu / đặt lại mật khẩu**
-  - [ ] Gửi yêu cầu reset password (tạo `PasswordReset`, gửi email/SMS)
-  - [ ] Xác thực token reset + đặt mật khẩu mới
-  - [ ] Hết hạn & chống reuse (dựa trên `PasswordReset.IsUsed`, `ExpiresAt`)
+  - [x] Gửi yêu cầu reset password (tạo token gửi qua email, hiệu lực 30p)
+  - [x] Xác thực token reset + đặt mật khẩu mới
+  - [x] Hết hạn & chống reuse (token an toàn)
 - **Quản lý người dùng (Admin)**
   - [x] Danh sách user (paging/filter cơ bản)
   - [x] Tạo user
@@ -35,7 +36,7 @@
   - [x] Xem thông tin “me”
   - [x] Cập nhật profile “me”
   - [ ] Đổi mật khẩu (user tự đổi khi đã login)
-  - [ ] Verify email (nếu dùng luồng xác thực email)
+  - [x] Verify email (xác thực email khi đăng ký tài khoản)
 
 **Cần cải thiện (Auth/Security)**
 
@@ -68,7 +69,7 @@
   - [x] Import học sinh vào lớp từ Excel
 - **Thiếu/todo cho THPT**
   - [ ] Năm học (SchoolYear) tách khỏi Term (nếu muốn chuẩn THPT: HK1/HK2 thuộc năm học)
-  - [ ] Danh sách “học sinh toàn trường” theo năm học/khối/lớp (admin/manager)
+  - [x] Danh sách “học sinh toàn trường” theo năm học/khối/lớp (admin/manager) (`Manager/StudentsController`)
   - [ ] Luồng “chuyển lớp” (học sinh đổi lớp giữa năm) + lưu lịch sử
   - [ ] Đồng bộ “sĩ số hiện tại” (`Class.CurrentStudents`) tự động theo `StudentClass`
 
@@ -134,18 +135,19 @@
 - **Sections**
   - [x] Tạo section trong course
   - [x] Update section
-  - [ ] List sections theo course
-  - [ ] Xem chi tiết section
-  - [ ] Xoá section / deactivate section
+  - [x] List sections theo course
+  - [x] Xem chi tiết section
+  - [x] Xoá section / deactivate section
   - [ ] Reorder sections (SortOrder)
 - **Lessons**
   - [x] Tạo lesson
   - [x] Update lesson
   - [x] Delete lesson (soft delete nếu có)
   - [x] Xem lesson theo id
-  - [ ] List lessons (toàn bộ) cho giáo viên (đang bị comment-out)
-  - [ ] List lessons theo section (đang bị comment-out)
+  - [ ] List lessons (toàn bộ) cho giáo viên
+  - [x] List lessons theo section
   - [ ] Publish/unpublish lesson (nếu muốn điều khiển `Lesson.Status`)
+  - [x] Upload material file cho lesson (hỗ trợ file qua Cloudinary)
 - **Blocks/FAQ**
   - [x] Có entity `LessonBlock`, `LessonFaq` trong DB
   - [x] API quản lý lesson blocks (CRUD)
@@ -178,8 +180,8 @@
   - [ ] Hạn dùng enrollment (`Enrollment.ExpiresAt`) – API/logic enforce
 - **Tiến độ học**
   - [x] Có entity `LessonProgress` (watchedDuration, isCompleted, lastAccessedAt)
-  - [ ] API cập nhật tiến độ xem video/bài học (client gửi watchedDuration, complete)
-  - [ ] Tổng hợp tiến độ course (từ lesson progress + quiz/assignment) → update `Enrollment.Progress`
+  - [x] API cập nhật tiến độ xem video/bài học (client gửi watchedDuration, complete)
+  - [x] Tổng hợp tiến độ course (từ lesson progress + quiz/assignment) → update `Enrollment.Progress`
 
 **Cần cải thiện (Learning progress)**
 
@@ -214,15 +216,15 @@
 
 ### 8) Bài tập & nộp bài (Assignments / Submissions)
 
-> DB đã có đầy đủ entity `Assignment`, `Submission`, nhưng hiện chưa thấy module API tương ứng.
+> Đã implement hoàn thiện luồng Assignment & Submission APIs (bao gồm file upload).
 
-- **Todo (cần implement)**
-  - [ ] Teacher: CRUD assignment theo course
-  - [ ] Teacher: publish/unpublish assignment
-  - [ ] Student: list assignments theo course
-  - [ ] Student: nộp bài (file/link) tạo submission
-  - [ ] Teacher: chấm điểm + feedback, đổi trạng thái submission
-  - [ ] Student: xem điểm/feedback
+- **Đã hoàn thành / Hiện có**
+  - [x] Teacher: CRUD assignment theo course
+  - [x] Teacher: publish/unpublish assignment
+  - [x] Student: list assignments theo course
+  - [x] Student: nộp bài (file/link) tạo submission (upload Cloudinary)
+  - [x] Teacher: chấm điểm + feedback, đổi trạng thái submission
+  - [x] Student: xem điểm & feedback
 
 **Cần cải thiện**
 
@@ -232,18 +234,15 @@
 
 ### 9) AI hỗ trợ dạy & học (AI drafts / Q&A / Logs)
 
-- **Hiện có (một phần)**
+- **Hiện có (Gần hoàn thiện)**
   - [x] AI scan template course (đã có flow upload/scan/save structure)
-  - [x] Có bảng log AI (`Ailog`) lưu feature, input/output, tokens, cost
-  - [x] Có entity `AilessonDraft`, `AilessonDraftBlock` để lưu draft bài giảng AI
-  - [x] Có entity `StudentQuestion` để lưu Q&A học sinh với AI
-- **Todo (để thành tính năng hoàn chỉnh)**
-  - [ ] Teacher: list/view/manage AILessonDraft theo document/course
-  - [ ] Teacher: “apply draft → tạo lesson thật” (map draft blocks → `LessonBlock`)
-  - [ ] Teacher: chỉnh sửa draft blocks, đánh dấu “đã duyệt”
+  - [x] Admin/Manager: dashboard theo dõi chi phí AI (`AiAnalyticsController` tổng hợp từ `Ailog`)
+  - [x] Q&A: Có entity `StudentQuestion` để lưu Q&A học sinh với AI
+  - [x] Teacher: Sinh blocks bài giảng bằng AI (Lưu preview qua cache, Hỗ trợ Streaming Real-time SSE)
+  - [x] Teacher: Xem lại AI Preview và "Lưu preview → tạo bài học thật" vào DB
+- **Todo (còn thiếu)**
   - [ ] Student: API hỏi AI theo lesson + xem lịch sử Q&A của mình
   - [ ] Teacher: xem câu hỏi học sinh theo course/lớp để hỗ trợ kịp thời
-  - [ ] Admin/Manager: dashboard theo dõi chi phí AI từ `Ailog` (theo ngày, theo feature, theo user)
 
 **Cần cải thiện (AI)**
 
@@ -292,9 +291,11 @@
   - ⚠️ Rà soát tất cả entity có `DeletedAt`, `IsActive`, `Status` để thống nhất quy tắc lọc dữ liệu ở query.
   - ⚠️ Quy hoạch API: thay vì xóa cứng, ưu tiên soft delete (phù hợp môi trường trường học, cần truy vết).
 - **Chuẩn hoá naming & conventions**
+  - [x] Đã chuẩn hóa API documentation bằng Swagger (Annotation, Response Types đầy đủ).
   - ⚠️ Chuẩn hoá string status (`Draft/Published/...`, `IN_PROGRESS/GRADED`) → cân nhắc enum mapping.
 - **Validation & business rules (THPT)**
   - ⚠️ Ràng buộc: “học sinh chỉ thuộc 1 lớp hành chính trong 1 kỳ/năm học” (tránh dữ liệu sai).
   - ⚠️ Quy trình publish course/quiz/assignment có phê duyệt (optional) theo mô hình tổ chuyên môn.
 - **Quan sát hệ thống (observability)**
+  - [x] Đã thiết lập cơ chế Error Logging với `GlobalExceptionMiddleware` và theo vết lỗi bằng `TraceId`.
   - ⚠️ Dùng `AuditLog` + `Ailog` để theo dõi hành vi, lỗi, chi phí AI theo feature. 

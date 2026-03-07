@@ -9,13 +9,10 @@ using EduAISystem.Infrastructure.Services.Cache;
 using EduAISystem.Infrastructure.Services.Email;
 using EduAISystem.Infrastructure.Services.Excel;
 using EduAISystem.Infrastructure.Services.ExternalApis;
-using EduAISystem.Infrastructure.Services.FileStorage;
 using EduAISystem.Infrastructure.Services.Identity;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Extensions.Http;
 
@@ -61,6 +58,8 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<ILessonFaqRepository, LessonFaqRepository>();
             services.AddScoped<IAilogRepository, AilogRepository>();
             services.AddScoped<ILessonAiService, LessonAiService>();
+            services.AddScoped<IStudentRepository, StudentRepository>();
+            services.AddScoped<ILessonProgressRepository, LessonProgressRepository>();
             // 3. Auth Token Repositories
             services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
             services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();

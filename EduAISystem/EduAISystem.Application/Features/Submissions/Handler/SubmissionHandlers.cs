@@ -15,15 +15,18 @@ namespace EduAISystem.Application.Features.Submissions.Handler
         private readonly IAssignmentRepository _assignmentRepository;
         private readonly ISubmissionRepository _submissionRepository;
         private readonly ICurrentUserService _currentUser;
+        private readonly ILessonProgressRepository _lessonProgressRepository;
 
         public SubmitAssignmentCommandHandler(
             IAssignmentRepository assignmentRepository,
             ISubmissionRepository submissionRepository,
-            ICurrentUserService currentUser)
+            ICurrentUserService currentUser,
+            ILessonProgressRepository lessonProgressRepository)
         {
             _assignmentRepository = assignmentRepository;
             _submissionRepository = submissionRepository;
             _currentUser = currentUser;
+            _lessonProgressRepository = lessonProgressRepository;
         }
 
         public async Task<Guid> Handle(SubmitAssignmentCommand request, CancellationToken cancellationToken)
@@ -61,12 +64,14 @@ namespace EduAISystem.Application.Features.Submissions.Handler
                     dto.FileType);
 
                 await _submissionRepository.CreateAsync(submission, cancellationToken);
+                await _lessonProgressRepository.UpdateCourseProgressAsync(studentId, assignment.CourseId, cancellationToken);
                 return submission.Id;
             }
             else
             {
                 existing.Resubmit(dto.Content, dto.FileUrl, dto.FileName, dto.FileSize, dto.FileType);
                 await _submissionRepository.UpdateAsync(existing, cancellationToken);
+                await _lessonProgressRepository.UpdateCourseProgressAsync(studentId, assignment.CourseId, cancellationToken);
                 return existing.Id;
             }
         }
