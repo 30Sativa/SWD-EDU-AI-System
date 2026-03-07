@@ -265,13 +265,20 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                 return option;
             }).ToList();
 
+            string? correctAnswer = null;
+            if (dto.QuestionType == "TrueFalse" || dto.QuestionType == "ShortAnswer")
+            {
+                var correctOption = dto.Options.FirstOrDefault(o => o.IsCorrect);
+                correctAnswer = correctOption?.OptionText ?? "Correct Answer";
+            }
+
             // Reflection để tạo instance của internal QuestionDomain
             var question = (QuestionDomain)Activator.CreateInstance(
                 typeof(QuestionDomain),
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
                 null,
                 [questionId, request.QuizId, dto.QuestionText, dto.QuestionType, 
-                 dto.Explanation, dto.Points, dto.Explanation, dto.SortOrder, options],
+                 correctAnswer, dto.Points, dto.Explanation, dto.SortOrder, options],
                 null)!;
 
             await _quizRepository.AddQuestionsAsync(request.QuizId, [question], cancellationToken);
@@ -381,6 +388,13 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                 return option;
             }).ToList();
 
+            string? correctAnswer = null;
+            if (dto.QuestionType == "TrueFalse" || dto.QuestionType == "ShortAnswer")
+            {
+                var correctOption = dto.Options.FirstOrDefault(o => o.IsCorrect);
+                correctAnswer = correctOption?.OptionText ?? existingQuestion.CorrectAnswer ?? "Correct Answer";
+            }
+
             var question = (QuestionDomain)Activator.CreateInstance(
                 typeof(QuestionDomain),
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
@@ -391,7 +405,7 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                     request.QuizId,
                     dto.QuestionText,
                     dto.QuestionType,
-                    existingQuestion.CorrectAnswer,
+                    correctAnswer,
                     dto.Points,
                     dto.Explanation,
                     dto.SortOrder,
