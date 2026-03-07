@@ -17,7 +17,9 @@ import {
     Clock,
     ArrowLeft,
     Target,
-    Settings
+    Settings,
+    LayoutGrid,
+    ChevronRight,
 } from 'lucide-react';
 import {
     DndContext,
@@ -46,7 +48,7 @@ import {
     getCourseSections
 } from '../../api/courseApi';
 import { createLesson, updateLesson, deleteLesson, getLessonsBySection, getLessonBlocks, createLessonBlock, updateLessonBlock, deleteLessonBlock } from '../../../lesson/api/lessonApi';
-import { getAssignmentsByCourse, createAssignment, updateAssignment, deleteAssignment, publishAssignment, unpublishAssignment } from '../../../assignment/api/assignmentApi';
+import { getAssignmentsByCourse, getStudentAssignmentsByCourse, createAssignment, updateAssignment, deleteAssignment, publishAssignment, unpublishAssignment } from '../../../assignment/api/assignmentApi';
 import {
     createFormativeQuiz,
     createSummativeQuiz,
@@ -115,6 +117,10 @@ export default function CourseDetail() {
     const [editingQuiz, setEditingQuiz] = useState(null);
     const [summativeQuizzes, setSummativeQuizzes] = useState([]);
 
+    // Lesson Quizzes Management
+    const [isLessonQuizzesModalOpen, setIsLessonQuizzesModalOpen] = useState(false);
+    const [activeLessonForQuizzes, setActiveLessonForQuizzes] = useState(null);
+
 
     const [form] = Form.useForm();
     const [sectionForm] = Form.useForm();
@@ -136,7 +142,8 @@ export default function CourseDetail() {
     const fetchAssignments = useCallback(async () => {
         if (!courseId) return;
         try {
-            const res = await getAssignmentsByCourse(courseId);
+            // Sử dụng student API để lấy danh sách bài tập (Pattern này giống với Quiz feature giúp tránh lỗi 500 trên teacher endpoint hiện tại)
+            const res = await getStudentAssignmentsByCourse(courseId);
             const data = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
             setAssignments(data);
         } catch (error) {
@@ -993,6 +1000,10 @@ export default function CourseDetail() {
                                             handleDeleteQuiz={handleDeleteQuiz}
                                             courseId={courseId}
                                             navigate={navigate}
+                                            openLessonQuizzesModal={(lesson) => {
+                                                setActiveLessonForQuizzes(lesson);
+                                                setIsLessonQuizzesModalOpen(true);
+                                            }}
                                         />
                                     )) : (
                                         <div className="py-20 bg-white rounded-2xl border border-slate-200 border-dashed flex flex-col items-center justify-center text-center">
@@ -1479,6 +1490,109 @@ export default function CourseDetail() {
                     </div>
                 </Form>
             </Modal>
+
+            {/* Lesson Quizzes Management Modal */}
+            <Modal
+                title={
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+                            <CheckSquare size={20} />
+                        </div>
+                        <div>
+                            <span className="font-bold text-xl block">Quản lý Quiz bài học</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{activeLessonForQuizzes?.title}</span>
+                        </div>
+                    </div>
+                }
+                open={isLessonQuizzesModalOpen}
+                onCancel={() => {
+                    setIsLessonQuizzesModalOpen(false);
+                    setActiveLessonForQuizzes(null);
+                }}
+                footer={null}
+                width={700}
+                centered
+                className="rounded-3xl overflow-hidden"
+            >
+                <div className="pt-6 space-y-4">
+                    {(activeLessonForQuizzes?.quizzes || []).length > 0 ? (
+                        <div className="grid grid-cols-1 gap-4">
+                            {(activeLessonForQuizzes.quizzes).map((quiz, idx) => (
+                                <div key={quiz.id || quiz.quizId} className="bg-white border border-slate-100 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between hover:border-emerald-200 hover:shadow-md transition-all group">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center font-bold text-sm group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
+                                            {idx + 1}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="font-bold text-slate-800 m-0">{quiz.title}</h4>
+                                                <Tag color={quiz.isPublished ? "success" : "default"} className="rounded-full border-none px-2 text-[9px] font-black uppercase">
+                                                    {quiz.isPublished ? "Công bố" : "Nháp"}
+                                                </Tag>
+                                            </div>
+                                            <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                                <span>⏰ {quiz.timeLimit} phút</span>
+                                                <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                                <span>🎯 {quiz.passingScore}% để đạt</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-4 md:mt-0">
+                                        <Button
+                                            type="primary"
+                                            ghost
+                                            icon={<Edit3 size={14} />}
+                                            onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id || quiz.quizId}`)}
+                                            className="rounded-xl font-bold text-xs border-emerald-100 text-emerald-600 hover:bg-emerald-50"
+                                        >
+                                            Thiết kế
+                                        </Button>
+                                        <Button
+                                            icon={<Settings size={14} />}
+                                            onClick={() => openQuizModal(activeLessonForQuizzes.id, 'formative', quiz)}
+                                            className="rounded-xl text-slate-400 hover:text-blue-600"
+                                        />
+                                        <Button
+                                            danger
+                                            icon={<Trash2 size={14} />}
+                                            onClick={() => handleDeleteQuiz(quiz.id || quiz.quizId)}
+                                            className="rounded-xl"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="py-12 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
+                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-slate-200 mb-3 shadow-inner">
+                                <CheckSquare size={24} />
+                            </div>
+                            <p className="text-slate-400 font-bold text-sm tracking-tight">Chưa có bài Quiz nào cho bài học này</p>
+                            <Button
+                                type="primary"
+                                icon={<Plus size={16} />}
+                                onClick={() => openQuizModal(activeLessonForQuizzes.id, 'formative')}
+                                className="mt-4 rounded-xl bg-emerald-600 border-none px-6 font-bold h-10 shadow-lg shadow-emerald-100"
+                            >
+                                Tạo Quiz đầu tiên
+                            </Button>
+                        </div>
+                    )}
+
+                    {(activeLessonForQuizzes?.quizzes || []).length > 0 && (
+                        <div className="pt-4 flex justify-center">
+                            <Button
+                                type="dashed"
+                                icon={<Plus size={16} />}
+                                onClick={() => openQuizModal(activeLessonForQuizzes.id, 'formative')}
+                                className="rounded-xl h-12 px-8 font-bold text-slate-500 border-slate-200 hover:text-emerald-600 hover:border-emerald-300 transition-all"
+                            >
+                                Thêm Quiz mới vào bài học
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </Modal>
             <Modal
                 title={
                     <span className="font-bold text-xl">
@@ -1564,7 +1678,8 @@ const SortableSection = React.memo(({
     openQuizModal,
     handleDeleteQuiz,
     courseId,
-    navigate
+    navigate,
+    openLessonQuizzesModal
 }) => {
     const {
         attributes,
@@ -1610,7 +1725,14 @@ const SortableSection = React.memo(({
                         <div className="text-[11px] text-slate-400 font-medium flex items-center gap-2 mt-0.5">
                             <span className="flex items-center gap-1"><BookOpen size={12} /> {(session.lessons || []).length} Bài học</span>
                             <span className="w-1 h-1 rounded-full bg-slate-200" />
-                            <span className="flex items-center gap-1"><Clock size={12} /> {session.duration || session.Duration || '0 phút'}</span>
+                            <span className="flex items-center gap-1">
+                                <Clock size={12} />
+                                {(() => {
+                                    const totalMinutes = (session.lessons || []).reduce((acc, curr) => acc + (Number(curr.duration || curr.Duration) || 0), 0);
+                                    if (totalMinutes > 0) return `${totalMinutes} phút`;
+                                    return session.duration || session.Duration || '0 phút';
+                                })()}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -1804,7 +1926,7 @@ const SortableSection = React.memo(({
                             setActiveSectionId(session.id);
                             setIsLessonModalOpen(true);
                         }}
-                        className="w-full py-3 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 font-bold text-xs uppercase cursor-pointer hover:border-blue-200 hover:text-[#0487e2] hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
+                        className="w-full py-3 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 font-bold text-sm cursor-pointer hover:border-blue-200 hover:text-[#0487e2] hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
                     >
                         <Plus size={16} />
                         Thêm bài học mới

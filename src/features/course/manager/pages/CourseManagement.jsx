@@ -146,31 +146,44 @@ export default function CourseManagement() {
             key: 'level',
             render: (_, record) => {
 
-                const categoryName = record.categoryName || record.CategoryName || record.category?.name || categoriesMap[record.categoryId] || categoriesMap[record.CategoryId] || 'Chưa định nghĩa';
+                const categoryName = record.categoryName || record.CategoryName || record.category?.name || categoriesMap[record.categoryId] || categoriesMap[record.CategoryId];
 
                 const gradeId = record.gradeLevelId || record.GradeLevelId || record.gradeId || record.GradeId;
-                const gradeName = record.gradeName || record.GradeName || record.gradeLevelName || record.GradeLevelName ||
+                const gradeNameRaw = record.gradeName || record.GradeName || record.gradeLevelName || record.GradeLevelName ||
                     record.grade?.name || record.gradeLevel?.name ||
-                    gradesMap[gradeId] || (gradeId ? `ID: ${gradeId.slice(0, 8)}...` : 'Khối lớp N/A');
+                    gradesMap[gradeId];
+
+                const gradeName = gradeNameRaw || (gradeId ? `Khối ${gradeId.slice(0, 8)}` : null);
 
                 const subjectId = record.subjectId || record.SubjectId;
-                const subjectName = record.subjectName || record.SubjectName || record.subject?.name || subjectsMap[subjectId] || '';
+                const subjectName = record.subjectName || record.SubjectName || record.subject?.name || subjectsMap[subjectId];
 
                 const levels = { 1: 'Cơ bản', 2: 'Trung bình', 3: 'Nâng cao' };
-                const levelDisplay = levels[record.level] || record.levelName || record.LevelName || (record.level ? `Cấp độ ${record.level}` : 'Chưa định nghĩa');
+                const levelDisplay = levels[record.level] || record.levelName || record.LevelName;
 
                 return (
-                    <div className="flex flex-col gap-1">
-                        <Tag className="rounded font-bold border-none bg-blue-50 text-blue-600 px-2 py-0 text-[11px] w-fit">
-                            {levelDisplay}
-                        </Tag>
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-wrap gap-1">
+                            {categoryName && (
+                                <Tag className="rounded font-bold border-none bg-slate-100 text-slate-600 px-2 py-0 text-[10px] w-fit m-0">
+                                    {categoryName}
+                                </Tag>
+                            )}
+                            {levelDisplay && (
+                                <Tag className="rounded font-bold border-none bg-blue-50 text-blue-600 px-2 py-0 text-[10px] w-fit m-0">
+                                    {levelDisplay}
+                                </Tag>
+                            )}
+                        </div>
                         <div className="flex flex-col gap-0.5">
-                            <span className="text-xs text-slate-500 font-medium px-1 flex items-center gap-1">
-                                <Layers size={12} className="text-[#0487e2]" />
-                                {gradeName}
-                            </span>
+                            {gradeName && (
+                                <span className="text-xs text-slate-500 font-medium px-1 flex items-center gap-1">
+                                    <Layers size={12} className="text-[#0487e2]" />
+                                    {gradeName}
+                                </span>
+                            )}
                             {subjectName && (
-                                <span className="text-[10px] text-slate-400 font-medium px-1 italic">
+                                <span className="text-[11px] text-slate-400 font-bold px-1 uppercase tracking-tight">
                                     Môn: {subjectName}
                                 </span>
                             )}
