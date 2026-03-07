@@ -7,6 +7,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Diagnostics;
 
 namespace EduAISystem.WebAPI.Controllers.Teacher
 {
@@ -15,10 +16,12 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
     public class AssignmentsController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly ILogger<AssignmentsController> _logger;
 
-        public AssignmentsController(IMediator mediator)
+        public AssignmentsController(IMediator mediator, ILogger<AssignmentsController> logger)
         {
             _mediator = mediator;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -31,8 +34,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             [FromBody] CreateAssignmentRequestDto dto,
             CancellationToken cancellationToken)
         {
-            var id = await _mediator.Send(new CreateAssignmentCommand(dto), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(id, "Tạo assignment thành công."));
+            try
+            {
+                var id = await _mediator.Send(new CreateAssignmentCommand(dto), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(id, "Tạo bài tập thành công."));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI TẠO BÀI TẬP] MãTrace: {TraceId} | MãKhoáHọc: {CourseId} | Tiêu đề: {Title} | Publish: {Publish} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, dto?.CourseId, dto?.Title, dto?.Publish, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         [HttpPut("{assignmentId:guid}")]
@@ -46,8 +60,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             [FromBody] UpdateAssignmentRequestDto dto,
             CancellationToken cancellationToken)
         {
-            var id = await _mediator.Send(new UpdateAssignmentCommand(assignmentId, dto), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(id, "Cập nhật assignment thành công."));
+            try
+            {
+                var id = await _mediator.Send(new UpdateAssignmentCommand(assignmentId, dto), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(id, "Cập nhật bài tập thành công."));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI CẬP NHẬT BÀI TẬP] MãTrace: {TraceId} | MãBàiTập: {AssignmentId} | Tiêu đề mới: {Title} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, assignmentId, dto?.Title, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         [HttpDelete("{assignmentId:guid}")]
@@ -60,8 +85,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             Guid assignmentId,
             CancellationToken cancellationToken)
         {
-            await _mediator.Send(new DeleteAssignmentCommand(assignmentId), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(assignmentId, "Xoá assignment thành công."));
+            try
+            {
+                await _mediator.Send(new DeleteAssignmentCommand(assignmentId), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(assignmentId, "Xoá bài tập thành công."));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI XOÁ BÀI TẬP] MãTrace: {TraceId} | MãBàiTập: {AssignmentId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, assignmentId, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         [HttpPost("{assignmentId:guid}/publish")]
@@ -74,8 +110,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             Guid assignmentId,
             CancellationToken cancellationToken)
         {
-            var id = await _mediator.Send(new PublishAssignmentCommand(assignmentId), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(id, "Publish assignment thành công."));
+            try
+            {
+                var id = await _mediator.Send(new PublishAssignmentCommand(assignmentId), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(id, "Xuất bản bài tập thành công."));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI XUẤT BẢN BÀI TẬP] MãTrace: {TraceId} | MãBàiTập: {AssignmentId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, assignmentId, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         [HttpPost("{assignmentId:guid}/unpublish")]
@@ -88,8 +135,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             Guid assignmentId,
             CancellationToken cancellationToken)
         {
-            var id = await _mediator.Send(new UnpublishAssignmentCommand(assignmentId), cancellationToken);
-            return Ok(ApiResponse<Guid>.Ok(id, "Unpublish assignment thành công."));
+            try
+            {
+                var id = await _mediator.Send(new UnpublishAssignmentCommand(assignmentId), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(id, "Ẩn bài tập thành công."));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI ẨN BÀI TẬP] MãTrace: {TraceId} | MãBàiTập: {AssignmentId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, assignmentId, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         [HttpGet("course/{courseId:guid}")]
@@ -102,12 +160,24 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             Guid courseId,
             CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(
-                new GetAssignmentsByCourseForTeacherQuery(courseId),
-                cancellationToken);
+            try
+            {
+                var result = await _mediator.Send(
+                    new GetAssignmentsByCourseForTeacherQuery(courseId),
+                    cancellationToken);
 
-            return Ok(ApiResponse<List<AssignmentSummaryResponseDto>>.Ok(result));
+                return Ok(ApiResponse<List<AssignmentSummaryResponseDto>>.Ok(result, "Lấy danh sách bài tập thành công."));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI LẤY DANH SÁCH BÀI TẬP THEO KHOÁ HỌC] MãTrace: {TraceId} | MãKhoáHọc: {CourseId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, courseId, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
     }
 }
+
 
