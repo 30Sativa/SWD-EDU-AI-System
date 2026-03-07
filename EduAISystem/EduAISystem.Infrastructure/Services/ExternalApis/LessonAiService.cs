@@ -6,20 +6,21 @@ using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace EduAISystem.Infrastructure.Services.ExternalApis
 {
     /// <summary>
-    /// Dịch vụ AI sinh nội dung LessonBlock theo chuẩn sư phạm.
-    /// Dùng Gemini API (Flash model) với prompt được thiết kế chuyên biệt cho giáo dục.
+    /// Dịch vụ AI sinh nội dung LessonBlock theo chuẩn sư phạm Việt Nam (cấp 3).
+    /// Dùng Gemini API với Structured Output + Chain-of-Thought prompting.
     ///
-    /// Cải tiến v2:
-    /// - Logging chi tiết cho mọi AI interaction (request/response/error)
-    /// - Configurable timeout để tránh request treo vô hạn
-    /// - Retry + Circuit Breaker được cấu hình qua DI (Polly)
+    /// Cải tiến v3:
+    /// - Gemini Structured Output (responseJsonSchema) → API đảm bảo schema, bỏ JSON parsing phức tạp
+    /// - Chain-of-Thought prompting → AI suy luận step-by-step trước khi sinh nội dung
+    /// - Hướng đến học sinh cấp 3 Việt Nam, sách giáo khoa Việt Nam
+    /// - Logging chi tiết + timeout configurable
+    /// - Retry + Circuit Breaker qua Polly (DI)
     ///
-    /// BlockType hợp lệ: 'Concept' | 'Example' | 'Exercise' | 'Reflection'
+    /// BlockType: 'Concept' | 'Example' | 'Exercise' | 'Reflection'
     /// </summary>
     public class LessonAiService : ILessonAiService
     {
@@ -59,11 +60,12 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
                 : _settings.ModelName;
 
             var apiVersion = string.IsNullOrWhiteSpace(_settings.ApiVersion)
-                ? "v1"
+                ? "v1beta"
                 : _settings.ApiVersion;
 
-            var prompt = BuildPedagogicalPrompt(lessonTitle, inputContent);
+            var prompt = BuildChainOfThoughtPrompt(lessonTitle, inputContent);
 
+            // ===== STRUCTURED OUTPUT: API đảm bảo trả đúng schema =====
             var requestBody = new
             {
                 contents = new[]
@@ -75,6 +77,11 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
                             new { text = prompt }
                         }
                     }
+                },
+                generationConfig = new
+                {
+                    responseMimeType = "application/json",
+                    responseSchema = BuildResponseSchema()
                 }
             };
 
@@ -83,12 +90,12 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
 
             // ===== LOGGING: Bắt đầu gọi AI =====
             _logger.LogInformation(
-                "[AI] Bắt đầu gọi Gemini API • Model: {Model} • Lesson: \"{Title}\" • Input length: {InputLength} chars",
+                "[AI] Bắt đầu gọi Gemini API (Structured Output) • Model: {Model} • Lesson: \"{Title}\" • Input length: {InputLength} chars",
                 modelName, lessonTitle, inputContent.Length);
 
             var stopwatch = Stopwatch.StartNew();
 
-            // ===== TIMEOUT: Tạo linked token với timeout =====
+            // ===== TIMEOUT: Linked token =====
             var timeoutSeconds = _settings.TimeoutSeconds > 0 ? _settings.TimeoutSeconds : 60;
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
@@ -146,7 +153,7 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
                 "[AI] ✅ Gemini phản hồi thành công sau {Elapsed}ms • Model: {Model} • Response length: {ResponseLength} chars",
                 stopwatch.ElapsedMilliseconds, modelName, responseContent.Length);
 
-            // Parse response
+            // ===== PARSE: Structured Output → đơn giản hóa parsing =====
             try
             {
                 using var doc = JsonDocument.Parse(responseContent);
@@ -163,7 +170,7 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
                     || !content.TryGetProperty("parts", out var parts)
                     || parts.GetArrayLength() == 0)
                 {
-                    _logger.LogWarning("[AI] ⚠️ Gemini response không có nội dung parts • Lesson: \"{Title}\"", lessonTitle);
+                    _logger.LogWarning("[AI] ⚠️ Gemini response thiếu parts • Lesson: \"{Title}\"", lessonTitle);
                     throw new InvalidOperationException("Gemini API response không có nội dung.");
                 }
 
@@ -177,9 +184,9 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
                     throw new InvalidOperationException("AI trả về nội dung trống.");
                 }
 
-                var blocks = ParseBlocksFromAiResponse(aiText);
+                // Structured Output → aiText đã là JSON hợp lệ, parse trực tiếp
+                var blocks = ParseStructuredBlocks(aiText);
 
-                // ===== LOGGING: Parse thành công =====
                 _logger.LogInformation(
                     "[AI] 📦 Parse thành công {BlockCount} blocks • Types: [{BlockTypes}] • Lesson: \"{Title}\"",
                     blocks.Count,
@@ -191,7 +198,7 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
             catch (JsonException ex)
             {
                 _logger.LogError(ex,
-                    "[AI] ❌ Lỗi parse JSON từ Gemini • Lesson: \"{Title}\" • Raw response (500 chars): {Response}",
+                    "[AI] ❌ Lỗi parse JSON từ Gemini • Lesson: \"{Title}\" • Raw (500 chars): {Response}",
                     lessonTitle,
                     responseContent.Length > 500 ? responseContent[..500] : responseContent);
 
@@ -199,92 +206,168 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
             }
         }
 
-        // =========================================================
-        // PROMPT ENGINEERING – Chuẩn sư phạm
-        // =========================================================
-        private static string BuildPedagogicalPrompt(string lessonTitle, string inputContent)
+        // =============================================================
+        // STRUCTURED OUTPUT SCHEMA
+        // Gemini API đảm bảo response tuân thủ schema này
+        // → Không cần ExtractJsonFromText, NormalizeBlockType
+        // =============================================================
+        private static object BuildResponseSchema()
         {
-            return $@"
-Bạn là một chuyên gia thiết kế bài học theo chuẩn sư phạm.
-Nhiệm vụ: phân tích nội dung bài học và tổ chức lại thành các BLOCKS theo trình tự sư phạm chuẩn.
-
-Tiêu đề bài học: ""{lessonTitle}""
-
-TRÌNH TỰ SƯ PHẠM BẮT BUỘC (theo đúng thứ tự này):
-1. Concept   – Giải thích khái niệm/lý thuyết cốt lõi, ngôn ngữ rõ ràng, học sinh có thể hiểu ngay
-2. Example   – Ví dụ minh họa cụ thể, thực tế, sinh động, liên hệ với cuộc sống hoặc môn học
-3. Exercise  – Bài tập/câu hỏi kiểm tra hiểu biết. Phải có câu hỏi rõ ràng để học sinh thực hành  
-4. Reflection– Câu hỏi tư duy sâu, liên hệ thực tiễn, khuyến khích học sinh suy ngẫm
-
-QUY TẮC:
-- Mỗi block phải đầy đủ, tự hoàn chỉnh
-- Ngôn ngữ: Tiếng Việt, phù hợp với học sinh
-- Exercise phải là bài tập/câu hỏi thực tế (không phải lý thuyết)
-- Reflection phải là câu hỏi mở, kích thích tư duy
-
-Chỉ trả về JSON theo đúng format này, KHÔNG giải thích thêm:
-
-{{
-  ""blocks"": [
-    {{
-      ""blockType"": ""Concept"",
-      ""content"": ""[Nội dung lý thuyết đầy đủ]"",
-      ""sortOrder"": 1,
-      ""estimatedMinutes"": 5
-    }},
-    {{
-      ""blockType"": ""Example"",
-      ""content"": ""[Ví dụ minh họa cụ thể]"",
-      ""sortOrder"": 2,
-      ""estimatedMinutes"": 3
-    }},
-    {{
-      ""blockType"": ""Exercise"",
-      ""content"": ""[Bài tập/câu hỏi thực hành]"",
-      ""sortOrder"": 3,
-      ""estimatedMinutes"": 10
-    }},
-    {{
-      ""blockType"": ""Reflection"",
-      ""content"": ""[Câu hỏi tư duy sâu]"",
-      ""sortOrder"": 4,
-      ""estimatedMinutes"": 3
-    }}
-  ]
-}}
-
-Nội dung cần phân tích:
-{inputContent}
-";
+            return new
+            {
+                type = "object",
+                properties = new
+                {
+                    blocks = new
+                    {
+                        type = "array",
+                        description = "Danh sách blocks sư phạm theo trình tự: Concept → Example → Exercise → Reflection",
+                        items = new
+                        {
+                            type = "object",
+                            properties = new
+                            {
+                                blockType = new
+                                {
+                                    type = "string",
+                                    description = "Loại block sư phạm. Phải theo đúng trình tự: Concept (lý thuyết) → Example (ví dụ) → Exercise (bài tập) → Reflection (suy ngẫm)",
+                                    @enum = new[] { "Concept", "Example", "Exercise", "Reflection" }
+                                },
+                                content = new
+                                {
+                                    type = "string",
+                                    description = "Nội dung chi tiết bằng tiếng Việt, phù hợp học sinh THPT (cấp 3) Việt Nam. Phải tự hoàn chỉnh, đầy đủ, dễ hiểu."
+                                },
+                                sortOrder = new
+                                {
+                                    type = "integer",
+                                    description = "Thứ tự hiển thị: Concept=1, Example=2, Exercise=3, Reflection=4"
+                                },
+                                estimatedMinutes = new
+                                {
+                                    type = "integer",
+                                    description = "Thời gian ước tính để học sinh đọc/làm block này (phút)"
+                                }
+                            },
+                            required = new[] { "blockType", "content", "sortOrder", "estimatedMinutes" }
+                        }
+                    }
+                },
+                required = new[] { "blocks" }
+            };
         }
 
-        // =========================================================
-        // PARSE AI RESPONSE → List<GeneratedBlockDto>
-        // =========================================================
-        private static List<GeneratedBlockDto> ParseBlocksFromAiResponse(string aiText)
+        // =============================================================
+        // CHAIN-OF-THOUGHT PROMPTING
+        // AI suy luận step-by-step → nội dung chất lượng cao hơn
+        // Tối ưu cho giáo dục Việt Nam, sách giáo khoa cấp 3
+        // =============================================================
+        private static string BuildChainOfThoughtPrompt(string lessonTitle, string inputContent)
         {
-            var jsonText = ExtractJsonFromText(aiText);
+            return $@"Bạn là một chuyên gia thiết kế bài giảng theo chuẩn sư phạm Việt Nam, có kinh nghiệm biên soạn sách giáo khoa THPT (Trung học phổ thông – lớp 10, 11, 12).
 
+Nhiệm vụ: Phân tích nội dung bài học dưới đây và tổ chức lại thành các BLOCKS theo trình tự sư phạm chuẩn.
+
+📖 TIÊU ĐỀ BÀI HỌC: ""{lessonTitle}""
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🧠 BƯỚC 1: PHÂN TÍCH NỘI DUNG (Chain-of-Thought)
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Trước khi tạo blocks, hãy tự phân tích:
+- Chủ đề chính của bài là gì?
+- Các khái niệm cốt lõi cần truyền đạt cho học sinh cấp 3?
+- Kiến thức tiên quyết (prerequisite) học sinh cần biết trước?
+- Liên hệ thực tiễn nào phù hợp với đời sống học sinh THPT Việt Nam?
+- Mức độ khó phù hợp với chương trình THPT Việt Nam?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 BƯỚC 2: TẠO BLOCKS THEO CHUẨN SƯ PHẠM
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tạo 4 blocks theo đúng trình tự này:
+
+1️⃣ **Concept** (Khái niệm – sortOrder: 1)
+   - Trình bày lý thuyết/khái niệm cốt lõi một cách rõ ràng, mạch lạc
+   - Sử dụng ngôn ngữ dễ hiểu phù hợp với học sinh lớp 10-12
+   - Kết nối với kiến thức đã học trước đó (nếu có)
+   - Nêu rõ định nghĩa, công thức, quy tắc quan trọng
+   - Sử dụng in đậm (**) cho thuật ngữ quan trọng
+   - Thời gian ước tính: 5-8 phút
+
+2️⃣ **Example** (Ví dụ minh hoạ – sortOrder: 2)
+   - Đưa ra 2-3 ví dụ minh hoạ cụ thể, step-by-step
+   - Ưu tiên ví dụ liên hệ với đời sống, văn hoá Việt Nam
+   - Giải thích rõ từng bước giải (nếu là bài toán/bài tập mẫu)
+   - Ví dụ đi từ dễ đến khó
+   - Thời gian ước tính: 3-5 phút
+
+3️⃣ **Exercise** (Bài tập thực hành – sortOrder: 3)
+   - Thiết kế 3-5 câu hỏi/bài tập có nhiều mức độ:
+     • Mức 1 (Nhận biết): câu hỏi cơ bản kiểm tra hiểu khái niệm
+     • Mức 2 (Thông hiểu): câu hỏi yêu cầu giải thích, so sánh
+     • Mức 3 (Vận dụng): bài tập áp dụng kiến thức vào tình huống cụ thể
+   - Mỗi câu hỏi phải rõ ràng, có ngữ cảnh cụ thể
+   - Gợi ý đáp án hoặc hướng dẫn giải (nếu phù hợp)
+   - Thời gian ước tính: 10-15 phút
+
+4️⃣ **Reflection** (Suy ngẫm – sortOrder: 4)
+   - Đặt 2-3 câu hỏi mở kích thích tư duy phản biện
+   - Liên hệ kiến thức với thực tiễn đời sống Việt Nam
+   - Khuyến khích học sinh tự đánh giá mức độ hiểu bài
+   - Gợi ý hướng tìm hiểu thêm hoặc chủ đề liên quan
+   - Ví dụ: ""Em hãy suy nghĩ xem kiến thức này có thể áp dụng vào tình huống nào trong đời sống hàng ngày?""
+   - Thời gian ước tính: 3-5 phút
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ QUY TẮC BẮT BUỘC
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+- TOÀN BỘ nội dung phải bằng TIẾNG VIỆT
+- Ngôn ngữ phù hợp với học sinh THPT Việt Nam (lớp 10-12, 16-18 tuổi)
+- Mỗi block phải tự hoàn chỉnh, đầy đủ, đọc riêng vẫn hiểu được
+- Không dùng ngôn ngữ quá hàn lâm, không dùng tiếng Anh trừ thuật ngữ chuyên ngành
+- Thuật ngữ chuyên ngành nên kèm giải thích tiếng Việt
+- Ví dụ và bài tập phải phù hợp với bối cảnh Việt Nam
+- Phải có đúng 4 blocks theo thứ tự: Concept → Example → Exercise → Reflection
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 NỘI DUNG CẦN PHÂN TÍCH:
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+{inputContent}";
+        }
+
+        // =============================================================
+        // PARSE STRUCTURED OUTPUT → List<GeneratedBlockDto>
+        // Với Structured Output, JSON luôn hợp lệ → parse đơn giản
+        // Không cần ExtractJsonFromText, NormalizeBlockType nữa
+        // =============================================================
+        private List<GeneratedBlockDto> ParseStructuredBlocks(string jsonText)
+        {
             using var doc = JsonDocument.Parse(jsonText);
 
             if (!doc.RootElement.TryGetProperty("blocks", out var blocksEl))
+            {
+                _logger.LogWarning("[AI] ⚠️ Structured output thiếu trường 'blocks', thử parse root array");
+                // Fallback: nếu root là array thay vì object
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    return ParseBlockArray(doc.RootElement);
+                }
                 throw new InvalidOperationException("AI response thiếu trường 'blocks'.");
+            }
 
+            return ParseBlockArray(blocksEl);
+        }
+
+        private List<GeneratedBlockDto> ParseBlockArray(JsonElement blocksEl)
+        {
             var result = new List<GeneratedBlockDto>();
             var sortOrder = 1;
 
             foreach (var blockEl in blocksEl.EnumerateArray())
             {
-                var blockType = blockEl.TryGetProperty("blockType", out var btEl)
-                    ? btEl.GetString() ?? "Concept"
-                    : "Concept";
+                // Với Structured Output + enum constraint, blockType luôn đúng
+                var blockType = blockEl.GetProperty("blockType").GetString() ?? "Concept";
 
-                // Normalize blockType
-                blockType = NormalizeBlockType(blockType);
-
-                var content = blockEl.TryGetProperty("content", out var cEl)
-                    ? cEl.GetString() ?? string.Empty
-                    : string.Empty;
+                var content = blockEl.GetProperty("content").GetString() ?? string.Empty;
 
                 var order = blockEl.TryGetProperty("sortOrder", out var soEl) && soEl.TryGetInt32(out var soVal)
                     ? soVal
@@ -306,64 +389,6 @@ Nội dung cần phân tích:
             }
 
             return result.OrderBy(b => b.SortOrder).ToList();
-        }
-
-        private static string NormalizeBlockType(string blockType)
-        {
-            return blockType.Trim().ToLower() switch
-            {
-                "concept"    => "Concept",
-                "example"    => "Example",
-                "exercise"   => "Exercise",
-                "reflection" => "Reflection",
-                _            => "Concept"   // fallback mặc định
-            };
-        }
-
-        private static string ExtractJsonFromText(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return text;
-            var trimmed = text.Trim();
-
-            var match = Regex.Match(trimmed, @"```(?:json)?\s*(.*?)\s*```",
-                RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
-            if (match.Success && match.Groups.Count > 1)
-            {
-                var codeBlock = match.Groups[1].Value.Trim();
-                var jsonInBlock = ExtractJsonObject(codeBlock);
-                if (!string.IsNullOrWhiteSpace(jsonInBlock)) return jsonInBlock;
-            }
-
-            var jsonObject = ExtractJsonObject(trimmed);
-            return !string.IsNullOrWhiteSpace(jsonObject) ? jsonObject : trimmed;
-        }
-
-        private static string ExtractJsonObject(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
-            var startIndex = text.IndexOf('{');
-            if (startIndex < 0) return string.Empty;
-
-            int braceCount = 0;
-            bool inString = false, escapeNext = false;
-
-            for (int i = startIndex; i < text.Length; i++)
-            {
-                var ch = text[i];
-                if (escapeNext) { escapeNext = false; continue; }
-                if (ch == '\\') { escapeNext = true; continue; }
-                if (ch == '"' && !escapeNext) { inString = !inString; continue; }
-                if (inString) continue;
-                if (ch == '{') braceCount++;
-                else if (ch == '}')
-                {
-                    braceCount--;
-                    if (braceCount == 0)
-                        return text.Substring(startIndex, i - startIndex + 1);
-                }
-            }
-            return string.Empty;
         }
     }
 }
