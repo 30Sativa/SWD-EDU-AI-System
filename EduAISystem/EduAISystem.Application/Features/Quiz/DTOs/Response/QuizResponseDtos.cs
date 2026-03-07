@@ -50,6 +50,13 @@ namespace EduAISystem.Application.Features.Quiz.DTOs.Response
         int SortOrder
     );
 
+    public record OptionDetailResponseDto(
+        Guid OptionId,
+        string OptionText,
+        bool? IsCorrect,
+        int SortOrder
+    );
+
     // =============================================
     // Kết quả sau khi nộp bài (AttemptResult)
     // =============================================

@@ -1,6 +1,8 @@
 using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Quiz.Commands;
 using EduAISystem.Application.Features.Quiz.DTOs.Request;
+using EduAISystem.Application.Features.Quiz.DTOs.Response;
+using EduAISystem.Application.Features.Quiz.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -259,6 +261,87 @@ Xoá một câu hỏi cụ thể khỏi quiz.
                 _logger.LogError(ex,
                     "[LỖI XOÁ CÂU HỎI KHỎI QUIZ] MãTrace: {TraceId} | MãQuiz: {QuizId} | MãCâuHỏi: {QuestionId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
                     traceId, quizId, questionId, ex.GetType().Name, ex.Message);
+                throw;
+            }
+        }
+
+        [HttpGet("questions/{questionId:guid}/options")]
+        [SwaggerOperation(
+            Summary = "GV - Lấy danh sách options của câu hỏi",
+            Description = "Lấy danh sách các lựa chọn (options) của một câu hỏi cụ thể, bao gồm thông tin IsCorrect để giáo viên xem/chỉnh sửa."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<OptionDetailResponseDto>>))]
+        public async Task<IActionResult> GetQuestionOptions(
+            Guid questionId,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var options = await _mediator.Send(new GetQuestionOptionsQuery(questionId), cancellationToken);
+                return Ok(ApiResponse<List<OptionDetailResponseDto>>.Ok(options, "Lấy danh sách options thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI LẤY QUESTION OPTIONS] MãTrace: {TraceId} | MãCâuHỏi: {QuestionId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, questionId, ex.GetType().Name, ex.Message);
+                throw;
+            }
+        }
+
+        [HttpPut("questions/{questionId:guid}/options/{optionId:guid}")]
+        [SwaggerOperation(
+            Summary = "GV - Cập nhật một option trong câu hỏi",
+            Description = "Cập nhật trực tiếp nội dung, đáp án (đúng/sai) và thứ tự hiển thị của một option."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
+        public async Task<IActionResult> UpdateQuestionOption(
+            Guid questionId,
+            Guid optionId,
+            [FromBody] UpdateSingleOptionRequestDto dto,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _mediator.Send(new UpdateQuestionOptionCommand(questionId, optionId, dto), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(optionId, "Cập nhật option thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI CẬP NHẬT QUESTION OPTION] MãTrace: {TraceId} | MãCâuHỏi: {QuestionId} | MãOption: {OptionId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, questionId, optionId, ex.GetType().Name, ex.Message);
+                throw;
+            }
+        }
+
+        [HttpDelete("questions/{questionId:guid}/options/{optionId:guid}")]
+        [SwaggerOperation(
+            Summary = "GV - Xoá cứng một option khỏi câu hỏi",
+            Description = "Xoá cứng hoàn toàn một option cụ thể khỏi câu hỏi. Thao tác không thể hoàn tác."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
+        public async Task<IActionResult> DeleteQuestionOption(
+            Guid questionId,
+            Guid optionId,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _mediator.Send(new DeleteQuestionOptionCommand(questionId, optionId), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(optionId, "Xoá option thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI XOÁ QUESTION OPTION] MãTrace: {TraceId} | MãCâuHỏi: {QuestionId} | MãOption: {OptionId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, questionId, optionId, ex.GetType().Name, ex.Message);
                 throw;
             }
         }

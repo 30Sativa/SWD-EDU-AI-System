@@ -13,6 +13,8 @@ namespace EduAISystem.Application.Abstractions.Persistence
         Task AddQuestionsAsync(Guid quizId, List<QuestionDomain> questions, CancellationToken cancellationToken);
         Task UpdateQuestionAsync(QuestionDomain question, CancellationToken cancellationToken);
         Task DeleteQuestionAsync(Guid quizId, Guid questionId, CancellationToken cancellationToken);
+        Task UpdateQuestionOptionAsync(Guid questionId, QuestionOptionDomain option, CancellationToken cancellationToken);
+        Task DeleteQuestionOptionAsync(Guid questionId, Guid optionId, CancellationToken cancellationToken);
 
         // =============================================
         // READ — Quiz info
@@ -23,6 +25,8 @@ namespace EduAISystem.Application.Abstractions.Persistence
         /// Lấy Quiz kèm danh sách Question + Options — dùng khi Student bắt đầu làm bài.
         /// </summary>
         Task<QuizWithQuestionsDomain?> GetWithQuestionsAsync(Guid quizId, CancellationToken cancellationToken);
+
+        Task<List<QuestionOptionDomain>> GetQuestionOptionsAsync(Guid questionId, CancellationToken cancellationToken);
 
         // =============================================
         // READ — Theo context

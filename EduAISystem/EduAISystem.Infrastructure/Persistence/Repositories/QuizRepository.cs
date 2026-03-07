@@ -146,6 +146,29 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             await _context.SaveChangesAsync(cancellationToken);
         }
 
+        public async Task UpdateQuestionOptionAsync(Guid questionId, QuestionOptionDomain option, CancellationToken cancellationToken)
+        {
+            var entity = await _context.QuestionOptions
+                .FirstOrDefaultAsync(o => o.Id == option.Id && o.QuestionId == questionId, cancellationToken)
+                ?? throw new KeyNotFoundException($"Option {option.Id} không tồn tại trong question {questionId}.");
+
+            entity.OptionText = option.OptionText;
+            entity.IsCorrect = option.IsCorrect;
+            entity.SortOrder = option.SortOrder;
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task DeleteQuestionOptionAsync(Guid questionId, Guid optionId, CancellationToken cancellationToken)
+        {
+            var entity = await _context.QuestionOptions
+                .FirstOrDefaultAsync(o => o.Id == optionId && o.QuestionId == questionId, cancellationToken)
+                ?? throw new KeyNotFoundException($"Option {optionId} không tồn tại trong question {questionId}.");
+
+            _context.QuestionOptions.Remove(entity);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
         // =============================================
         // READ — Quiz info
         // =============================================
@@ -181,6 +204,24 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         // =============================================
         // READ — Theo context
         // =============================================
+
+        public async Task<List<QuestionOptionDomain>> GetQuestionOptionsAsync(Guid questionId, CancellationToken cancellationToken)
+        {
+            var options = await _context.QuestionOptions
+                .AsNoTracking()
+                .Where(o => o.QuestionId == questionId)
+                .OrderBy(o => o.SortOrder)
+                .ToListAsync(cancellationToken);
+
+            return options.Select(o => new QuestionOptionDomain(
+                id: o.Id,
+                questionId: o.QuestionId,
+                optionText: o.OptionText,
+                isCorrect: o.IsCorrect,
+                sortOrder: o.SortOrder
+            )).ToList();
+        }
+
 
         public async Task<List<QuizDomain>> GetByLessonIdAsync(Guid lessonId, CancellationToken cancellationToken)
         {

@@ -22,4 +22,9 @@ namespace EduAISystem.Application.Features.Quiz.Queries
     // Student xem kết quả sau khi nộp bài
     // =============================================
     public record GetAttemptResultQuery(Guid AttemptId) : IRequest<AttemptResultResponseDto>;
+
+    // =============================================
+    // API hỗ trợ lấy options cho 1 question
+    // =============================================
+    public record GetQuestionOptionsQuery(Guid QuestionId) : IRequest<List<OptionDetailResponseDto>>;
 }

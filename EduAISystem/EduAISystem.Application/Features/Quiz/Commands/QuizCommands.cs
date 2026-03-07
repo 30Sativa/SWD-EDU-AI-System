@@ -62,4 +62,19 @@ namespace EduAISystem.Application.Features.Quiz.Commands
         Guid QuizId,
         Guid QuestionId
     ) : IRequest<Unit>;
+
+    // =============================================
+    // Teacher cập nhật / xoá từng Option riêng lẻ
+    // =============================================
+
+    public record UpdateQuestionOptionCommand(
+        Guid QuestionId,
+        Guid OptionId,
+        UpdateSingleOptionRequestDto Request
+    ) : IRequest<Unit>;
+
+    public record DeleteQuestionOptionCommand(
+        Guid QuestionId,
+        Guid OptionId
+    ) : IRequest<Unit>;
 }

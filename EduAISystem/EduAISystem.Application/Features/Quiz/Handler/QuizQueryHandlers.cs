@@ -118,7 +118,7 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                     OptionId: o.Id,
                     OptionText: o.OptionText,
                     SortOrder: o.SortOrder
-                    // KHÔNG có IsCorrect ở đây
+                // KHÔNG có IsCorrect ở đây
                 )).ToList()
             )).ToList();
 
@@ -217,6 +217,32 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                 TimeSpent: data.Attempt.TimeSpent,
                 Questions: questionResults
             );
+        }
+        // =============================================
+        // GET QUESTION OPTIONS
+        // =============================================
+        public class GetQuestionOptionsQueryHandler
+            : IRequestHandler<GetQuestionOptionsQuery, List<OptionDetailResponseDto>>
+        {
+            private readonly IQuizRepository _quizRepository;
+
+            public GetQuestionOptionsQueryHandler(IQuizRepository quizRepository)
+            {
+                _quizRepository = quizRepository;
+            }
+
+            public async Task<List<OptionDetailResponseDto>> Handle(
+                GetQuestionOptionsQuery request, CancellationToken cancellationToken)
+            {
+                var options = await _quizRepository.GetQuestionOptionsAsync(request.QuestionId, cancellationToken);
+
+                return options.Select(o => new OptionDetailResponseDto(
+                    OptionId: o.Id,
+                    OptionText: o.OptionText,
+                    IsCorrect: o.IsCorrect,
+                    SortOrder: o.SortOrder
+                )).ToList();
+            }
         }
     }
 }

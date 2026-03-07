@@ -82,6 +82,12 @@ namespace EduAISystem.Application.Features.Quiz.DTOs.Request
         int SortOrder
     );
 
+    public record UpdateSingleOptionRequestDto(
+        string OptionText,
+        bool IsCorrect,
+        int SortOrder
+    );
+
     // =============================================
     // Student nộp bài (Submit)
     // =============================================

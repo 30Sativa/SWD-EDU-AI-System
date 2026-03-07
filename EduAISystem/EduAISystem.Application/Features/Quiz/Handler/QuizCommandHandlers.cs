@@ -439,4 +439,53 @@ namespace EduAISystem.Application.Features.Quiz.Handler
             return Unit.Value;
         }
     }
+
+    // =============================================
+    // UPDATE QUESTION OPTION — Teacher
+    // =============================================
+    public class UpdateQuestionOptionCommandHandler
+        : IRequestHandler<UpdateQuestionOptionCommand, Unit>
+    {
+        private readonly IQuizRepository _quizRepository;
+
+        public UpdateQuestionOptionCommandHandler(IQuizRepository quizRepository)
+        {
+            _quizRepository = quizRepository;
+        }
+
+        public async Task<Unit> Handle(UpdateQuestionOptionCommand request, CancellationToken cancellationToken)
+        {
+            var dto = request.Request;
+            var option = (QuestionOptionDomain)Activator.CreateInstance(
+                typeof(QuestionOptionDomain),
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
+                null,
+                [request.OptionId, request.QuestionId, dto.OptionText, dto.IsCorrect, dto.SortOrder],
+                null
+            )!;
+
+            await _quizRepository.UpdateQuestionOptionAsync(request.QuestionId, option, cancellationToken);
+            return Unit.Value;
+        }
+    }
+
+    // =============================================
+    // DELETE QUESTION OPTION — Teacher
+    // =============================================
+    public class DeleteQuestionOptionCommandHandler
+        : IRequestHandler<DeleteQuestionOptionCommand, Unit>
+    {
+        private readonly IQuizRepository _quizRepository;
+
+        public DeleteQuestionOptionCommandHandler(IQuizRepository quizRepository)
+        {
+            _quizRepository = quizRepository;
+        }
+
+        public async Task<Unit> Handle(DeleteQuestionOptionCommand request, CancellationToken cancellationToken)
+        {
+            await _quizRepository.DeleteQuestionOptionAsync(request.QuestionId, request.OptionId, cancellationToken);
+            return Unit.Value;
+        }
+    }
 }
