@@ -27,3 +27,7 @@ export const getAssignmentsByCourse = (courseId) => {
 export const getStudentAssignmentsByCourse = (courseId) => {
     return axiosClient.get(`/api/student/assignments/course/${courseId}`);
 };
+
+export const getAssignmentSubmissions = (assignmentId) => {
+    return axiosClient.get(`/api/teacher/submissions/assignment/${assignmentId}`);
+};

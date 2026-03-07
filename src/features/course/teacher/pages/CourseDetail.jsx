@@ -20,6 +20,8 @@ import {
     Settings,
     LayoutGrid,
     ChevronRight,
+    Users,
+    ClipboardList,
 } from 'lucide-react';
 import {
     DndContext,
@@ -45,10 +47,11 @@ import {
     createTeacherSection,
     updateTeacherSection,
     deleteTeacherSection,
-    getCourseSections
+    getCourseSections,
+    deleteSectionDirect
 } from '../../api/courseApi';
 import { createLesson, updateLesson, deleteLesson, getLessonsBySection, getLessonBlocks, createLessonBlock, updateLessonBlock, deleteLessonBlock } from '../../../lesson/api/lessonApi';
-import { getAssignmentsByCourse, getStudentAssignmentsByCourse, createAssignment, updateAssignment, deleteAssignment, publishAssignment, unpublishAssignment } from '../../../assignment/api/assignmentApi';
+import { getAssignmentsByCourse, getStudentAssignmentsByCourse, createAssignment, updateAssignment, deleteAssignment, publishAssignment, unpublishAssignment, getAssignmentSubmissions } from '../../../assignment/api/assignmentApi';
 import {
     createFormativeQuiz,
     createSummativeQuiz,
@@ -108,6 +111,10 @@ export default function CourseDetail() {
     const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
     const [editingAssignment, setEditingAssignment] = useState(null);
     const [assignmentForm] = Form.useForm();
+    const [isSubmissionsModalOpen, setIsSubmissionsModalOpen] = useState(false);
+    const [submissions, setSubmissions] = useState([]);
+    const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+    const [activeAssignmentForSubmissions, setActiveAssignmentForSubmissions] = useState(null);
 
     // Quiz State
     const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
@@ -142,7 +149,6 @@ export default function CourseDetail() {
     const fetchAssignments = useCallback(async () => {
         if (!courseId) return;
         try {
-            // Sử dụng student API để lấy danh sách bài tập (Pattern này giống với Quiz feature giúp tránh lỗi 500 trên teacher endpoint hiện tại)
             const res = await getStudentAssignmentsByCourse(courseId);
             const data = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
             setAssignments(data);
@@ -151,17 +157,43 @@ export default function CourseDetail() {
         }
     }, [courseId]);
 
+    const openSubmissionsModal = async (assignment) => {
+        const aId = assignment.id || assignment.Id || assignment.assignmentId || assignment.courseAssignmentId;
+        setActiveAssignmentForSubmissions(assignment);
+        setIsSubmissionsModalOpen(true);
+        setLoadingSubmissions(true);
+        try {
+            const res = await getAssignmentSubmissions(aId);
+            // Handle multiple response formats to be safe
+            const data = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
+            setSubmissions(data);
+        } catch (error) {
+            console.error("Lỗi khi tải danh sách bài nộp", error);
+            message.error("Không thể tải danh sách bài nộp");
+            setSubmissions([]); // Reset on error
+        } finally {
+            setLoadingSubmissions(false);
+        }
+    };
+
     const handleAssignmentSubmit = async (values) => {
         try {
             setSubmitting(true);
             const payload = {
                 courseId: courseId,
                 title: values.title,
-                description: values.description || ""
+                Title: values.title,
+                description: values.description || "",
+                Description: values.description || "",
+                dueDate: values.dueDate ? values.dueDate.toISOString() : null,
+                DueDate: values.dueDate ? values.dueDate.toISOString() : null,
+                maxScore: values.maxScore || 10,
+                MaxScore: values.maxScore || 10
             };
 
             if (editingAssignment) {
-                await updateAssignment(editingAssignment.id, payload);
+                const aId = editingAssignment.id || editingAssignment.Id || editingAssignment.assignmentId || editingAssignment.AssignmentId || editingAssignment.courseAssignmentId;
+                await updateAssignment(aId, payload);
                 message.success('Cập nhật bài tập thành công!');
             } else {
                 await createAssignment(payload);
@@ -329,91 +361,120 @@ export default function CourseDetail() {
         try {
             setLoading(true);
             const res = await getTeacherCourseDetail(courseId);
-            const data = (res?.data || res);
+            const data = res?.data || res;
 
-            let structure = data.sections || data.items || data.Sections || [];
+            let structure = [];
+            const uuid = data?.id || data?.Id || courseId;
 
-            if (structure.length === 0) {
-                try {
-                    const sectionsRes = await getCourseSections(courseId);
-                    structure = sectionsRes?.data?.items || sectionsRes?.items || sectionsRes?.data || [];
-                } catch {
-                    // Fail silently
-                }
+            try {
+                const sectionsRes = await getCourseSections(uuid);
+                structure = sectionsRes?.data?.items || sectionsRes?.items || sectionsRes?.data || [];
+            } catch (sectionError) {
+                console.error("Could not fetch sections using UUID:", sectionError);
+                structure = data.sections || data.items || data.Sections || [];
             }
 
-            // Standardizing mapping and filtering soft-deleted sections
             setSections(prev => {
-                console.log("Raw structure to map:", structure);
                 const mapped = structure
                     .filter(sec => {
-                        // More aggressive deletion check
-                        const isDel = sec.isDeleted || sec.IsDeleted || sec.status === 'Deleted' || sec.Status === 'Deleted' || sec.isdeleted || sec.deleted === true;
-                        return !isDel;
+                        if (!sec) return false;
+                        const statusRaw = sec.status ?? sec.Status ?? sec.statusId ?? sec.StatusId;
+                        const statusStr = String(statusRaw || "").toLowerCase();
+                        const isDeleted =
+                            sec.isDeleted === true ||
+                            sec.IsDeleted === true ||
+                            String(sec.isDeleted).toLowerCase() === 'true' ||
+                            String(sec.IsDeleted).toLowerCase() === 'true' ||
+                            statusStr === 'deleted' ||
+                            statusStr === 'inactive' ||
+                            statusStr === 'removed' ||
+                            statusRaw === 0 ||
+                            statusRaw === '0' ||
+                            statusRaw === 3;
+                        return !isDeleted;
                     })
                     .map(sec => {
                         const secId = sec.id || sec.Id || sec.sectionId || sec.SectionId;
                         const secSortOrder = sec.sortOrder ?? sec.SortOrder ?? sec.order ?? sec.Order ?? 0;
                         const existing = prev.find(s => (s.id || s.Id) === secId);
+                        // If the backend returned new lessons, we should merge or prefer them.
+                        // But we also need to maintain isExpanded state.
+                        const currentLessons = existing?.lessons || [];
+                        const apiLessons = sec.lessons || sec.Lessons || [];
+                        // Prefer existing ONLY if API didn't return any nested, else use API
+                        const lessonsToKeep = apiLessons.length > 0 ? apiLessons : currentLessons;
+
                         return {
                             ...sec,
                             id: secId,
                             sortOrder: Number(secSortOrder),
-                            lessons: existing?.lessons || sec.lessons || sec.Lessons || sec.items || sec.Items || sec.subSections || [],
+                            lessons: lessonsToKeep,
                             isExpanded: existing?.isExpanded || false
                         };
                     });
 
-                // Stable sort by sortOrder, then by original ID to prevent jumping
-                return [...mapped].sort((a, b) => {
-                    const diff = a.sortOrder - b.sortOrder;
-                    if (diff !== 0) return diff;
-                    return String(a.id).localeCompare(String(b.id));
-                });
+                return [...mapped].sort((a, b) => (a.sortOrder - b.sortOrder) || String(a.id).localeCompare(String(b.id)));
             });
 
-            // If the detail API doesn't return base fields (like subjectId), fetch from list to supplement
-            if (!data.subjectId && !data.SubjectId && !data.subject?.id) {
+            // Fallback: If structure is still empty, try to get from course object
+            if (structure.length === 0 && (data.sections || data.Sections)) {
+                structure = data.sections || data.Sections;
+                // Re-run mapping logic if needed or just let it fall through
+            }
+
+            if (!data.subjectId && !data.SubjectId) {
                 try {
                     const { getMyCourses } = await import('../../api/courseApi');
                     const myCoursesRes = await getMyCourses({ pageSize: 1000 });
-                    const coursesList = myCoursesRes?.data?.items || myCoursesRes?.items || myCoursesRes?.data || [];
+                    const coursesList = myCoursesRes?.data?.items || myCoursesRes?.items || [];
                     const baseCourse = coursesList.find(c => c.id === courseId);
                     if (baseCourse) {
-                        data.subjectId = baseCourse.subjectId || baseCourse.SubjectId;
-                        data.categoryId = baseCourse.categoryId || baseCourse.CategoryId;
-                        data.gradeLevelId = baseCourse.gradeLevelId || baseCourse.gradeId || baseCourse.GradeLevelId;
-                        data.code = baseCourse.code || baseCourse.Code;
+                        data.subjectId = baseCourse.subjectId;
+                        data.categoryId = baseCourse.categoryId;
                     }
                 } catch (e) {
-                    console.error("Could not supplement course base fields", e);
+                    console.error("Could not supplement fields", e);
                 }
             }
 
             setCourse(data);
+            getCourseQuizzes(courseId)
+                .then(quizRes => setSummativeQuizzes(Array.isArray(quizRes?.data || quizRes) ? (quizRes?.data || quizRes) : []))
+                .catch(err => console.error("Quizzes fetch failed:", err));
 
-            // Fetch Summative Quizzes for Course
-            getCourseQuizzes(courseId).then(quizRes => {
-                const quizList = quizRes?.data || quizRes || [];
-                setSummativeQuizzes(Array.isArray(quizList) ? quizList : []);
-            }).catch(err => {
-                console.error("Course Quizzes fetch failed:", err);
-            });
-
-            // Load Assignments
             fetchAssignments();
-        } catch {
+        } catch (error) {
+            console.error("fetchDetail failed:", error);
             message.error('Không thể tải thông tin khóa học');
         } finally {
             setLoading(false);
         }
-    }, [courseId]);
+    }, [courseId, fetchAssignments]);
 
     // Function to fetch lessons for a specific section
     const fetchSectionLessons = async (sectionId) => {
         try {
             const res = await getLessonsBySection(sectionId);
-            const lessons = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
+            const rawLessons = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
+
+            // Filter deleted lessons
+            const lessons = rawLessons.filter(lesson => {
+                if (!lesson) return false;
+                const statusRaw = lesson.status ?? lesson.Status ?? lesson.statusId ?? lesson.StatusId;
+                const statusStr = String(statusRaw || "").toLowerCase();
+                const isDeleted =
+                    lesson.isDeleted === true ||
+                    lesson.IsDeleted === true ||
+                    String(lesson.isDeleted).toLowerCase() === 'true' ||
+                    String(lesson.IsDeleted).toLowerCase() === 'true' ||
+                    statusStr === 'deleted' ||
+                    statusStr === 'inactive' ||
+                    statusStr === 'removed' ||
+                    statusRaw === 0 ||
+                    statusRaw === '0' ||
+                    statusRaw === 3;
+                return !isDeleted;
+            });
 
             // Map each lesson to include its formative quizzes
             const lessonsWithQuizzes = await Promise.all(lessons.map(async (lesson) => {
@@ -481,17 +542,14 @@ export default function CourseDetail() {
             setSubmitting(true);
             const payload = {
                 title: values.title,
-                code: course?.code || course?.Code || "COURSE_CODE",
-                subjectId: course?.subjectId || course?.SubjectId,
-                gradeLevelId: course?.gradeLevelId || course?.GradeLevelId || course?.gradeId || course?.GradeId,
-                categoryId: course?.categoryId || course?.CategoryId,
                 description: values.description || "",
                 thumbnail: values.thumbnail ? values.thumbnail.replace(/^["']|["']$/g, '') : "",
-                level: parseInt(values.level) || 1,
+                level: Number(values.level) || 10,
                 language: values.language || "vi"
             };
+            console.log("Updating course with payload:", payload);
             await updateTeacherCourse(courseId, payload);
-            message.success('Cập nhật thông tin thành công!');
+            message.success('Cập nhật thông tin khóa học thành công!');
             setIsEditModalOpen(false);
             fetchDetail();
         } catch (error) {
@@ -599,11 +657,37 @@ export default function CourseDetail() {
                     }));
 
                     message.loading({ content: 'Đang xử lý xóa...', key: 'deleting_section' });
-                    await deleteTeacherSection(courseId, targetSectionId);
-                    message.success({ content: 'Đã xóa chương thành công!', key: 'deleting_section' });
 
-                    // Delay refresh to let server update consistency 
-                    setTimeout(() => fetchDetail(), 1000);
+                    const actualCourseId = course?.id || course?.Id || courseId;
+                    const sectionId = targetSectionId;
+
+                    console.log("Attempting deletion with:", { actualCourseId, sectionId });
+
+                    try {
+                        // We try the official endpoint from the Swagger first
+                        // Try with UUIDs to be safest
+                        await deleteTeacherSection(actualCourseId, sectionId);
+
+                        // Also try the direct endpoint just in case
+                        try {
+                            await deleteSectionDirect(sectionId);
+                        } catch (e) {
+                            // Ignore failures of the direct endpoint if the previous one worked
+                        }
+
+                        message.success({ content: 'Đã xóa chương thành công!', key: 'deleting_section' });
+
+                        // Crucial: Wait longer for backend to propagate the soft-delete
+                        setTimeout(() => {
+                            fetchDetail();
+                        }, 2500);
+
+                    } catch (apiError) {
+                        console.error("Deletion failed:", apiError);
+                        const msg = apiError.response?.data?.message || 'Lỗi từ hệ thống khi xóa chương';
+                        message.error({ content: msg, key: 'deleting_section' });
+                        setSections(prevSectionsState); // Rollback UI
+                    }
                 } catch (error) {
                     console.error("Delete section failed:", error);
                     message.error({
@@ -687,18 +771,24 @@ export default function CourseDetail() {
             cancelText: 'Hủy bỏ',
             onOk: async () => {
                 try {
+                    // Start optimistic update for UI speed
+                    setSections(prev => prev.map(sec => ({
+                        ...sec,
+                        lessons: sec.lessons ? sec.lessons.filter(l => (l.id || l.Id) !== lessonId) : []
+                    })));
+
+                    message.loading({ content: 'Đang xóa bài học...', key: 'deleting_lesson' });
                     await deleteLesson(lessonId);
-                    message.success('Đã xóa bài học thành công!');
+                    message.success({ content: 'Đã xóa bài học thành công!', key: 'deleting_lesson' });
 
-                    // Force refresh all sections to ensure UI is up to date
-                    // Since we don't know which section the lesson belonged to here (easily)
-                    // we call fetchDetail which will preserve expanded states
-                    fetchDetail();
-
-                    // Also refresh each expanded section's lessons to be sure
-                    sections.filter(s => s.isExpanded).forEach(s => fetchSectionLessons(s.id));
+                    // Re-fetch only the expanded sections to prevent race conditions vs fetchDetail
+                    setTimeout(() => {
+                        sections.filter(s => s.isExpanded).forEach(s => fetchSectionLessons(s.id));
+                    }, 2000);
                 } catch (error) {
-                    message.error('Lỗi khi xóa bài học');
+                    message.error({ content: 'Lỗi khi xóa bài học', key: 'deleting_lesson' });
+                    // Rollback
+                    fetchDetail();
                 }
             }
         });
@@ -896,7 +986,18 @@ export default function CourseDetail() {
                                 <Button
                                     icon={<Edit3 size={14} />}
                                     onClick={() => {
-                                        form.setFieldsValue(course);
+                                        let levelVal = Number(course.level || course.Level);
+                                        if (levelVal === 1) levelVal = 10;
+                                        if (levelVal === 2) levelVal = 11;
+                                        if (levelVal === 3) levelVal = 12;
+
+                                        form.setFieldsValue({
+                                            title: course.title,
+                                            description: course.description,
+                                            thumbnail: course.thumbnail,
+                                            level: levelVal || 10,
+                                            language: (course.language || 'vi').substring(0, 2)
+                                        });
                                         setIsEditModalOpen(true);
                                     }}
                                     className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-[#0487e2] border-blue-100/50 rounded-lg hover:bg-blue-100 font-bold text-xs"
@@ -1071,15 +1172,15 @@ export default function CourseDetail() {
                                             <div className="flex items-center gap-4 text-[11px] font-bold uppercase tracking-wider">
                                                 <div className="flex items-center gap-1.5 text-slate-400">
                                                     <Clock size={12} className="text-slate-300" />
-                                                    Hạn nộp: <span className={assignment.dueDate || assignment.DueDate ? "text-slate-600" : "text-slate-300 italic"}>
-                                                        {(assignment.dueDate || assignment.DueDate)
-                                                            ? dayjs(assignment.dueDate || assignment.DueDate).format('HH:mm, DD/MM/YYYY')
+                                                    Hạn nộp: <span className={(assignment.dueDate || assignment.DueDate || assignment.deadline || assignment.Deadline || assignment.endTime || assignment.EndTime) ? "text-slate-600" : "text-slate-300 italic"}>
+                                                        {(assignment.dueDate || assignment.DueDate || assignment.deadline || assignment.Deadline || assignment.endTime || assignment.EndTime)
+                                                            ? dayjs(assignment.dueDate || assignment.DueDate || assignment.deadline || assignment.Deadline || assignment.endTime || assignment.EndTime).format('HH:mm, DD/MM/YYYY')
                                                             : "Chưa thiết lập"}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-1.5 text-slate-400 border-l border-slate-200 pl-4">
                                                     <CheckSquare size={12} className="text-slate-300" />
-                                                    Điểm tối đa: <span className="text-[#0487e2]">{assignment.maxScore || assignment.MaxScore || 10}</span>
+                                                    Điểm tối đa: <span className="text-[#0487e2]">{assignment.maxScore || assignment.MaxScore || assignment.score || 10}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1095,15 +1196,23 @@ export default function CourseDetail() {
                                                 })()}
                                             </button>
                                             <button
+                                                onClick={() => openSubmissionsModal(assignment)}
+                                                title="Danh sách bài nộp"
+                                                className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 focus:bg-blue-50 rounded-lg transition-colors border border-transparent shadow-sm"
+                                            >
+                                                <Users size={14} />
+                                            </button>
+                                            <button
                                                 className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 focus:bg-blue-50 rounded-lg transition-colors border border-transparent shadow-sm"
                                                 onClick={() => {
                                                     const editId = assignment.id || assignment.Id;
                                                     setEditingAssignment(assignment);
+                                                    const dueDateRaw = assignment.dueDate || assignment.DueDate || assignment.deadline || assignment.Deadline || assignment.endTime || assignment.EndTime;
                                                     assignmentForm.setFieldsValue({
                                                         title: assignment.title || assignment.Title,
                                                         description: assignment.description || assignment.Description,
-                                                        dueDate: (assignment.dueDate || assignment.DueDate) ? dayjs(assignment.dueDate || assignment.DueDate) : null,
-                                                        maxScore: assignment.maxScore || assignment.MaxScore || 10
+                                                        dueDate: dueDateRaw ? dayjs(dueDateRaw) : null,
+                                                        maxScore: assignment.maxScore || assignment.MaxScore || assignment.score || 10
                                                     });
                                                     setIsAssignmentModalOpen(true);
                                                 }}
@@ -1162,11 +1271,11 @@ export default function CourseDetail() {
                     </Form.Item>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <Form.Item name="level" label="Độ khó">
+                        <Form.Item name="level" label="Khối Lớp">
                             <Select className="h-11 [&>.ant-select-selector]:!rounded-lg [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent">
-                                <Select.Option value={1}>Cơ bản</Select.Option>
-                                <Select.Option value={2}>Trung bình</Select.Option>
-                                <Select.Option value={3}>Nâng cao</Select.Option>
+                                <Select.Option value={10}>Khối 10</Select.Option>
+                                <Select.Option value={11}>Khối 11</Select.Option>
+                                <Select.Option value={12}>Khối 12</Select.Option>
                             </Select>
                         </Form.Item>
                         <Form.Item name="language" label="Ngôn ngữ">
@@ -1655,6 +1764,93 @@ export default function CourseDetail() {
                         </Button>
                     </div>
                 </Form>
+            </Modal>
+
+            {/* Submissions List Modal */}
+            <Modal
+                title={
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-blue-50 text-[#0487e2] flex items-center justify-center shadow-sm">
+                            <ClipboardList size={20} />
+                        </div>
+                        <div>
+                            <span className="font-bold text-xl block leading-tight">Danh sách bài nộp</span>
+                            <span className="text-xs text-slate-400 font-medium">Bài tập: {activeAssignmentForSubmissions?.title || activeAssignmentForSubmissions?.Title}</span>
+                        </div>
+                    </div>
+                }
+                open={isSubmissionsModalOpen}
+                onCancel={() => {
+                    setIsSubmissionsModalOpen(false);
+                    setSubmissions([]);
+                }}
+                footer={null}
+                centered
+                width={800}
+                className="rounded-2xl"
+            >
+                <div className="pt-4">
+                    {loadingSubmissions ? (
+                        <div className="py-20 flex flex-col items-center justify-center">
+                            <Spin size="large" />
+                            <p className="mt-4 text-slate-500 font-medium">Đang tải danh sách bài nộp...</p>
+                        </div>
+                    ) : submissions.length > 0 ? (
+                        <div className="space-y-4 max-h-[500px] overflow-y-auto px-1 custom-scrollbar">
+                            <div className="grid grid-cols-12 gap-4 px-4 py-2 bg-slate-50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                <div className="col-span-5">Học sinh</div>
+                                <div className="col-span-4 text-center">Thời gian nộp</div>
+                                <div className="col-span-3 text-right">Trạng thái / Điểm</div>
+                            </div>
+                            {submissions.map((sub) => (
+                                <div key={sub.id} className="grid grid-cols-12 gap-4 px-4 py-4 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all items-center">
+                                    <div className="col-span-5 flex items-center gap-3">
+                                        <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs border border-slate-200">
+                                            {(sub.studentName || sub.StudentName || "HS")?.[0]?.toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="font-bold text-slate-800 text-sm truncate">{sub.studentName || sub.StudentName || "Học sinh ẩn danh"}</div>
+                                            <div className="text-[10px] text-slate-400 font-medium">{sub.studentEmail || sub.StudentEmail || ""}</div>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-4 text-center">
+                                        <div className="text-xs font-semibold text-slate-600">
+                                            {sub.submittedAt ? dayjs(sub.submittedAt).format('HH:mm, DD/MM/YYYY') : "Không rõ ngày nộp"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-3 text-right">
+                                        {sub.grade !== null && sub.grade !== undefined ? (
+                                            <Tag color="blue" className="rounded-lg font-bold px-3 py-1 m-0 border-none shadow-sm">
+                                                {sub.grade} / {activeAssignmentForSubmissions?.maxScore || 10}
+                                            </Tag>
+                                        ) : (
+                                            <Tag color="orange" className="rounded-lg font-bold px-3 py-1 m-0 border-none shadow-sm">
+                                                Chưa chấm
+                                            </Tag>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="py-20 flex flex-col items-center justify-center text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 text-slate-200 shadow-sm border border-slate-100/50">
+                                <Users size={32} />
+                            </div>
+                            <h4 className="text-slate-900 font-bold">Chưa có bài nộp nào</h4>
+                            <p className="text-slate-400 text-sm mt-1 max-w-xs">Học sinh hiện tại vẫn chưa nộp bài giải cho bài tập này.</p>
+                        </div>
+                    )}
+
+                    <div className="mt-6 pt-6 border-t border-slate-100 flex justify-end">
+                        <Button
+                            className="h-11 px-8 rounded-xl font-bold bg-slate-900 text-white border-none hover:bg-slate-800 transition-all"
+                            onClick={() => setIsSubmissionsModalOpen(false)}
+                        >
+                            Đóng
+                        </Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

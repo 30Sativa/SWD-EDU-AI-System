@@ -34,6 +34,14 @@ import { getClassDetail } from '../../../classes/api/classApi';
 import { getLessonQuiz } from '../../../quiz/student/api/quizApi';
 import { Spin, message } from 'antd';
 
+
+const getYoutubeId = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export default function LessonDetail() {
     const { courseId, lessonId } = useParams();
     const [activeTab, setActiveTab] = useState('content');
@@ -399,36 +407,48 @@ export default function LessonDetail() {
 
                             {/* Video Player Section */}
                             <div className="group relative rounded-2xl overflow-hidden bg-black aspect-video shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-900/10 ring-1 ring-slate-900/5">
-                                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
-                                    <button
-                                        onClick={() => setIsPlaying(!isPlaying)}
-                                        className="w-20 h-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 active:scale-95"
-                                    >
-                                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl pl-1">
-                                            {isPlaying ? <Pause className="text-slate-900 fill-slate-900" size={28} /> : <Play className="text-slate-900 fill-slate-900" size={28} />}
+                                {getYoutubeId(lessonData?.content) || getYoutubeId(lessonInfo.videoUrl) ? (
+                                    <iframe
+                                        className="absolute inset-0 w-full h-full border-0"
+                                        src={`https://www.youtube.com/embed/${getYoutubeId(lessonData?.content) || getYoutubeId(lessonInfo.videoUrl)}?rel=0&modestbranding=1&autohide=1&showinfo=0`}
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                        title="Video bài học"
+                                    ></iframe>
+                                ) : (
+                                    <>
+                                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+                                            <button
+                                                onClick={() => setIsPlaying(!isPlaying)}
+                                                className="w-20 h-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 active:scale-95"
+                                            >
+                                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl pl-1">
+                                                    {isPlaying ? <Pause className="text-slate-900 fill-slate-900" size={28} /> : <Play className="text-slate-900 fill-slate-900" size={28} />}
+                                                </div>
+                                            </button>
                                         </div>
-                                    </button>
-                                </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-                                {/* Controls Bar */}
-                                <div className="absolute bottom-0 left-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-                                    <div className="flex items-center gap-5 text-white">
-                                        <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-blue-400 transition-colors">
-                                            {isPlaying ? <Pause size={24} className="fill-current" /> : <Play size={24} className="fill-current" />}
-                                        </button>
-                                        <div className="flex-1 h-1.5 bg-white/20 rounded-full cursor-pointer overflow-hidden group/slider">
-                                            <div className="h-full bg-blue-500 w-[35%] relative">
-                                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-md scale-0 group-hover/slider:scale-100 transition-transform"></div>
+                                        {/* Controls Bar */}
+                                        <div className="absolute bottom-0 left-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                                            <div className="flex items-center gap-5 text-white">
+                                                <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-blue-400 transition-colors">
+                                                    {isPlaying ? <Pause size={24} className="fill-current" /> : <Play size={24} className="fill-current" />}
+                                                </button>
+                                                <div className="flex-1 h-1.5 bg-white/20 rounded-full cursor-pointer overflow-hidden group/slider">
+                                                    <div className="h-full bg-blue-500 w-[35%] relative">
+                                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-md scale-0 group-hover/slider:scale-100 transition-transform"></div>
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs font-mono font-medium tracking-wide">15:20 / 45:00</span>
+                                                <div className="flex gap-4">
+                                                    <Settings size={20} className="cursor-pointer hover:text-blue-400 transition-colors" />
+                                                    <Maximize size={20} className="cursor-pointer hover:text-blue-400 transition-colors" />
+                                                </div>
                                             </div>
                                         </div>
-                                        <span className="text-xs font-mono font-medium tracking-wide">15:20 / 45:00</span>
-                                        <div className="flex gap-4">
-                                            <Settings size={20} className="cursor-pointer hover:text-blue-400 transition-colors" />
-                                            <Maximize size={20} className="cursor-pointer hover:text-blue-400 transition-colors" />
-                                        </div>
-                                    </div>
-                                </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* Tabs & Content */}

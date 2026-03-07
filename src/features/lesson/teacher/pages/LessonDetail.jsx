@@ -21,7 +21,9 @@ import {
     Target,
     HelpCircle,
     Eye,
-    FileVideo
+    FileVideo,
+    MessageSquare,
+    HelpCircle as QuestionIcon
 } from 'lucide-react';
 import { Upload, Tag, Button, Tabs, Switch, Breadcrumb, Spin, message, Empty, Tooltip, Modal, Input, Select, InputNumber, Form } from 'antd';
 import {
@@ -34,9 +36,21 @@ import {
     saveAIPreviewBlocks,
     createLessonBlock,
     deleteLessonBlock,
-    updateLessonBlock
+    updateLessonBlock,
+    getLessonFaqs,
+    createLessonFaq,
+    updateLessonFaq,
+    deleteLessonFaq
 } from '../../api/lessonApi';
 import { getLessonQuizzes, createFormativeQuiz, updateQuiz, deleteQuiz } from '../../../quiz/teacher/api/quizApi';
+
+
+const getYoutubeId = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
 
 export default function LessonDetail() {
     const { courseId, lessonId } = useParams();
@@ -60,6 +74,13 @@ export default function LessonDetail() {
     const [editingQuiz, setEditingQuiz] = useState(null);
     const [form] = Form.useForm();
 
+    // FAQ States
+    const [faqs, setFaqs] = useState([]);
+    const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
+    const [submittingFaq, setSubmittingFaq] = useState(false);
+    const [editingFaq, setEditingFaq] = useState(null);
+    const [faqForm] = Form.useForm();
+
     // Manual Content States
     const [isManualModalOpen, setIsManualModalOpen] = useState(false);
     const [submittingManual, setSubmittingManual] = useState(false);
@@ -71,23 +92,27 @@ export default function LessonDetail() {
     const [submittingEditBlock, setSubmittingEditBlock] = useState(false);
     const [editBlockForm] = Form.useForm();
 
+    // Edit Lesson States
+    const [isEditLessonModalOpen, setIsEditLessonModalOpen] = useState(false);
+    const [submittingEditLesson, setSubmittingEditLesson] = useState(false);
+    const [editLessonForm] = Form.useForm();
+
     // UI States
     const [activeTab, setActiveTab] = useState('1');
 
     const fetchLessonData = React.useCallback(async () => {
         try {
             setLoading(true);
-            const [lessonRes, blocksRes, quizRes] = await Promise.all([
+            const [detailRes, blocksRes, quizzesRes, faqsRes] = await Promise.all([
                 getLessonDetail(lessonId),
                 getLessonBlocks(lessonId),
-                getLessonQuizzes(lessonId)
+                getLessonQuizzes(lessonId),
+                getLessonFaqs(lessonId)
             ]);
-
-            setLesson(lessonRes?.data || lessonRes);
-            setBlocks(blocksRes?.data?.items || blocksRes?.items || blocksRes?.data || []);
-
-            const qData = Array.isArray(quizRes?.data) ? quizRes.data : (Array.isArray(quizRes) ? quizRes : []);
-            setQuizzes(qData);
+            setLesson(detailRes.data || detailRes);
+            setBlocks(blocksRes.data || blocksRes || []);
+            setQuizzes(quizzesRes.data || quizzesRes || []);
+            setFaqs(faqsRes.data || faqsRes || []);
         } catch (error) {
             console.error("Lỗi khi tải dữ liệu bài học:", error);
             message.error("Không thể tải thông tin bài học");
@@ -208,6 +233,59 @@ export default function LessonDetail() {
         setIsEditBlockModalOpen(true);
     };
 
+    const handleFaqSubmit = async (values) => {
+        try {
+            setSubmittingFaq(true);
+            if (editingFaq) {
+                await updateLessonFaq(lessonId, editingFaq.id, values);
+                message.success("Cập nhật câu hỏi thành công!");
+            } else {
+                await createLessonFaq(lessonId, {
+                    ...values,
+                    sortOrder: faqs.length + 1
+                });
+                message.success("Thêm câu hỏi thành công!");
+            }
+            setIsFaqModalOpen(false);
+            faqForm.resetFields();
+            const faqsRes = await getLessonFaqs(lessonId);
+            setFaqs(faqsRes.data || faqsRes || []);
+        } catch (error) {
+            message.error("Lỗi khi lưu câu hỏi.");
+        } finally {
+            setSubmittingFaq(false);
+        }
+    };
+
+    const handleEditFaq = (faq) => {
+        setEditingFaq(faq);
+        faqForm.setFieldsValue({
+            question: faq.question,
+            answer: faq.answer
+        });
+        setIsFaqModalOpen(true);
+    };
+
+    const handleDeleteFaq = async (faqId) => {
+        Modal.confirm({
+            title: 'Xác nhận xóa',
+            content: 'Bạn có chắc chắn muốn xóa câu hỏi này không?',
+            okText: 'Xóa',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                try {
+                    await deleteLessonFaq(lessonId, faqId);
+                    message.success("Đã xóa câu hỏi");
+                    const faqsRes = await getLessonFaqs(lessonId);
+                    setFaqs(faqsRes.data || faqsRes || []);
+                } catch (error) {
+                    message.error("Lỗi khi xóa câu hỏi");
+                }
+            }
+        });
+    };
+
     const handleUpdateBlock = async (values) => {
         try {
             setSubmittingEditBlock(true);
@@ -233,20 +311,37 @@ export default function LessonDetail() {
     const handleDeleteBlock = async (blockId) => {
         Modal.confirm({
             title: 'Xác nhận xóa',
-            content: 'Bạn có chắc chắn muốn xóa khối nội dung này không?',
-            okText: 'Xóa',
+            content: 'Bạn có chắc chắn muốn xóa khối nội dung này? Hành động này không thể hoàn tác.',
+            okText: 'Xóa ngay',
             okType: 'danger',
             cancelText: 'Hủy',
             onOk: async () => {
                 try {
                     await deleteLessonBlock(lessonId, blockId);
-                    message.success("Đã xóa nội dung");
+                    message.success("Đã xóa khối nội dung");
                     fetchLessonData();
                 } catch (error) {
-                    message.error("Lỗi khi xóa nội dung");
+                    message.error("Lỗi khi xóa khối nội dung");
                 }
             }
         });
+    };
+
+    const handleUpdateLessonBasic = async (values) => {
+        try {
+            setSubmittingEditLesson(true);
+            await updateLesson(lessonId, {
+                ...lesson,
+                ...values
+            });
+            message.success("Cập nhật thông tin bài học thành công!");
+            setIsEditLessonModalOpen(false);
+            fetchLessonData();
+        } catch (error) {
+            message.error("Lỗi khi cập nhật thông tin bài học");
+        } finally {
+            setSubmittingEditLesson(false);
+        }
     };
 
     const handleOpenQuizModal = (quiz = null) => {
@@ -416,25 +511,37 @@ export default function LessonDetail() {
                                     <div className="aspect-video bg-slate-900 relative flex items-center justify-center group">
                                         {lesson.type === 'Video' || !lesson.type ? (
                                             <>
-                                                <img
-                                                    src={lesson.thumbnail || "https://images.unsplash.com/photo-1610484826967-09c5720778c7?q=80&w=2070&auto=format&fit=crop"}
-                                                    className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-40 transition-opacity duration-300"
-                                                    alt="Video preview"
-                                                />
-                                                <div className="relative z-10">
-                                                    <button className="w-16 h-16 bg-[#0487e2]/90 hover:bg-[#0487e2] text-white rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20">
-                                                        <Play size={28} fill="currentColor" className="ml-1" />
-                                                    </button>
-                                                </div>
-                                                <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end z-10">
-                                                    <div>
-                                                        <Tag className="bg-blue-500/80 text-white border-none font-bold backdrop-blur-md mb-2">VIDEO CHÍNH</Tag>
-                                                        <h3 className="text-white font-bold text-lg drop-shadow-md line-clamp-1">{lesson.title}</h3>
-                                                    </div>
-                                                    <div className="bg-black/50 backdrop-blur-md text-white px-2 py-1 rounded text-xs font-bold">
-                                                        {lesson.duration || '00:00'}
-                                                    </div>
-                                                </div>
+                                                {getYoutubeId(lesson.content) ? (
+                                                    <iframe
+                                                        className="absolute inset-0 w-full h-full border-0"
+                                                        src={`https://www.youtube.com/embed/${getYoutubeId(lesson.content)}?rel=0&modestbranding=1&autohide=1&showinfo=0`}
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowFullScreen
+                                                        title="Video bài học"
+                                                    ></iframe>
+                                                ) : (
+                                                    <>
+                                                        <img
+                                                            src={lesson.thumbnail || "https://images.unsplash.com/photo-1610484826967-09c5720778c7?q=80&w=2070&auto=format&fit=crop"}
+                                                            className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-40 transition-opacity duration-300"
+                                                            alt="Video preview"
+                                                        />
+                                                        <div className="relative z-10">
+                                                            <button className="w-16 h-16 bg-[#0487e2]/90 hover:bg-[#0487e2] text-white rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20">
+                                                                <Play size={28} fill="currentColor" className="ml-1" />
+                                                            </button>
+                                                        </div>
+                                                        <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end z-10">
+                                                            <div>
+                                                                <Tag className="bg-blue-500/80 text-white border-none font-bold backdrop-blur-md mb-2">VIDEO CHÍNH</Tag>
+                                                                <h3 className="text-white font-bold text-lg drop-shadow-md line-clamp-1">{lesson.title}</h3>
+                                                            </div>
+                                                            <div className="bg-black/50 backdrop-blur-md text-white px-2 py-1 rounded text-xs font-bold">
+                                                                {lesson.duration || '00:00'}
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </>
                                         ) : (
                                             <div className="flex flex-col items-center gap-3 text-slate-400">
@@ -445,7 +552,22 @@ export default function LessonDetail() {
                                     </div>
                                     <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
                                         <span className="text-xs text-slate-500 font-medium">Bạn có thể thay đổi hoặc tải lên video mới trong phần Cài đặt.</span>
-                                        <Button type="text" size="small" className="text-[#0487e2] font-semibold hover:bg-blue-50">Đổi Video</Button>
+                                        <Button
+                                            type="text"
+                                            size="small"
+                                            className="text-[#0487e2] font-semibold hover:bg-blue-50"
+                                            onClick={() => {
+                                                editLessonForm.setFieldsValue({
+                                                    title: lesson.title,
+                                                    type: lesson.type || 'Video',
+                                                    duration: lesson.duration,
+                                                    content: lesson.content
+                                                });
+                                                setIsEditLessonModalOpen(true);
+                                            }}
+                                        >
+                                            Đổi Video
+                                        </Button>
                                     </div>
                                 </div>
 
@@ -812,6 +934,69 @@ export default function LessonDetail() {
                             </div>
                         </div>
 
+                        {/* FAQs Card */}
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+                            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                <div className="flex items-center gap-2">
+                                    <MessageSquare size={18} className="text-[#0487e2]" />
+                                    <h3 className="font-bold text-slate-800 text-sm">Câu hỏi thường gặp</h3>
+                                </div>
+                                <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<Plus size={14} />}
+                                    onClick={() => {
+                                        setEditingFaq(null);
+                                        faqForm.resetFields();
+                                        setIsFaqModalOpen(true);
+                                    }}
+                                    className="text-[#0487e2] font-semibold h-8 flex items-center gap-1 hover:bg-blue-50 px-2 rounded-lg"
+                                >
+                                    Thêm
+                                </Button>
+                            </div>
+                            <div className="p-4">
+                                {faqs.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {faqs.map((faq) => (
+                                            <div key={faq.id} className="group bg-slate-50/50 p-3 rounded-xl border border-slate-100/50 hover:border-blue-200 hover:bg-white hover:shadow-sm transition-all relative">
+                                                <div className="flex justify-between items-start gap-2">
+                                                    <div className="flex-1 min-w-0 pr-6">
+                                                        <div className="font-bold text-slate-800 text-xs mb-1 line-clamp-2 leading-tight">
+                                                            {faq.question}
+                                                        </div>
+                                                        <div className="text-slate-500 text-[11px] line-clamp-2 italic leading-relaxed">
+                                                            {faq.answer}
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Button
+                                                            type="text"
+                                                            size="small"
+                                                            icon={<Edit3 size={11} />}
+                                                            onClick={() => handleEditFaq(faq)}
+                                                            className="h-6 w-6 flex items-center justify-center p-0 rounded-md bg-white border border-slate-100 text-slate-400 hover:text-[#0487e2] shadow-sm"
+                                                        />
+                                                        <Button
+                                                            type="text"
+                                                            size="small"
+                                                            icon={<Trash2 size={11} />}
+                                                            onClick={() => handleDeleteFaq(faq.id)}
+                                                            className="h-6 w-6 flex items-center justify-center p-0 rounded-md bg-white border border-slate-100 text-slate-400 hover:text-rose-600 shadow-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                                        <MessageSquare size={20} className="text-slate-200 mx-auto mb-2" />
+                                        <p className="text-slate-400 text-[11px] font-medium leading-relaxed">Chưa có FAQ nào. Hãy thêm thắc mắc thường gặp của học viên.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1123,6 +1308,95 @@ export default function LessonDetail() {
                     <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
                         <Button className="h-11 px-5 rounded-lg font-semibold text-slate-600" onClick={() => setIsEditBlockModalOpen(false)}>Hủy</Button>
                         <Button type="primary" htmlType="submit" loading={submittingEditBlock} className="h-11 px-6 rounded-lg bg-[#0487e2] font-bold border-none shadow-md">
+                            Cập nhật
+                        </Button>
+                    </div>
+                </Form>
+            </Modal>
+
+            {/* Lesson FAQ Modal */}
+            <Modal
+                title={
+                    <div className="flex items-center gap-2">
+                        <MessageSquare size={20} className="text-[#0487e2]" />
+                        <span className="font-bold text-lg">{editingFaq ? 'Sửa câu hỏi FAQ' : 'Thêm câu hỏi FAQ mới'}</span>
+                    </div>
+                }
+                open={isFaqModalOpen}
+                onCancel={() => setIsFaqModalOpen(false)}
+                footer={null}
+                width={550}
+                centered
+                className="custom-modal"
+            >
+                <Form form={faqForm} layout="vertical" onFinish={handleFaqSubmit} className="pt-4 space-y-4">
+                    <Form.Item
+                        name="question"
+                        label={<span className="font-semibold text-slate-700">Câu hỏi</span>}
+                        rules={[{ required: true, message: 'Vui lòng nhập câu hỏi!' }]}
+                        className="mb-0"
+                    >
+                        <Input.TextArea rows={2} placeholder="Ví dụ: Làm sao để cài đặt môi trường NodeJS?" className="rounded-lg p-3" />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="answer"
+                        label={<span className="font-semibold text-slate-700">Câu trả lời</span>}
+                        rules={[{ required: true, message: 'Vui lòng nhập câu trả lời!' }]}
+                        className="mb-0"
+                    >
+                        <Input.TextArea rows={5} placeholder="Nhập câu trả lời chi tiết..." className="rounded-lg p-3" />
+                    </Form.Item>
+
+                    <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
+                        <Button className="h-11 px-5 rounded-lg font-semibold text-slate-600" onClick={() => setIsFaqModalOpen(false)}>Hủy</Button>
+                        <Button type="primary" htmlType="submit" loading={submittingFaq} className="h-11 px-6 rounded-lg bg-[#0487e2] font-bold border-none shadow-md">
+                            {editingFaq ? 'Cập nhật' : 'Thêm mới'}
+                        </Button>
+                    </div>
+                </Form>
+            </Modal>
+
+            {/* Edit Lesson Basic Modal */}
+            <Modal
+                title={
+                    <div className="flex items-center gap-2">
+                        <Edit3 size={20} className="text-[#0487e2]" />
+                        <span className="font-bold text-lg">Chỉnh sửa bài học</span>
+                    </div>
+                }
+                open={isEditLessonModalOpen}
+                onCancel={() => setIsEditLessonModalOpen(false)}
+                footer={null}
+                width={550}
+                centered
+                className="custom-modal"
+            >
+                <Form form={editLessonForm} layout="vertical" onFinish={handleUpdateLessonBasic} className="pt-4 space-y-4">
+                    <Form.Item name="title" label={<span className="font-semibold text-slate-700">Tiêu đề bài học</span>} rules={[{ required: true, message: 'Vui lòng nhập tiêu đề!' }]}>
+                        <Input className="h-11 rounded-lg" />
+                    </Form.Item>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <Form.Item name="type" label={<span className="font-semibold text-slate-700">Loại bài học</span>}>
+                            <Select className="h-11 [&>.ant-select-selector]:!rounded-lg">
+                                <Select.Option value="Video">Video</Select.Option>
+                                <Select.Option value="Document">Tài liệu</Select.Option>
+                                <Select.Option value="Quiz">Trắc nghiệm</Select.Option>
+                            </Select>
+                        </Form.Item>
+                        <Form.Item name="duration" label={<span className="font-semibold text-slate-700">Thời lượng (Phút)</span>}>
+                            <InputNumber min={1} className="w-full h-11 rounded-lg flex items-center" />
+                        </Form.Item>
+                    </div>
+
+                    <Form.Item name="content" label={<span className="font-semibold text-slate-700">Nội dung/Link</span>}>
+                        <Input.TextArea rows={4} placeholder="URL Video hoặc nội dung bài học..." className="rounded-lg p-3" />
+                    </Form.Item>
+
+                    <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
+                        <Button className="h-11 px-5 rounded-lg font-semibold text-slate-600" onClick={() => setIsEditLessonModalOpen(false)}>Hủy</Button>
+                        <Button type="primary" htmlType="submit" loading={submittingEditLesson} className="h-11 px-6 rounded-lg bg-[#0487e2] font-bold border-none shadow-md">
                             Cập nhật
                         </Button>
                     </div>
