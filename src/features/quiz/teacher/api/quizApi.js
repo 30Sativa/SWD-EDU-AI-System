@@ -43,9 +43,32 @@ export const deleteQuestionInQuiz = (quizId, questionId) => {
     return axiosClient.delete(`/api/teacher/quizzes/${quizId}/questions/${questionId}`);
 };
 
-// Get Quiz Detail (Teacher/Student)
+// --- Question Option APIs ---
+
+// Get Question Options
+export const getQuestionOptions = (questionId) => {
+    return axiosClient.get(`/api/teacher/quizzes/questions/${questionId}/options`);
+};
+
+// Update Question Option
+export const updateQuestionOption = (questionId, optionId, data) => {
+    // Expected data: { optionText, isCorrect, sortOrder }
+    return axiosClient.put(`/api/teacher/quizzes/questions/${questionId}/options/${optionId}`, data);
+};
+
+// Delete Question Option
+export const deleteQuestionOption = (questionId, optionId) => {
+    return axiosClient.delete(`/api/teacher/quizzes/questions/${questionId}/options/${optionId}`);
+};
+
+// Get Quiz Detail (Student)
 export const getQuizDetail = (quizId) => {
     return axiosClient.get(`/api/student/quizzes/${quizId}`);
+};
+
+// Get Quiz Detail (Teacher) - Includes isCorrect for options
+export const getTeacherQuizDetail = (quizId) => {
+    return axiosClient.get(`/api/teacher/quizzes/${quizId}`);
 };
 
 // Get Course Quizzes

@@ -37,7 +37,7 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Spin, message, Modal, Form, Input, Select, Button, Tag, Empty, Switch, Dropdown, Menu, DatePicker, InputNumber } from 'antd';
+import { Spin, message, Modal, Form, Input, Select, Button, Tag, Empty, Switch, Dropdown, Menu, DatePicker, InputNumber, Tooltip } from 'antd';
 import {
     getTeacherCourseDetail,
     publishTeacherCourse,
@@ -58,6 +58,7 @@ import {
     deleteQuiz,
     getQuizDetail
 } from '../../../quiz/teacher/api/quizApi';
+import QuizManagementTab from '../../../quiz/teacher/components/QuizManagementTab';
 
 
 const slugify = (text) => {
@@ -1135,136 +1136,7 @@ export default function CourseDetail() {
 
                 {/* --- QUIZZES TAB --- */}
                 {activeTab === 'quizzes' && (
-                    <div className="space-y-10">
-                        {/* Summative Section */}
-                        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                            <div className="bg-gradient-to-r from-blue-600/5 to-transparent p-6 border-b border-slate-100 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-100">
-                                        <Target size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-slate-900">Bài kiểm tra tổng kết Course</h3>
-                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Sử dụng để đánh giá cuối khóa học</p>
-                                    </div>
-                                </div>
-                                <Button
-                                    type="primary"
-                                    icon={<Plus size={18} />}
-                                    onClick={() => openQuizModal(courseId, 'summative')}
-                                    className="h-11 rounded-xl bg-blue-600 font-bold border-none shadow-md"
-                                >
-                                    Tạo Summative Quiz
-                                </Button>
-                            </div>
-                            <div className="p-6 space-y-4">
-                                {summativeQuizzes.length > 0 ? summativeQuizzes.map(quiz => (
-                                    <div key={quiz.id} className="flex flex-col md:flex-row md:items-center justify-between p-5 rounded-2xl border border-slate-50 bg-slate-50/30 hover:bg-white hover:border-blue-100 hover:shadow-md transition-all group">
-                                        <div className="flex items-center gap-5">
-                                            <div className="h-10 w-10 flex items-center justify-center bg-white rounded-xl shadow-inner text-[#0463ca]">
-                                                <CheckSquare size={20} />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-3 mb-1">
-                                                    <span className="font-bold text-slate-800 text-base">{quiz.title}</span>
-                                                    <Tag color={quiz.isPublished ? "success" : "default"} className="rounded-full px-2 border-0 text-[10px] font-black uppercase tracking-widest">
-                                                        {quiz.isPublished ? "Đã công bố" : "Bản nháp"}
-                                                    </Tag>
-                                                </div>
-                                                <div className="flex items-center gap-4 text-[11px] font-bold text-slate-400 tracking-tight uppercase">
-                                                    <span>⏰ {quiz.timeLimit} phút</span>
-                                                    <span>🎯 {quiz.questionCount || 0} câu</span>
-                                                    <span className="text-blue-500">🏆 Vượt qua: {quiz.passingScore}%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3 mt-4 md:mt-0">
-                                            <Button
-                                                onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id}`)}
-                                                className="rounded-xl border-slate-200 text-slate-600 font-bold hover:text-blue-600 hover:border-blue-100 flex items-center gap-2"
-                                            >
-                                                <Edit3 size={14} /> Thiết kế
-                                            </Button>
-                                            <Button
-                                                onClick={() => openQuizModal(courseId, 'summative', quiz)}
-                                                icon={<Settings size={14} />}
-                                                className="rounded-xl border-slate-200 text-slate-400"
-                                            />
-                                            <Button
-                                                danger
-                                                icon={<Trash2 size={14} />}
-                                                onClick={() => handleDeleteQuiz(quiz.id)}
-                                                className="rounded-xl"
-                                            />
-                                        </div>
-                                    </div>
-                                )) : (
-                                    <Empty description="Chưa có bài kiểm tra tổng kết nào." className="py-10" />
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Formative Section Summary */}
-                        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                            <div className="bg-gradient-to-r from-emerald-600/5 to-transparent p-6 border-b border-slate-100">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-100">
-                                        <CheckSquare size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-slate-900">Bài kiểm tra tiến trình (Formative)</h3>
-                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Đánh giá mức độ hiểu bài sau mỗi bài học</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="p-6">
-                                <div className="space-y-6">
-                                    {sections.map(section => (
-                                        <div key={section.id} className="space-y-3">
-                                            <div className="text-xs font-black text-slate-400 uppercase tracking-[2px] mb-2 pl-2 border-l-2 border-emerald-500">
-                                                {section.title || section.Title}
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {(section.lessons || []).map(lesson => (
-                                                    <div key={lesson.id} className="p-4 rounded-2xl border border-slate-50 bg-slate-50/50 hover:bg-white hover:border-emerald-100 transition-all flex justify-between items-center group/lesson-mini">
-                                                        <div className="max-w-[70%]">
-                                                            <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Bài học</div>
-                                                            <div className="font-bold text-slate-700 text-sm truncate">
-                                                                {lesson.title || lesson.Title || lesson.Name || lesson.name || 'Bài học rỗng'}
-                                                            </div>
-                                                            <div className="mt-2">
-                                                                {lesson.quizzes && lesson.quizzes.length > 0 ? (
-                                                                    <div className="flex flex-wrap gap-1.5">
-                                                                        {lesson.quizzes.map(q => (
-                                                                            <Tag
-                                                                                key={q.id || q.quizId}
-                                                                                className="m-0 rounded-full border-0 bg-emerald-50 text-emerald-600 font-bold text-[10px] py-0.5 cursor-pointer hover:bg-emerald-100 transition-colors"
-                                                                                onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${q.id || q.quizId}`)}
-                                                                            >
-                                                                                {q.title}
-                                                                            </Tag>
-                                                                        ))}
-                                                                    </div>
-                                                                ) : (
-                                                                    <span className="text-[10px] italic text-slate-400">Chưa có Quiz</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <Button
-                                                            size="small"
-                                                            icon={<Plus size={14} />}
-                                                            onClick={() => openQuizModal(lesson.id, 'formative')}
-                                                            className="rounded-lg h-8 w-8 text-emerald-500 opacity-20 group-hover/lesson-mini:opacity-100 transition-opacity"
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <QuizManagementTab courseId={courseId} courseDetail={course} sections={sections} />
                 )}
             </div>
 
@@ -1901,162 +1773,146 @@ const SortableSection = React.memo(({
                 <div className="p-4 space-y-3 bg-white animate-in slide-in-from-top-2 duration-300">
                     {(session.lessons || []).length > 0 ? (
                         (session.lessons || []).map((lesson) => (
-                            <div key={lesson.id} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-50 hover:border-blue-100 hover:bg-blue-50/30 transition-all group/lesson">
-                                <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/lessons/${lesson.id}`)}>
-                                    <div className={`h-10 w-10 flex items-center justify-center rounded-xl ${(lesson.type || lesson.Type) === 'Video' ? 'bg-blue-50 text-[#0487e2]' : 'bg-slate-50 text-slate-500'}`}>
-                                        {(lesson.type || lesson.Type) === 'Video' ? <Video size={18} /> : ((lesson.type || lesson.Type) === 'Quiz' ? <CheckSquare size={18} /> : <FileText size={18} />)}
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-slate-700 text-sm group-hover/lesson:text-[#0487e2] transition-colors tracking-tight">
-                                            {lesson.title || lesson.Title || lesson.Name || lesson.name || 'Bài học rỗng'}
+                            <div key={lesson.id} className="space-y-1.5">
+                                <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-50 hover:border-blue-200 hover:bg-white hover:shadow-sm transition-all group/lesson">
+                                    <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/lessons/${lesson.id}`)}>
+                                        <div className={`h-10 w-10 flex items-center justify-center rounded-xl ${(lesson.type || lesson.Type) === 'Video' ? 'bg-blue-50 text-[#0487e2]' : 'bg-slate-50 text-slate-500'}`}>
+                                            {(lesson.type || lesson.Type) === 'Video' ? <Video size={18} /> : ((lesson.type || lesson.Type) === 'Quiz' ? <CheckSquare size={18} /> : <FileText size={18} />)}
                                         </div>
-                                        <div className="text-[11px] text-slate-400 font-bold mt-0.5 flex items-center gap-2">
-                                            {lesson.type || lesson.Type || 'Nội dung'}
-                                            <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                            {lesson.duration || lesson.Duration ? `${lesson.duration || lesson.Duration} phút` : '0 phút'}
-                                            {lesson.quizzes && lesson.quizzes.length > 0 && (
-                                                <>
-                                                    <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                                    <span className="text-emerald-600 flex items-center gap-1 font-bold">
-                                                        <CheckSquare size={10} /> {lesson.quizzes.length} Quiz
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-1 opacity-50 group-hover/lesson:opacity-100 transition-opacity">
-                                    {(lesson.quizzes || []).length > 0 ? (
-                                        <Dropdown
-                                            trigger={['click']}
-                                            menu={{
-                                                className: "rounded-xl shadow-xl border border-slate-100 p-1.5 min-w-[180px]",
-                                                items: [
-                                                    {
-                                                        key: 'manage-all',
-                                                        onClick: () => openLessonQuizzesModal(lesson),
-                                                        label: (
-                                                            <div className="flex items-center gap-2 font-bold text-emerald-600 text-[11px] uppercase tracking-tight">
-                                                                <LayoutGrid size={14} />
-                                                                Quản lý nâng cao ({lesson.quizzes.length})
-                                                            </div>
-                                                        ),
-                                                        className: "rounded-lg mb-1 bg-emerald-50/50 h-10 border border-emerald-100/50"
-                                                    },
-                                                    { type: 'divider' },
-                                                    ...lesson.quizzes.map((quiz, qIdx) => ({
-                                                        key: `quiz-group-${quiz.id || quiz.quizId}`,
-                                                        label: (
-                                                            <div className="flex flex-col py-0.5">
-                                                                <div className="font-bold text-slate-800 text-xs truncate max-w-[150px]">{quiz.title}</div>
-                                                                <div className="text-[9px] text-slate-400 flex items-center gap-1.5 mt-0.5 font-bold">
-                                                                    <span className={quiz.isPublished ? "text-emerald-500" : "text-amber-500 uppercase"}>
-                                                                        {quiz.isPublished ? "Đang hoạt động" : "Bản nháp"}
-                                                                    </span>
-                                                                    <span className="w-0.5 h-0.5 rounded-full bg-slate-200" />
-                                                                    <span>Cấu hình <ChevronRight size={8} /></span>
-                                                                </div>
-                                                            </div>
-                                                        ),
-                                                        children: [
-                                                            {
-                                                                key: `${quiz.id || quiz.quizId}-edit-questions`,
-                                                                onClick: () => navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id || quiz.quizId}`),
-                                                                label: 'Thiết kế câu hỏi',
-                                                                icon: <CheckSquare size={14} className="text-[#0463ca]" />,
-                                                                className: "rounded-lg"
-                                                            },
-                                                            {
-                                                                key: `${quiz.id || quiz.quizId}-edit-settings`,
-                                                                onClick: () => openQuizModal(lesson.id, 'formative', quiz),
-                                                                label: 'Cài đặt Quiz',
-                                                                icon: <Settings size={14} className="text-slate-500" />,
-                                                                className: "rounded-lg"
-                                                            },
-                                                            {
-                                                                key: `${quiz.id || quiz.quizId}-delete`,
-                                                                danger: true,
-                                                                onClick: () => handleDeleteQuiz(quiz.id || quiz.quizId),
-                                                                label: 'Xóa bài Quiz',
-                                                                icon: <Trash2 size={14} />,
-                                                                className: "rounded-lg"
-                                                            },
-                                                        ]
-                                                    })),
-                                                    { type: 'divider' },
-                                                    {
-                                                        key: 'add-new-quiz',
-                                                        onClick: () => openQuizModal(lesson.id, 'formative'),
-                                                        label: (
-                                                            <div className="flex items-center gap-2 font-bold text-[#0487e2] text-xs">
-                                                                <Plus size={14} />
-                                                                Thêm Quiz mới
-                                                            </div>
-                                                        ),
-                                                        className: "rounded-lg h-9 bg-blue-50/50"
-                                                    }
-                                                ]
-                                            }}
-                                        >
-                                            <span onClick={(e) => e.stopPropagation()}>
-                                                <button
-                                                    className="p-2 text-[#0463ca] hover:bg-white rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
-                                                >
-                                                    <div className="relative">
-                                                        <CheckSquare size={16} />
-                                                        <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center border border-white font-bold">
-                                                            {lesson.quizzes.length}
+                                        <div>
+                                            <div className="font-bold text-slate-700 text-sm group-hover/lesson:text-[#0487e2] transition-colors uppercase tracking-tight">
+                                                {lesson.title || lesson.Title || lesson.Name || lesson.name || 'Bài học rỗng'}
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-2">
+                                                {lesson.type || lesson.Type || 'Nội dung'}
+                                                <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                                {lesson.duration || lesson.Duration || '0'} phút
+                                                {lesson.quizzes && lesson.quizzes.length > 0 && (
+                                                    <>
+                                                        <span className="w-1 h-1 rounded-full bg-emerald-200" />
+                                                        <span className="text-emerald-600 flex items-center gap-1 font-bold">
+                                                            <CheckSquare size={10} /> {lesson.quizzes.length} Bài kiểm tra
                                                         </span>
-                                                    </div>
-                                                    <ChevronDown size={12} className="opacity-50" />
-                                                </button>
-                                            </span>
-                                        </Dropdown>
-                                    ) : (
-                                        <button
-                                            className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-white rounded-lg transition-colors shadow-sm"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                openQuizModal(lesson.id, 'formative');
-                                            }}
-                                            title="Thêm Quiz bài học (Formative)"
-                                        >
-                                            <CheckSquare size={14} />
-                                        </button>
-                                    )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                    <button
-                                        className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-white rounded-lg transition-colors shadow-sm"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            openBlocksModal(lesson);
-                                        }}
-                                        title="Quản lý nội dung (Blocks)"
-                                    >
-                                        <FileText size={14} />
-                                    </button>
-                                    <button
-                                        className="p-2 text-slate-400 hover:text-[#0487e2] hover:bg-white rounded-lg transition-colors shadow-sm"
-                                        onClick={() => {
-                                            setEditingLesson(lesson);
-                                            editLessonForm.setFieldsValue({
-                                                title: lesson.title,
-                                                type: lesson.type,
-                                                duration: lesson.duration,
-                                                content: lesson.content
-                                            });
-                                            setIsEditLessonModalOpen(true);
-                                        }}
-                                    >
-                                        <Edit3 size={14} />
-                                    </button>
-                                    <button
-                                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-colors shadow-sm"
-                                        onClick={() => handleDeleteLesson(lesson.id)}
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
+                                    <div className="flex items-center gap-1 opacity-20 group-hover/lesson:opacity-100 transition-opacity">
+                                        <Tooltip title="Thêm Quiz bài học (Formative)">
+                                            <button
+                                                className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors shadow-none"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openQuizModal(lesson.id, 'formative');
+                                                }}
+                                            >
+                                                <CheckSquare size={14} />
+                                            </button>
+                                        </Tooltip>
+
+                                        <Tooltip title="Quản lý nội dung (Blocks)">
+                                            <button
+                                                className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors shadow-none"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openBlocksModal(lesson);
+                                                }}
+                                            >
+                                                <FileText size={14} />
+                                            </button>
+                                        </Tooltip>
+
+                                        <Tooltip title="Chỉnh sửa bài học">
+                                            <button
+                                                className="p-2 text-[#0487e2] hover:bg-blue-50 rounded-lg transition-colors shadow-none"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingLesson(lesson);
+                                                    editLessonForm.setFieldsValue({
+                                                        title: lesson.title || lesson.Title,
+                                                        type: lesson.type || lesson.Type,
+                                                        duration: lesson.duration || lesson.Duration,
+                                                        content: lesson.content || lesson.Content
+                                                    });
+                                                    setIsEditLessonModalOpen(true);
+                                                }}
+                                            >
+                                                <Edit3 size={14} />
+                                            </button>
+                                        </Tooltip>
+
+                                        <Tooltip title="Xóa bài học">
+                                            <button
+                                                className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors shadow-none"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteLesson(lesson.id);
+                                                }}
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </Tooltip>
+                                    </div>
                                 </div>
+
+                                {/* Quiz Sub-items rendering block */}
+                                {lesson.quizzes && lesson.quizzes.length > 0 && (
+                                    <div className="ml-14 space-y-1.5 pb-2">
+                                        {lesson.quizzes.map((quiz, qIdx) => (
+                                            <div
+                                                key={quiz.id || quiz.Id || quiz.quizId || quiz.QuizId}
+                                                className="flex items-center justify-between p-2 pl-3 bg-emerald-50/20 rounded-xl border border-emerald-100/50 hover:bg-emerald-50/60 hover:border-emerald-200 transition-all group/quiz-item"
+                                            >
+                                                <div
+                                                    className="flex items-center gap-3 cursor-pointer flex-1"
+                                                    onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id || quiz.Id || quiz.quizId || quiz.QuizId}`)}
+                                                >
+                                                    <div className="w-5 h-5 rounded-md bg-white border border-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] font-black shadow-sm">
+                                                        {qIdx + 1}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-bold text-slate-600 text-[12px] group-hover/quiz-item:text-emerald-700 transition-colors truncate">
+                                                            {quiz.title}
+                                                        </div>
+                                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight flex items-center gap-2">
+                                                            <span>⏰ {quiz.timeLimit}p</span>
+                                                            <span className="w-0.5 h-0.5 rounded-full bg-slate-300" />
+                                                            <span>🎯 {quiz.questionCount || 0} câu hỏi</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1 opacity-0 group-hover/quiz-item:opacity-100 transition-opacity">
+                                                    <Tooltip title="Thiết kế câu hỏi">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id || quiz.Id || quiz.quizId || quiz.QuizId}`); }}
+                                                            className="h-7 w-7 flex items-center justify-center text-[#0463ca] hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-blue-100 transition-all"
+                                                        >
+                                                            <Edit3 size={12} />
+                                                        </button>
+                                                    </Tooltip>
+                                                    <Tooltip title="Cài đặt Quiz">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); openQuizModal(lesson.id, 'formative', quiz); }}
+                                                            className="h-7 w-7 flex items-center justify-center text-slate-500 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-slate-200 transition-all"
+                                                        >
+                                                            <Settings size={12} />
+                                                        </button>
+                                                    </Tooltip>
+                                                    <Tooltip title="Xóa Quiz">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteQuiz(quiz.id || quiz.Id || quiz.quizId || quiz.QuizId); }}
+                                                            className="h-7 w-7 flex items-center justify-center text-rose-500 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-rose-100 transition-all"
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    </Tooltip>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
