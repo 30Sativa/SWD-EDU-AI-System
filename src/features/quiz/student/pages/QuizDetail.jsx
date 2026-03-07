@@ -30,7 +30,7 @@ import {
     Maximize2
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getQuizDetail, startQuizAttempt, submitQuizAttempt, getQuizResult } from '../api/quizApi';
+import { getQuizDetail, startQuizAttempt, submitQuizAttempt, getQuizAttemptResult } from '../api/quizApi';
 import { Spin, message } from 'antd';
 
 export default function QuizDetail() {
@@ -105,14 +105,15 @@ export default function QuizDetail() {
             const payload = {
                 answers: Object.entries(answers).map(([qId, oId]) => ({
                     questionId: qId,
-                    optionId: oId
+                    selectedOptionIds: [oId], // Payload expecting array for potential multiple choice
+                    textAnswer: ""
                 }))
             };
 
             await submitQuizAttempt(attemptId, payload);
 
             // Get final results
-            const res = await getQuizResult(attemptId);
+            const res = await getQuizAttemptResult(attemptId);
             setResultData(res.data || res);
             setMode('completed');
         } catch (error) {

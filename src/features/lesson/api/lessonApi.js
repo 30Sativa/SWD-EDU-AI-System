@@ -4,6 +4,10 @@ export const getLessonDetail = (id) => {
     return axiosClient.get(`/api/teacher/lessons/${id}`);
 };
 
+export const getStudentLessonDetail = (id) => {
+    return axiosClient.get(`/api/teacher/lessons/${id}`);
+};
+
 export const getLessons = (params) => {
     return axiosClient.get('/api/teacher/lessons', { params });
 };
@@ -25,6 +29,10 @@ export const getLessonsBySection = (sectionId) => {
 };
 
 export const getLessonBlocks = (lessonId, params) => {
+    return axiosClient.get(`/api/teacher/lessons/${lessonId}/blocks`, { params });
+};
+
+export const getStudentLessonBlocks = (lessonId, params) => {
     return axiosClient.get(`/api/teacher/lessons/${lessonId}/blocks`, { params });
 };
 
@@ -59,10 +67,26 @@ export const saveAIPreviewBlocks = (lessonId, data) => {
     return axiosClient.post(`/api/teacher/lessons/${lessonId}/blocks/save-preview`, data);
 };
 
+export const generateStudentAIBlocks = (lessonId, data) => {
+    return axiosClient.post(`/api/teacher/lessons/${lessonId}/blocks/generate-ai`, data);
+};
+
+export const getStudentAIPreviewBlocks = (lessonId) => {
+    return axiosClient.get(`/api/teacher/lessons/${lessonId}/blocks/preview`);
+};
+
+export const saveStudentAIPreviewBlocks = (lessonId, data) => {
+    return axiosClient.post(`/api/teacher/lessons/${lessonId}/blocks/save-preview`, data);
+};
+
 export const generateAIBlocksStream = (lessonId, data) => {
     // Đối với streaming, thường dùng fetch trực tiếp hoặc cấu hình axios responseType: 'stream'
     // Tuy nhiên ở frontend (Browser), axios.post với responseType 'stream' không hoạt động như Node.js
     // Ở đây định nghĩa endpoint, việc stream sẽ xử lý ở component sử dụng fetch/EventSource
+    return axiosClient.post(`/api/teacher/lessons/${lessonId}/blocks/generate-ai-stream`, data);
+};
+
+export const generateStudentAIBlocksStream = (lessonId, data) => {
     return axiosClient.post(`/api/teacher/lessons/${lessonId}/blocks/generate-ai-stream`, data);
 };
 
@@ -71,6 +95,10 @@ export const generateAIBlocksStream = (lessonId, data) => {
  */
 
 export const getLessonFaqs = (lessonId) => {
+    return axiosClient.get(`/api/teacher/lessons/${lessonId}/faqs`);
+};
+
+export const getStudentLessonFaqs = (lessonId) => {
     return axiosClient.get(`/api/teacher/lessons/${lessonId}/faqs`);
 };
 
@@ -102,4 +130,8 @@ export const uploadLessonMaterial = (id, file) => {
             'Content-Type': 'multipart/form-data',
         },
     });
+};
+export const updateLessonProgress = (lessonId, data) => {
+    // data: { watchedDuration: number, isCompleted: boolean }
+    return axiosClient.post(`/api/student/lessons/${lessonId}/progress`, data);
 };

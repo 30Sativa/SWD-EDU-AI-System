@@ -27,12 +27,13 @@ import {
     PanelRight,
     MoreVertical,
     Bot,
+    Clock,
     ListChecks
 } from 'lucide-react';
-import { getLessonDetail } from '../../api/lessonApi';
-import { getClassDetail } from '../../../classes/api/classApi';
-import { getLessonQuiz } from '../../../quiz/student/api/quizApi';
-import { Spin, message } from 'antd';
+import { getLessonDetail, getStudentLessonDetail, updateLessonProgress, getLessonsBySection, getStudentLessonBlocks, getStudentLessonFaqs } from '../../api/lessonApi';
+import { getStudentCourseDetail, getCourseSections } from '../../../course/api/courseApi';
+import { getLessonQuizzes } from '../../../quiz/student/api/quizApi';
+import { Spin, message, Tooltip } from 'antd';
 
 export default function LessonDetail() {
     const { courseId, lessonId } = useParams();
@@ -40,7 +41,10 @@ export default function LessonDetail() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [loading, setLoading] = useState(true);
     const [lessonData, setLessonData] = useState(null);
+    const [lessonBlocks, setLessonBlocks] = useState([]);
+    const [lessonFaqs, setLessonFaqs] = useState([]);
     const [courseData, setCourseData] = useState(null);
+    const [courseSections, setCourseSections] = useState([]);
     const [quizData, setQuizData] = useState(null);
 
     // Sidebar States
@@ -67,23 +71,74 @@ export default function LessonDetail() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [lessonRes, courseRes, quizRes] = await Promise.all([
-                    getLessonDetail(lessonId),
-                    getClassDetail(courseId),
-                    getLessonQuiz(lessonId).catch(() => null) // Suppress error if no quiz
+                const [lessonRes, courseRes, quizRes, blocksRes, faqsRes, sectionsRes] = await Promise.all([
+                    getStudentLessonDetail(lessonId).catch(() => getLessonDetail(lessonId)),
+                    getStudentCourseDetail(courseId).catch(() => null),
+                    getLessonQuizzes(lessonId).catch(() => null),
+                    getStudentLessonBlocks(lessonId).catch(() => null),
+                    getStudentLessonFaqs(lessonId).catch(() => null),
+                    getCourseSections(courseId).catch(() => null)
                 ]);
 
                 const lData = lessonRes?.data || lessonRes;
-                const cData = courseRes?.data || courseRes;
-                const qData = quizRes?.data || quizRes;
+                const cData = (courseRes?.data || courseRes) || {};
+                const qData = (quizRes?.data || quizRes) || null;
+                const sData = sectionsRes?.data || sectionsRes || [];
+
+                // Process Blocks
+                const bRes = blocksRes?.data || (Array.isArray(blocksRes) ? blocksRes : blocksRes?.items) || [];
+                const bData = Array.isArray(bRes) ? bRes.map(b => ({
+                    id: b.id || b.Id,
+                    blockType: b.blockType || b.Type || 'Concept',
+                    title: b.title || b.Title || '',
+                    content: b.content || b.Content || '',
+                    sortOrder: b.sortOrder || b.SortOrder || 0
+                })) : [];
+
+                // Process FAQs
+                let fData = [];
+                if (faqsRes) {
+                    const faqItems = faqsRes?.data?.items || faqsRes?.items || faqsRes?.data || (Array.isArray(faqsRes) ? faqsRes : []);
+                    fData = Array.isArray(faqItems) ? faqItems : [];
+                }
 
                 setLessonData(lData);
+                setLessonBlocks(bData);
+                setLessonFaqs(fData);
                 setCourseData(cData);
-                setQuizData(qData);
 
-                if (cData.sections && cData.sections.length > 0) {
-                    setExpandedSections([cData.sections[0].id]);
+                // Process Quiz (Formative) - Take the first one if it's a list
+                const quizzes = quizRes?.data?.items || quizRes?.items || (Array.isArray(quizRes?.data) ? quizRes.data : (Array.isArray(quizRes) ? quizRes : []));
+                setQuizData(quizzes.length > 0 ? quizzes[0] : null);
+
+                const apiSections = (cData?.sections || cData?.Sections || cData?.items || (Array.isArray(sData) ? sData : (sData?.items || []))) || [];
+                const initialSections = Array.isArray(apiSections) ? apiSections.map(s => ({
+                    id: s.id || s.Id,
+                    title: s.title || s.name || 'Chương học',
+                    lessons: s.lessons || s.Lessons || s.items || s.Items || [],
+                    isLocked: s.isLocked || false
+                })) : [];
+                setCourseSections(initialSections);
+
+                if (initialSections.length > 0) {
+                    setExpandedSections([initialSections[0].id]);
                 }
+
+                // Fetch lessons for each section if missing
+                initialSections.forEach(async (section) => {
+                    if (section.lessons.length === 0) {
+                        try {
+                            const res = await getLessonsBySection(section.id);
+                            const lessons = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
+                            setCourseSections(prev => prev.map(s =>
+                                s.id === section.id ? { ...s, lessons: lessons } : s
+                            ));
+                        } catch (e) {
+                            console.error("Error fetching sidebar lessons:", e);
+                        }
+                    }
+                });
+
             } catch (error) {
                 console.error("Lỗi khi tải dữ liệu bài học:", error);
                 message.error("Không thể tải nội dung bài học");
@@ -93,6 +148,45 @@ export default function LessonDetail() {
         };
         fetchData();
     }, [courseId, lessonId]);
+
+    // Track Progress Logic
+    const progressIntervalRef = useRef(null);
+    const videoRef = useRef(null);
+    const [watchedTime, setWatchedTime] = useState(0);
+
+    useEffect(() => {
+        if (isPlaying) {
+            progressIntervalRef.current = setInterval(() => {
+                setWatchedTime(prev => prev + 1);
+            }, 1000);
+        } else {
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        }
+        return () => {
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        };
+    }, [isPlaying]);
+
+    // Update progress periodically (every 30s)
+    useEffect(() => {
+        if (watchedTime > 0 && watchedTime % 30 === 0) {
+            handleUpdateProgress(false);
+        }
+    }, [watchedTime]);
+
+    const handleUpdateProgress = async (isCompleted = false) => {
+        try {
+            await updateLessonProgress(lessonId, {
+                watchedDuration: watchedTime,
+                isCompleted: isCompleted
+            });
+            if (isCompleted) {
+                message.success("Chúc mừng! Bạn đã hoàn thành bài học này.");
+            }
+        } catch (error) {
+            console.error("Error updating progress:", error);
+        }
+    };
 
     // Auto scroll chat
     useEffect(() => {
@@ -137,20 +231,17 @@ export default function LessonDetail() {
         videoUrl: lessonData.videoUrl || lessonData.contentUrl
     };
 
-    // Mapping sections từ courseData sang format UI cho sidebar
-    const apiSections = courseData?.sections || [];
-    const courseSections = apiSections.map(s => ({
-        id: s.id,
-        title: s.title || s.name || 'Chương học',
-        lessons: (s.items || []).map(item => ({
-            id: item.id,
+    // Formatting courseSections for UI
+    const mappedCourseSections = courseSections.map(s => ({
+        ...s,
+        lessons: s.lessons.map(item => ({
+            id: item.id || item.Id,
             type: item.type?.toLowerCase() || 'video',
             title: item.title || item.name || 'Bài học',
             duration: item.duration || '45 p',
             completed: item.isCompleted || false,
-            isCurrent: item.id === lessonId
-        })),
-        isLocked: s.isLocked || false
+            isCurrent: (item.id || item.Id) === lessonId
+        }))
     }));
 
     const tabs = [
@@ -160,10 +251,23 @@ export default function LessonDetail() {
         { id: 'qa', label: 'Hỏi Đáp', icon: MessageSquare }
     ];
 
-    const lessonMaterials = [
-        { id: 1, title: 'Ly_thuyet_dao_dong.pdf', type: 'pdf', icon: FileText },
-        { id: 2, title: 'Bai_tap_tu_luyen_Level_1.pdf', type: 'pdf', icon: FileText }
-    ];
+    const lessonMaterials = lessonData.materials?.length > 0
+        ? lessonData.materials.map((m, idx) => ({
+            id: m.id || `material-${idx}`,
+            title: m.title || m.name || `Tài liệu ${idx + 1}`,
+            type: m.type?.toLowerCase() || 'link',
+            url: m.url || m.path,
+            icon: FileText
+        }))
+        : (lessonData.materialUrl ? [
+            {
+                id: 'material-1',
+                title: lessonData.materialName || `Tài liệu: ${lessonData.title || 'Bài học'}`,
+                type: lessonData.materialType?.toLowerCase() || 'link',
+                url: lessonData.materialUrl,
+                icon: FileText
+            }
+        ] : []);
 
     const contentSections = [
         {
@@ -300,7 +404,7 @@ export default function LessonDetail() {
                             />
                         </div>
 
-                        {courseSections.map((section) => (
+                        {mappedCourseSections.map((section) => (
                             <div key={section.id} className="border border-slate-100 rounded-xl overflow-hidden bg-white">
                                 <button
                                     onClick={() => !section.isLocked && toggleSection(section.id)}
@@ -323,31 +427,44 @@ export default function LessonDetail() {
                                                 <Link
                                                     key={lesson.id}
                                                     to={isQuiz
-                                                        ? `/dashboard/student/quizzes/quiz-ch${section.id}-${lesson.id}`
-                                                        : '#'
+                                                        ? `/dashboard/student/quizzes/${lesson.id}`
+                                                        : `/dashboard/student/courses/${courseId}/lessons/${lesson.id}`
                                                     }
-                                                    className={`flex items-start gap-3.5 p-3.5 hover:bg-blue-50/60 transition-colors border-b border-slate-50 last:border-0 ${lesson.isCurrent ? 'bg-blue-50/80 border-l-[3px] border-l-blue-600 pl-[11px]' : 'border-l-[3px] border-l-transparent pl-[11px]'
+                                                    className={`flex items-start gap-3.5 p-4 mx-2 my-1 rounded-xl transition-all duration-200 border border-transparent hover:border-blue-100 hover:shadow-sm ${lesson.isCurrent || lessonId === lesson.id
+                                                        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 shadow-md translate-x-1'
+                                                        : 'hover:bg-slate-50'
                                                         }`}
                                                 >
-                                                    <div className="mt-0.5">
+                                                    <div className="mt-0.5 flex-shrink-0">
                                                         {lesson.completed ? (
-                                                            <CheckCircle size={18} className="text-emerald-500" />
-                                                        ) : lesson.isCurrent ? (
-                                                            <PlayCircle size={18} className="text-blue-600 fill-blue-100" />
+                                                            <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center">
+                                                                <CheckCircle size={14} className="text-emerald-500" />
+                                                            </div>
+                                                        ) : (lesson.isCurrent || lessonId === lesson.id) ? (
+                                                            <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-blue-200">
+                                                                <PlayCircle size={14} className="text-white fill-current" />
+                                                            </div>
                                                         ) : isQuiz ? (
-                                                            <ListChecks size={18} className="text-amber-500" />
+                                                            <div className="w-5 h-5 bg-amber-50 rounded-full flex items-center justify-center">
+                                                                <ListChecks size={14} className="text-amber-500" />
+                                                            </div>
                                                         ) : (
-                                                            <Circle size={18} className="text-slate-300" />
+                                                            <div className="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200">
+                                                                <Circle size={10} className="text-slate-300" />
+                                                            </div>
                                                         )}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                            <p className={`text-sm ${lesson.isCurrent ? 'font-bold text-blue-700' : 'font-medium text-slate-700'}`}>
+                                                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                                            <p className={`text-[13px] leading-snug line-clamp-2 ${lesson.isCurrent || lessonId === lesson.id ? 'font-bold text-blue-800' : 'font-medium text-slate-700'}`}>
                                                                 {lesson.title}
                                                             </p>
-                                                            {isQuiz && <span className="text-[9px] uppercase font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-sm">Quiz</span>}
+                                                            {isQuiz && <span className="text-[8px] uppercase font-bold text-amber-700 bg-amber-100/80 px-1.5 py-0.5 rounded shadow-sm">Quiz</span>}
                                                         </div>
-                                                        <span className="text-[11px] font-medium text-slate-400 block">{lesson.duration} • {isQuiz ? 'Bài kiểm tra' : 'Video'}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <Clock size={10} className="text-slate-400" />
+                                                            <span className="text-[10px] font-semibold text-slate-400">{lesson.duration || '0m'}</span>
+                                                        </div>
                                                     </div>
                                                 </Link>
                                             );
@@ -398,34 +515,108 @@ export default function LessonDetail() {
                         <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
 
                             {/* Video Player Section */}
-                            <div className="group relative rounded-2xl overflow-hidden bg-black aspect-video shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-900/10 ring-1 ring-slate-900/5">
-                                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
-                                    <button
-                                        onClick={() => setIsPlaying(!isPlaying)}
-                                        className="w-20 h-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 active:scale-95"
-                                    >
-                                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl pl-1">
-                                            {isPlaying ? <Pause className="text-slate-900 fill-slate-900" size={28} /> : <Play className="text-slate-900 fill-slate-900" size={28} />}
-                                        </div>
-                                    </button>
-                                </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                            <div className="group relative rounded-3xl overflow-hidden bg-slate-900 border-b-8 border-slate-800 aspect-video shadow-[0_32px_80px_-20px_rgba(0,0,0,0.4)] transition-all duration-500 hover:shadow-[0_40px_100px_-20px_rgba(37,99,235,0.2)]">
+                                {lessonData?.videoUrl ? (
+                                    <div className="w-full h-full relative group/video">
+                                        <video
+                                            ref={videoRef}
+                                            src={lessonData.videoUrl}
+                                            className="w-full h-full object-contain"
+                                            controls={false}
+                                            onPlay={() => setIsPlaying(true)}
+                                            onPause={() => setIsPlaying(false)}
+                                        />
 
-                                {/* Controls Bar */}
-                                <div className="absolute bottom-0 left-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-                                    <div className="flex items-center gap-5 text-white">
-                                        <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-blue-400 transition-colors">
-                                            {isPlaying ? <Pause size={24} className="fill-current" /> : <Play size={24} className="fill-current" />}
-                                        </button>
-                                        <div className="flex-1 h-1.5 bg-white/20 rounded-full cursor-pointer overflow-hidden group/slider">
-                                            <div className="h-full bg-blue-500 w-[35%] relative">
-                                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-md scale-0 group-hover/slider:scale-100 transition-transform"></div>
+                                        {/* Premium Overlay Play Button */}
+                                        {!isPlaying && (
+                                            <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center transition-all duration-500 pointer-events-none">
+                                                <button
+                                                    onClick={() => {
+                                                        setIsPlaying(true);
+                                                        videoRef.current?.play();
+                                                    }}
+                                                    className="w-24 h-24 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center transition-all duration-500 pointer-events-auto hover:scale-110 group/btn shadow-[0_0_50px_rgba(255,255,255,0.1)] hover:shadow-[0_0_80px_rgba(37,99,235,0.4)]"
+                                                >
+                                                    <div className="w-18 h-18 bg-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 hover:rotate-[360deg] relative overflow-hidden group-hover/btn:bg-blue-600">
+                                                        <Play className="text-slate-900 group-hover/btn:text-white fill-current transition-all pl-1.5" size={28} />
+                                                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/5 opacity-50" />
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* Progress Tracking Bar - Mini */}
+                                        <div className="absolute top-0 inset-x-0 h-1 w-full bg-white/10 z-20">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-all duration-300"
+                                                style={{ width: videoRef.current ? `${(videoRef.current.currentTime / videoRef.current.duration) * 100}%` : '0%' }}
+                                            />
+                                        </div>
+
+                                        {/* Premium Contextual Info */}
+                                        <div className="absolute top-8 left-8 p-4 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 opacity-0 group-hover/video:opacity-100 transition-all duration-500 translate-y-[-10px] group-hover/video:translate-y-0 shadow-lg">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/30">
+                                                    {lessonData.type === 'quiz' ? <ListChecks size={16} /> : <Play size={16} />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-white/60">Đang xem</p>
+                                                    <h4 className="text-xs font-bold text-white leading-tight mt-0.5">{lessonData.title}</h4>
+                                                </div>
                                             </div>
                                         </div>
-                                        <span className="text-xs font-mono font-medium tracking-wide">15:20 / 45:00</span>
-                                        <div className="flex gap-4">
-                                            <Settings size={20} className="cursor-pointer hover:text-blue-400 transition-colors" />
-                                            <Maximize size={20} className="cursor-pointer hover:text-blue-400 transition-colors" />
+                                    </div>
+                                ) : (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center gap-4">
+                                        <div className="w-20 h-20 rounded-3xl bg-slate-800/50 flex items-center justify-center border border-white/5 shadow-inner">
+                                            <PlayCircle size={40} className="text-slate-600" />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-slate-400 font-bold tracking-wide uppercase text-xs">Video đang được cập nhật</p>
+                                            <p className="text-slate-600 text-[11px] mt-1 italic">Vui lòng quay lại sau hoặc hỏi trợ lý AI bên phải nhé</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Controls Bar - Premium Redesign */}
+                                <div className="absolute bottom-0 left-0 right-0 p-8 pt-12 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0 z-10 pointer-events-auto">
+                                    <div className="flex items-center gap-6 text-white group/controls">
+                                        <button onClick={() => {
+                                            if (isPlaying) {
+                                                videoRef.current?.pause();
+                                            } else {
+                                                videoRef.current?.play();
+                                            }
+                                            setIsPlaying(!isPlaying);
+                                        }} className="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white hover:text-slate-900 rounded-xl transition-all duration-300 active:scale-90">
+                                            {isPlaying ? <Pause size={20} className="fill-current" /> : <Play size={20} className="fill-current pl-1" />}
+                                        </button>
+
+                                        <div className="flex-1 flex flex-col gap-2">
+                                            <div className="flex items-center justify-between text-[10px] font-black tracking-widest text-white/50 px-1">
+                                                <span>{Math.floor(watchedTime / 60)}:{(watchedTime % 60).toString().padStart(2, '0')}</span>
+                                                <div className="flex gap-4">
+                                                    <span className="hover:text-blue-400 transition-colors cursor-pointer">Cài đặt</span>
+                                                    <span className="hover:text-blue-400 transition-colors cursor-pointer">Tốc độ (1x)</span>
+                                                </div>
+                                            </div>
+                                            <div className="relative group/slider h-1.5 w-full bg-white/20 rounded-full cursor-pointer hover:h-2 transition-all">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full relative shadow-[0_0_15px_rgba(59,130,246,0.6)]"
+                                                    style={{ width: videoRef.current ? `${(videoRef.current.currentTime / videoRef.current.duration) * 100}%` : '0%' }}
+                                                >
+                                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] scale-0 group-hover/slider:scale-100 transition-all duration-300"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <button className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl transition-all">
+                                                <Volume2 size={18} />
+                                            </button>
+                                            <button className="w-10 h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-lg shadow-blue-500/20">
+                                                <Maximize size={18} />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -457,52 +648,120 @@ export default function LessonDetail() {
                                 <div className="p-8 min-h-[400px]">
                                     {activeTab === 'content' && (
                                         <div className="space-y-10 max-w-3xl mx-auto animate-fade-in">
-                                            {contentSections.map(section => (
-                                                <div key={section.id} className="relative pl-8">
-                                                    <div className="absolute left-0 top-1 w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm shadow-sm">{section.icon}</div>
-                                                    <h3 className="text-xl font-bold text-slate-900 mb-4">
-                                                        {section.title}
-                                                    </h3>
-                                                    <p className="text-slate-600 leading-7 mb-6 text-[15px]">{section.content}</p>
+                                            {/* Ưu tiên hiển thị Blocks nếu có, nếu không thì hiện content chính */}
+                                            {lessonBlocks && lessonBlocks.length > 0 ? (
+                                                <div className="space-y-12">
+                                                    {lessonBlocks.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)).map((block, idx) => {
+                                                        const blockThemes = {
+                                                            'Concept': {
+                                                                label: 'Khái niệm',
+                                                                color: 'blue',
+                                                                icon: <BookOpen size={18} />,
+                                                                bg: 'from-blue-50/50 to-white',
+                                                                accent: 'bg-blue-600'
+                                                            },
+                                                            'Example': {
+                                                                label: 'Ví dụ minh họa',
+                                                                color: 'emerald',
+                                                                icon: <Lightbulb size={18} />,
+                                                                bg: 'from-emerald-50/50 to-white',
+                                                                accent: 'bg-emerald-600'
+                                                            },
+                                                            'Exercise': {
+                                                                label: 'Thực hành',
+                                                                color: 'amber',
+                                                                icon: <Settings size={18} />,
+                                                                bg: 'from-amber-50/50 to-white',
+                                                                accent: 'bg-amber-600'
+                                                            },
+                                                            'Reflection': {
+                                                                label: 'Tư duy - Củng cố',
+                                                                color: 'indigo',
+                                                                icon: <Bot size={18} />,
+                                                                bg: 'from-indigo-50/50 to-white',
+                                                                accent: 'bg-indigo-600'
+                                                            }
+                                                        };
+                                                        const theme = blockThemes[block.blockType || block.type] || blockThemes['Concept'];
 
-                                                    {section.subsections?.map((sub, idx) => (
-                                                        <div key={idx} className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-xl p-5 border border-blue-100/50 mb-4">
-                                                            <h4 className="font-semibold text-blue-900 mb-4 text-sm uppercase tracking-wide">{sub.title}</h4>
-                                                            <ul className="space-y-3">
-                                                                {sub.items.map((item, i) => (
-                                                                    <li key={i} className="text-slate-700 text-[15px] flex items-start gap-3">
-                                                                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                                                                        <span>
-                                                                            <strong className="text-slate-900 font-semibold">{item.label}</strong> {item.text}
+                                                        return (
+                                                            <div key={block.id || idx} className="group/block relative duration-500 animate-slide-up" style={{ animationDelay: `${idx * 0.1}s` }}>
+                                                                <div className="flex items-center gap-4 mb-6">
+                                                                    <div className={`w-12 h-12 rounded-2xl ${theme.accent} text-white flex items-center justify-center shadow-lg shadow-${theme.color}-500/20 group-hover/block:scale-110 transition-transform duration-500`}>
+                                                                        {theme.icon}
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] text-${theme.color}-600 drop-shadow-sm`}>
+                                                                            Phần {idx + 1} • {theme.label}
                                                                         </span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    ))}
+                                                                        <h3 className="text-2xl font-black text-slate-900 tracking-tight mt-1 group-hover/block:text-blue-700 transition-colors">
+                                                                            {block.title}
+                                                                        </h3>
+                                                                    </div>
+                                                                </div>
 
-                                                    {section.examples?.map((ex, idx) => (
-                                                        <div key={idx} className={`mt-6 p-5 rounded-xl border-l-[6px] shadow-sm ${ex.type === 'info' ? 'bg-blue-50 border-blue-500' : 'bg-amber-50 border-amber-500'
-                                                            }`}>
-                                                            <h4 className={`text-xs font-semibold uppercase mb-2 ${ex.type === 'info' ? 'text-blue-800' : 'text-amber-800'
-                                                                }`}>{ex.title}</h4>
-                                                            <p className="text-sm font-medium text-slate-800 leading-relaxed">{ex.description}</p>
+                                                                <div className={`relative p-8 md:p-10 rounded-[32px] bg-gradient-to-br ${theme.bg} border border-slate-100 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.03)] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500 group-hover/block:-translate-y-1`}>
+                                                                    <div className={`absolute top-0 right-10 h-1 w-24 ${theme.accent} rounded-b-full opacity-30`} />
+                                                                    <div
+                                                                        className="prose prose-slate prose-lg max-w-none text-slate-700 leading-relaxed font-medium"
+                                                                    >
+                                                                        {block.content && (
+                                                                            <div dangerouslySetInnerHTML={{ __html: block.content.includes('<') ? block.content : block.content.replace(/\n/g, '<br/>') }} />
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : lessonData.content ? (
+                                                <div
+                                                    className="prose prose-slate max-w-none text-slate-600 leading-7 text-[15px] bg-white p-8 rounded-2xl border border-slate-100 shadow-sm"
+                                                    dangerouslySetInnerHTML={{ __html: lessonData.content }}
+                                                />
+                                            ) : (
+                                                <div className="text-center py-20 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                                    <FileText className="mx-auto text-slate-300 mb-4" size={48} />
+                                                    <p className="text-slate-500 font-medium">Nội dung bài học đang được chuẩn bị...</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'qa' && (
+                                        <div className="space-y-6 max-w-3xl mx-auto animate-fade-in">
+                                            <div className="flex items-center justify-between mb-8">
+                                                <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                                                    <MessageSquare size={24} className="text-blue-600" />
+                                                    Câu hỏi thường gặp
+                                                </h3>
+                                                <span className="px-4 py-1.5 bg-blue-50 text-[#0487e2] text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100">
+                                                    {lessonFaqs.length} Câu hỏi
+                                                </span>
+                                            </div>
+
+                                            {lessonFaqs.length > 0 ? (
+                                                <div className="space-y-4">
+                                                    {lessonFaqs.map((faq, idx) => (
+                                                        <div key={faq.id || idx} className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all group border-l-[6px] border-l-blue-200 hover:border-l-blue-500">
+                                                            <h4 className="font-black text-slate-800 mb-3 flex items-start gap-3">
+                                                                <span className="text-blue-600">Q:</span>
+                                                                {faq.question}
+                                                            </h4>
+                                                            <div className="pl-7 text-slate-600 text-[14px] leading-relaxed flex items-start gap-3">
+                                                                <span className="text-emerald-500 font-bold shrink-0">A:</span>
+                                                                <div dangerouslySetInnerHTML={{ __html: faq.answer?.replace(/\n/g, '<br/>') }} />
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
-                                            ))}
-
-                                            {/* Navigation Footer */}
-                                            <div className="flex items-center justify-between pt-10 mt-10 border-t border-slate-100">
-                                                <button className="flex items-center gap-2 px-5 py-2.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all font-semibold text-sm">
-                                                    <ArrowLeft size={18} />
-                                                    Bài Trước
-                                                </button>
-                                                <button className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all hover:-translate-y-0.5">
-                                                    Hoàn Thành & Tiếp Tục
-                                                    <ChevronRight size={18} />
-                                                </button>
-                                            </div>
+                                            ) : (
+                                                <div className="text-center py-20 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                                    <MessageSquare className="mx-auto text-slate-300 mb-4" size={48} />
+                                                    <p className="text-slate-500 font-medium">Chưa có câu hỏi thường gặp cho bài này.</p>
+                                                    <p className="text-slate-400 text-xs mt-1">Hãy đặt câu hỏi với Trợ lý AI ở thanh bên phải nhé!</p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                     {activeTab === 'exercises' && (
@@ -547,7 +806,7 @@ export default function LessonDetail() {
                                             )}
                                         </div>
                                     )}
-                                    {activeTab !== 'content' && activeTab !== 'exercises' && (
+                                    {activeTab !== 'content' && activeTab !== 'exercises' && activeTab !== 'qa' && (
                                         <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-100">
                                             <div className="w-16 h-16 bg-slate-100 rounded-xl flex items-center justify-center mb-6">
                                                 <Settings className="text-slate-400" size={28} />
@@ -558,13 +817,29 @@ export default function LessonDetail() {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Navigation Footer */}
+                            <div className="flex items-center justify-between pt-10 mt-10 border-t border-slate-100">
+                                <button className="flex items-center gap-2 px-5 py-2.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all font-semibold text-sm">
+                                    <ArrowLeft size={18} />
+                                    Bài Trước
+                                </button>
+                                <button
+                                    onClick={() => handleUpdateProgress(true)}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all hover:-translate-y-0.5"
+                                >
+                                    Hoàn Thành & Tiếp Tục
+                                    <ChevronRight size={18} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* 2.3 Right Sidebar - AI Assistant */}
                 <div
-                    className={`${isRightSidebarOpen ? 'w-[400px] translate-x-0 border-l' : 'w-0 translate-x-full border-none'} transition-all duration-300 ease-in-out bg-white border-slate-200 flex flex-col flex-shrink-0 z-30 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]`}
+                    className={`${isRightSidebarOpen ? 'w-[400px] translate-x-0 border-l' : 'w-0 translate-x-full border-none'
+                        } transition-all duration-300 ease-in-out bg-white border-slate-200 flex flex-col flex-shrink-0 z-30 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]`}
                 >
                     <div className="p-5 border-b border-slate-100 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -586,22 +861,22 @@ export default function LessonDetail() {
 
                     <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50/30 custom-scrollbar">
                         {chatMessages.map((msg) => (
-                            <div key={msg.id} className={`flex gap-4 ${msg.type === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-white ${msg.type === 'user' ? 'bg-indigo-100' : 'bg-white'
+                            <div key={msg.id} className={`flex gap-3.5 ${msg.type === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
+                                <div className={`w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm border border-white ${msg.type === 'user' ? 'bg-gradient-to-br from-indigo-100 to-blue-100' : 'bg-gradient-to-br from-blue-600 to-indigo-600'
                                     }`}>
-                                    {msg.type === 'user' ? <span className="text-xs font-semibold text-indigo-600">You</span> : <Bot size={16} className="text-blue-600" />}
+                                    {msg.type === 'user' ? <span className="text-[10px] font-black text-indigo-700">YOU</span> : <Bot size={18} className="text-white" />}
                                 </div>
-                                <div className={`max-w-[85%] space-y-3 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
-                                    <div className={`p-4 rounded-2xl text-[14px] leading-relaxed shadow-sm ${msg.type === 'user'
+                                <div className={`max-w-[85%] space-y-2.5 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
+                                    <div className={`p-4 rounded-3xl text-[14px] leading-relaxed shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] transition-all ${msg.type === 'user'
                                         ? 'bg-blue-600 text-white rounded-tr-sm'
-                                        : 'bg-white text-slate-800 border border-slate-100 rounded-tl-sm'
+                                        : 'bg-white text-slate-800 border border-slate-100/80 rounded-tl-sm'
                                         }`}>
                                         {msg.text}
                                     </div>
                                     {msg.suggestions && (
-                                        <div className="flex flex-wrap gap-2">
+                                        <div className="flex flex-wrap gap-2 pt-1 transition-all">
                                             {msg.suggestions.map((sug, i) => (
-                                                <button key={i} className="text-[11px] font-medium bg-white border border-blue-100 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm">
+                                                <button key={i} className="text-[10px] font-black tracking-wider uppercase bg-white border border-slate-100 text-[#215fe3] px-4 py-2 rounded-full hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300 shadow-sm hover:shadow-blue-200">
                                                     {sug}
                                                 </button>
                                             ))}
@@ -643,24 +918,31 @@ export default function LessonDetail() {
                         <div className="mt-5 pt-4 border-t border-slate-100">
                             <div className="flex items-center justify-between mb-3">
                                 <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Tài liệu đính kèm</h4>
-                                <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">2 file</span>
+                                {lessonMaterials.length > 0 && (
+                                    <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                        {lessonMaterials.length} file
+                                    </span>
+                                )}
                             </div>
-                            <div className="space-y-2">
-                                {lessonMaterials.map((mat) => (
-                                    <a key={mat.id} href="#" className="flex items-center gap-3 p-2.5 hover:bg-blue-50/50 border border-transparent hover:border-blue-100 rounded-xl group transition-all">
-                                        <div className="w-8 h-8 bg-white border border-slate-100 text-red-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                                            <FileText size={16} />
-                                        </div>
-                                        <span className="text-xs font-semibold text-slate-600 group-hover:text-blue-700 truncate flex-1">{mat.title}</span>
-                                        <Download size={14} className="text-slate-300 group-hover:text-blue-500" />
-                                    </a>
-                                ))}
-                            </div>
+                            {lessonMaterials.length > 0 ? (
+                                <div className="space-y-2">
+                                    {lessonMaterials.map((mat) => (
+                                        <a key={mat.id} href={mat.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2.5 hover:bg-blue-50/50 border border-transparent hover:border-blue-100 rounded-xl group transition-all">
+                                            <div className="w-8 h-8 bg-white border border-slate-100 text-red-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                                                <FileText size={16} />
+                                            </div>
+                                            <span className="text-xs font-semibold text-slate-600 group-hover:text-blue-700 truncate flex-1">{mat.title}</span>
+                                            <Download size={14} className="text-slate-300 group-hover:text-blue-500" />
+                                        </a>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-[11px] text-slate-400 italic">Không có tài liệu đính kèm</p>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
     );
 }

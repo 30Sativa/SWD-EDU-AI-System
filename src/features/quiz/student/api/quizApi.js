@@ -1,6 +1,6 @@
 import axiosClient from '../../../../lib/axiosClient';
 
-export const getLessonQuiz = (lessonId) => {
+export const getLessonQuizzes = (lessonId) => {
     return axiosClient.get(`/api/student/quizzes/lesson/${lessonId}`);
 };
 
@@ -20,6 +20,6 @@ export const submitQuizAttempt = (attemptId, data) => {
     return axiosClient.post(`/api/student/quizzes/attempts/${attemptId}/submit`, data);
 };
 
-export const getQuizResult = (attemptId) => {
+export const getQuizAttemptResult = (attemptId) => {
     return axiosClient.get(`/api/student/quizzes/attempts/${attemptId}/result`);
 };

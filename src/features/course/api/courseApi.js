@@ -72,6 +72,10 @@ export const getTeacherCourseDetail = async (id) => {
     return await axiosClient.get(`/api/teacher/courses/${id}?t=${Date.now()}`);
 };
 
+export const getStudentCourseDetail = async (id) => {
+    return await axiosClient.get(`/api/teacher/courses/${id}?t=${Date.now()}`);
+};
+
 export const updateTeacherCourse = async (id, data) => {
     return await axiosClient.put(`/api/teacher/courses/${id}`, data);
 };
