@@ -183,15 +183,12 @@ export default function CourseManagement() {
       setSubmitting(true);
       const payload = {
         title: values.title,
-        code: values.code,
-        subjectId: values.subjectId,
-        gradeLevelId: values.gradeLevelId,
-        categoryId: values.categoryId,
         description: values.description || "",
-        thumbnail: editingCourse?.thumbnail || "",
-        level: parseInt(values.level) || 1,
+        thumbnail: values.thumbnail ? values.thumbnail.replace(/^["']|["']$/g, '') : "",
+        level: Number(values.level) || 10,
         language: values.language || "vi"
       };
+      console.log("Updating course with payload:", payload);
       await updateTeacherCourse(editingCourse.id, payload);
       message.success('Cập nhật khóa học thành công!');
       setIsEditModalOpen(false);
@@ -305,7 +302,7 @@ export default function CourseManagement() {
       title: 'PHÂN LOẠI',
       key: 'level',
       render: (_, record) => {
-        const difficultyMap = { 1: 'Cơ bản', 2: 'Trung bình', 3: 'Nâng cao' };
+        const difficultyMap = { 10: 'Khối 10', 11: 'Khối 11', 12: 'Khối 12' };
         const levelVal = record.level ?? record.Level ?? record.difficultyLevel ?? record.DifficultyLevel;
         const levelText = difficultyMap[Number(levelVal)] || record.levelName || record.LevelName || (levelVal ? `Cấp độ ${levelVal} ` : 'Chưa định nghĩa');
 
@@ -452,15 +449,17 @@ export default function CourseManagement() {
                 onClick={(e) => {
                   e.stopPropagation();
                   setEditingCourse(record);
+                  let levelVal = Number(record.level || record.Level);
+                  if (levelVal === 1) levelVal = 10;
+                  if (levelVal === 2) levelVal = 11;
+                  if (levelVal === 3) levelVal = 12;
+
                   editForm.setFieldsValue({
-                    title: record.title,
-                    code: record.code,
-                    subjectId: record.subjectId,
-                    gradeLevelId: record.gradeLevelId,
-                    categoryId: record.categoryId,
-                    level: record.level || 1,
-                    language: record.language || "vi",
-                    description: record.description
+                    title: record.title || record.Title,
+                    thumbnail: record.thumbnail || record.Thumbnail,
+                    level: levelVal || 10,
+                    language: (record.language || record.Language || "vi").substring(0, 2),
+                    description: record.description || record.Description
                   });
                   setIsEditModalOpen(true);
                 }}
@@ -567,7 +566,7 @@ export default function CourseManagement() {
                 const rawStatus = (course.status ?? course.statusCode ?? course.statusTitle ?? '').toString().toLowerCase();
                 const isActive = rawStatus === 'active' || rawStatus === 'published' || course.statusCode === 1;
 
-                const difficultyMap = { 1: 'Cơ bản', 2: 'Trung bình', 3: 'Nâng cao' };
+                const difficultyMap = { 10: 'Khối 10', 11: 'Khối 11', 12: 'Khối 12' };
                 const levelVal = course.level ?? course.Level ?? course.difficultyLevel;
                 const levelText = difficultyMap[Number(levelVal)] || course.levelName || (levelVal ? `Cấp độ ${levelVal}` : '');
 
@@ -688,14 +687,11 @@ export default function CourseManagement() {
                                 e.stopPropagation();
                                 setEditingCourse(course);
                                 editForm.setFieldsValue({
-                                  title: course.title,
-                                  code: course.code,
-                                  subjectId: course.subjectId,
-                                  gradeLevelId: course.gradeLevelId,
-                                  categoryId: course.categoryId,
-                                  level: course.level || 1,
-                                  language: course.language || "vi",
-                                  description: course.description
+                                  title: course.title || course.Title,
+                                  thumbnail: course.thumbnail || course.Thumbnail,
+                                  level: course.level || course.Level || 1,
+                                  language: (course.language || course.Language || "vi").substring(0, 2),
+                                  description: course.description || course.Description
                                 });
                                 setIsEditModalOpen(true);
                               }}
@@ -837,11 +833,11 @@ export default function CourseManagement() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Form.Item name="level" label="Độ Khó" initialValue={1}>
+                  <Form.Item name="level" label="Khối Lớp" initialValue={10}>
                     <Select className="h-11 [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent hover:[&>.ant-select-selector]:!bg-white">
-                      <Select.Option value={1}>Cơ bản</Select.Option>
-                      <Select.Option value={2}>Trung bình</Select.Option>
-                      <Select.Option value={3}>Nâng cao</Select.Option>
+                      <Select.Option value={10}>Khối 10</Select.Option>
+                      <Select.Option value={11}>Khối 11</Select.Option>
+                      <Select.Option value={12}>Khối 12</Select.Option>
                     </Select>
                   </Form.Item>
                   <Form.Item name="language" label="Ngôn Ngữ" initialValue="vi">
@@ -884,36 +880,14 @@ export default function CourseManagement() {
               <Input className="h-11 rounded-lg" />
             </Form.Item>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Form.Item name="code" label="Mã Khóa" rules={[{ required: true, message: 'Vui lòng nhập mã khóa!' }]}>
-                <Input className="h-11 rounded-lg uppercase" />
-              </Form.Item>
-              <Form.Item name="subjectId" label="Môn Học" rules={[{ required: true, message: 'Vui lòng chọn môn học!' }]}>
-                <Select className="h-11">
-                  {subjects.map(s => <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>)}
-                </Select>
-              </Form.Item>
-            </div>
+
 
             <div className="grid grid-cols-2 gap-4">
-              <Form.Item name="gradeLevelId" label="Khối Lớp" rules={[{ required: true, message: 'Vui lòng chọn khối lớp!' }]}>
+              <Form.Item name="level" label="Khối Lớp">
                 <Select className="h-11">
-                  {grades.map(g => <Select.Option key={g.id} value={g.id}>{g.name}</Select.Option>)}
-                </Select>
-              </Form.Item>
-              <Form.Item name="categoryId" label="Danh Mục" rules={[{ required: true, message: 'Vui lòng chọn danh mục!' }]}>
-                <Select className="h-11">
-                  {categories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
-                </Select>
-              </Form.Item>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Form.Item name="level" label="Độ Khó">
-                <Select className="h-11">
-                  <Select.Option value={1}>Cơ bản</Select.Option>
-                  <Select.Option value={2}>Trung bình</Select.Option>
-                  <Select.Option value={3}>Nâng cao</Select.Option>
+                  <Select.Option value={10}>Khối 10</Select.Option>
+                  <Select.Option value={11}>Khối 11</Select.Option>
+                  <Select.Option value={12}>Khối 12</Select.Option>
                 </Select>
               </Form.Item>
               <Form.Item name="language" label="Ngôn Ngữ">
@@ -923,6 +897,10 @@ export default function CourseManagement() {
                 </Select>
               </Form.Item>
             </div>
+
+            <Form.Item name="thumbnail" label="URL Ảnh bìa (Thumbnail)">
+              <Input className="h-11 rounded-lg" placeholder="https://example.com/image.jpg" />
+            </Form.Item>
 
             <Form.Item name="description" label="Mô tả">
               <Input.TextArea rows={3} className="rounded-lg" />
