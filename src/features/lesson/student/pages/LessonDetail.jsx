@@ -231,18 +231,17 @@ export default function LessonDetail() {
         videoUrl: lessonData.videoUrl || lessonData.contentUrl
     };
 
-    // Mapping sections từ courseData sang format UI cho sidebar
-    const apiSections = courseData?.sections || [];
-    const courseSections = apiSections.map(s => ({
+    // Mapping sections từ state sang format UI cho sidebar
+    const mappedCourseSections = (courseSections || []).map(s => ({
         id: s.id,
         title: s.title || s.name || 'Chương học',
-        lessons: (s.items || []).map(item => ({
-            id: item.id,
+        lessons: (s.lessons || []).map(item => ({
+            id: item.id || item.Id || item.quizId,
             type: item.type?.toLowerCase() || 'video',
             title: item.title || item.name || 'Bài học',
             duration: item.duration || '45 p',
             completed: item.isCompleted || false,
-            isCurrent: (item.id || item.Id) === lessonId
+            isCurrent: (item.id || item.Id || item.quizId) === lessonId
         }))
     }));
 
@@ -406,7 +405,7 @@ export default function LessonDetail() {
                             />
                         </div>
 
-                        {courseSections.map((section) => (
+                        {mappedCourseSections.map((section) => (
                             <div key={section.id} className="border border-slate-100 rounded-xl overflow-hidden bg-white">
                                 <button
                                     onClick={() => !section.isLocked && toggleSection(section.id)}
@@ -789,7 +788,7 @@ export default function LessonDetail() {
                                                         </div>
 
                                                         <Link
-                                                            to={`/dashboard/student/quizzes/${quizData.id}`}
+                                                            to={`/dashboard/student/quizzes/${quizData.id || quizData.quizId}`}
                                                             className="inline-flex items-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all hover:-translate-y-0.5"
                                                         >
                                                             Bắt đầu làm bài

@@ -16,12 +16,21 @@ export const gradeSubmission = (submissionId, data) => {
 };
 
 // Student: Submit an assignment
-export const submitAssignment = (assignmentId, data) => {
-    // Expected data: { content, attachments: [] }
-    return axiosClient.post(`/api/student/submissions/assignment/${assignmentId}`, data);
+export const submitAssignment = (assignmentId, formData) => {
+    // Expected formData (Multipart): { content, file }
+    return axiosClient.post(`/api/student/submissions/assignment/${assignmentId}`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
 };
 
 // Student: Get my submission for an assignment
 export const getMySubmission = (assignmentId) => {
     return axiosClient.get(`/api/student/submissions/assignment/${assignmentId}/me`);
+};
+
+// Student: Get specific submission detail
+export const getSubmissionDetail = (submissionId) => {
+    return axiosClient.get(`/api/student/submissions/${submissionId}`);
 };

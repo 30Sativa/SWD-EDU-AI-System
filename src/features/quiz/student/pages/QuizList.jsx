@@ -48,10 +48,11 @@ export default function QuizList() {
                 if (currentStudentId) {
                     const res = await getStudentMyCourses(currentStudentId);
                     const data = res.data || res;
-                    setCourses(Array.isArray(data) ? data : []);
+                    const items = data?.data || data?.items || (Array.isArray(data) ? data : []);
+                    setCourses(items);
 
-                    if (data && data.length > 0) {
-                        fetchAllQuizzes(data);
+                    if (items && items.length > 0) {
+                        fetchAllQuizzes(items);
                     } else {
                         setLoading(false);
                     }
@@ -75,8 +76,10 @@ export default function QuizList() {
 
             const allQuizzes = results.flatMap((res, index) => {
                 const quizData = res.data || res;
-                return (Array.isArray(quizData) ? quizData : []).map(q => ({
+                const qItems = quizData?.data || quizData?.items || (Array.isArray(quizData) ? quizData : []);
+                return qItems.map(q => ({
                     ...q,
+                    id: q.quizId || q.id, // Ensure consistent id field for keys and navigation
                     courseName: courseList[index].title || courseList[index].name
                 }));
             });
@@ -98,9 +101,11 @@ export default function QuizList() {
         try {
             const res = await getCourseQuizzes(courseId);
             const data = res.data || res;
+            const qItems = data?.data || data?.items || (Array.isArray(data) ? data : []);
             const course = courses.find(c => String(c.id) === String(courseId));
-            setQuizzes((Array.isArray(data) ? data : []).map(q => ({
+            setQuizzes(qItems.map(q => ({
                 ...q,
+                id: q.quizId || q.id,
                 courseName: course?.title || course?.name || 'Khóa học'
             })));
         } catch (error) {
@@ -268,8 +273,8 @@ export default function QuizList() {
                                         <div className="p-6 flex-1">
                                             {/* Quiz Tag */}
                                             <div className="mb-4">
-                                                <span className={`text-[10px] font-semibold px-3 py-1 rounded-full ${quiz.type === 'summative' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'} uppercase tracking-wider`}>
-                                                    {quiz.type === 'summative' ? 'Tổng hợp' : 'Định kỳ'}
+                                                <span className={`text-[10px] font-semibold px-3 py-1 rounded-full ${quiz.quizType === 'Summative' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'} uppercase tracking-wider`}>
+                                                    {quiz.quizType === 'Summative' ? 'Tổng hợp' : 'Định kỳ'}
                                                 </span>
                                             </div>
 
@@ -283,7 +288,7 @@ export default function QuizList() {
                                                 <div className="flex items-center gap-8">
                                                     <div className="flex items-center gap-2 text-slate-500">
                                                         <Clock size={16} className="text-slate-400" />
-                                                        <span className="text-sm font-medium">{quiz.duration || 0} phút</span>
+                                                        <span className="text-sm font-medium">{quiz.duration || quiz.timeLimit || 0} phút</span>
                                                     </div>
                                                     <div className="flex items-center gap-2 text-slate-500">
                                                         <ClipboardList size={16} className="text-slate-400" />

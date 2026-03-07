@@ -13,7 +13,7 @@ export const getQuizDetail = (quizId) => {
 };
 
 export const startQuizAttempt = (quizId) => {
-    return axiosClient.post(`/api/student/quizzes/${quizId}/attempts/start`);
+    return axiosClient.post(`/api/student/quizzes/${quizId}/attempts/start`, {});
 };
 
 export const submitQuizAttempt = (attemptId, data) => {

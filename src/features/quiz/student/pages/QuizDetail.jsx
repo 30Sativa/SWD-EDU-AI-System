@@ -68,8 +68,8 @@ export default function QuizDetail() {
                 const res = await getQuizDetail(quizId);
                 const data = res.data || res;
                 setQuizData(data);
-                if (data.duration) {
-                    setTimeLeft(data.duration * 60);
+                if (data.duration || data.timeLimit) {
+                    setTimeLeft((data.duration || data.timeLimit) * 60);
                 } else {
                     setTimeLeft(45 * 60); // default
                 }
@@ -87,11 +87,12 @@ export default function QuizDetail() {
         try {
             const res = await startQuizAttempt(quizId);
             const data = res.data || res;
-            setAttemptId(data.id);
+            setAttemptId(data.attemptId || data.id);
             setMode('taking');
         } catch (error) {
-            console.error("Lỗi khi bắt đầu làm bài:", error);
-            message.error("Không thể bắt đầu làm bài. Vui lòng thử lại.");
+            console.error("Lỗi khi bắt đầu làm bài:", error.response?.data || error);
+            const serverMsg = error.response?.data?.message || error.response?.data?.Message;
+            message.error(serverMsg || "Không thể bắt đầu làm bài. Vui lòng thử lại.");
         }
     };
 
@@ -102,11 +103,13 @@ export default function QuizDetail() {
         try {
             // Convert answers to the format expected by API
             // Usually it's structure like { answers: [{ questionId, optionId }] }
+            const timeSpentSeconds = (quizData.duration || quizData.timeLimit || 45) * 60 - timeLeft;
             const payload = {
+                timeSpentSeconds: timeSpentSeconds > 0 ? timeSpentSeconds : 0,
                 answers: Object.entries(answers).map(([qId, oId]) => ({
                     questionId: qId,
-                    selectedOptionIds: [oId], // Payload expecting array for potential multiple choice
-                    textAnswer: ""
+                    selectedOptionId: oId,
+                    answerText: ""
                 }))
             };
 
@@ -252,9 +255,9 @@ export default function QuizDetail() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
                         {[
                             { label: 'MÔN HỌC', value: quizData.subjectName || 'Bài tập', icon: LayoutGrid },
-                            { label: 'THỜI GIAN', value: `${quizData.duration || 45} phút`, icon: Clock },
+                            { label: 'THỜI GIAN', value: `${quizData.duration || quizData.timeLimit || 45} phút`, icon: Clock },
                             { label: 'SỐ CÂU', value: `${quizData.totalQuestions || (quizData.questions?.length || 0)} câu`, icon: ClipboardList },
-                            { label: 'HÌNH THỨC', value: quizData.type === 'formative' ? 'Luyện tập' : 'Kiểm tra', icon: BookOpen },
+                            { label: 'HÌNH THỨC', value: quizData.quizType === 'Summative' ? 'Tổng hợp' : 'Luyện tập', icon: BookOpen },
                         ].map((stat, i) => (
                             <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                                 <stat.icon className="text-blue-600 mx-auto mb-2 opacity-80" size={20} />
@@ -284,10 +287,12 @@ export default function QuizDetail() {
     if (mode === 'completed') {
         const result = resultData || {
             score: 0,
-            correctAnswersCount: 0,
-            totalQuestions: quizData.questions?.length || 0,
-            timeSpent: '00:00'
+            maxScore: 0,
+            percentage: 0,
+            questions: []
         };
+        const correctCount = result.questions?.filter(q => q.isCorrect).length || 0;
+        const totalCount = result.questions?.length || quizData.questions?.length || 0;
         return (
             <div className="min-h-screen bg-slate-50 overflow-y-auto custom-scrollbar relative">
                 {scrollbarStyle}
@@ -319,7 +324,7 @@ export default function QuizDetail() {
                                 </svg>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                                     <span className="text-5xl font-bold text-slate-900 leading-none">{result.score || 0}</span>
-                                    <span className="text-sm font-semibold text-slate-400 mt-1 uppercase tracking-wider">/ 10</span>
+                                    <span className="text-sm font-semibold text-slate-400 mt-1 uppercase tracking-wider">/ {result.maxScore || 10}</span>
                                 </div>
                             </div>
 
@@ -332,10 +337,10 @@ export default function QuizDetail() {
 
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                     {[
-                                        { label: 'THỜI GIAN', value: result.timeSpent || 'N/A', icon: Clock },
-                                        { label: 'TRẠNG THÁI', value: 'Đã chấm', icon: ShieldCheck, color: 'text-emerald-600' },
-                                        { label: 'CÂU ĐÚNG', value: `${result.correctAnswersCount || 0}/${result.totalQuestions || 0}`, icon: CheckCircle2 },
-                                        { label: 'XẾP HẠNG', value: result.rank ? `#${result.rank}` : 'N/A', icon: Trophy },
+                                        { label: 'KẾT QUẢ', value: result.isPassed ? 'Đạt' : 'Chưa đạt', icon: ShieldCheck, color: result.isPassed ? 'text-emerald-600' : 'text-red-500' },
+                                        { label: 'TỈ LỆ', value: `${(result.percentage || 0).toFixed(1)}%`, icon: Trophy },
+                                        { label: 'CÂU ĐÚNG', value: `${correctCount}/${totalCount}`, icon: CheckCircle2 },
+                                        { label: 'ĐIỂM ĐẠT', value: `${quizData.passingScore || 50}/100`, icon: Award },
                                     ].map((stat, i) => (
                                         <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
                                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{stat.label}</p>
@@ -371,17 +376,18 @@ export default function QuizDetail() {
                             </h2>
                             <div className="flex items-center gap-3">
                                 <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full border border-emerald-100 flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> {result.correctAnswersCount || 0} Đúng
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> {correctCount} Đúng
                                 </span>
                                 <span className="px-3 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-full border border-red-100 flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div> {(result.totalQuestions || 0) - (result.correctAnswersCount || 0)} Sai
+                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div> {totalCount - correctCount} Sai
                                 </span>
                             </div>
                         </div>
 
                         <div className="space-y-6">
-                            {(result.reviewDetails || quizData.questions || []).map((q, idx) => {
+                            {(result.questions || quizData.questions || []).map((q, idx) => {
                                 const isCorrect = q.isCorrect;
+                                const questionId = q.questionId || q.id;
                                 return (
                                     <div key={idx} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden p-6 md:p-8 space-y-5 transition-all hover:shadow-md">
                                         <div className="flex items-center justify-between border-b border-slate-50 pb-6">
@@ -393,26 +399,27 @@ export default function QuizDetail() {
                                                 </div>
                                             </div>
                                             <div className="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 uppercase tracking-widest">
-                                                Điểm: {q.point || 0}/{q.maxPoint || 1}
+                                                Điểm: {q.pointsEarned || 0}/{q.points || 1}
                                             </div>
                                         </div>
 
                                         <p className="text-lg font-bold text-slate-900 leading-relaxed">
-                                            {q.text || q.questionText}
+                                            {q.questionText || q.text}
                                         </p>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {(q.options || []).map((opt) => {
-                                                const isSelected = q.selectedOptionId === opt.id || answers[q.id] === opt.id;
-                                                const isAnswer = opt.isCorrect || opt.id === q.correctOptionId;
+                                                const optId = opt.optionId || opt.id;
+                                                const isSelected = q.selectedOptionId === optId || answers[questionId] === optId;
+                                                const isAnswer = opt.isCorrect || optId === q.correctOptionId;
 
                                                 let style = "bg-slate-50 border-slate-100 text-slate-600";
                                                 if (isAnswer) style = "bg-emerald-50 border-emerald-500 text-emerald-900 ring-1 ring-emerald-500";
                                                 else if (isSelected && !isAnswer) style = "bg-red-50 border-red-500 text-red-900 ring-1 ring-red-500";
 
                                                 return (
-                                                    <div key={opt.id} className={`p-5 rounded-2xl border-2 flex items-center justify-between ${style}`}>
-                                                        <span className="font-bold">{opt.id.slice(0, 1).toUpperCase()}. {opt.text}</span>
+                                                    <div key={optId} className={`p-5 rounded-2xl border-2 flex items-center justify-between ${style}`}>
+                                                        <span className="font-bold">{opt.optionText || opt.text}</span>
                                                         {isAnswer && <CheckCircle2 className="text-emerald-500" size={20} />}
                                                         {isSelected && !isAnswer && (
                                                             <div className="flex items-center gap-2">
@@ -627,17 +634,21 @@ export default function QuizDetail() {
                                     <span className="px-4 py-1.5 bg-blue-100 text-blue-700 font-semibold rounded-full text-sm">Câu {currentQuestion + 1} / {quizData.questions?.length || 0}</span>
                                     <button className="text-slate-300 hover:text-blue-600 transition-colors"><Flag size={20} /></button>
                                 </div>
-                                <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 leading-snug mb-8 sm:mb-10">{quizData.questions?.[currentQuestion]?.text}</p>
+                                <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 leading-snug mb-8 sm:mb-10">{quizData.questions?.[currentQuestion]?.questionText || quizData.questions?.[currentQuestion]?.text}</p>
                                 <div className="space-y-4">
-                                    {(quizData.questions?.[currentQuestion]?.options || []).map((option) => (
-                                        <label key={option.id} className={`flex items-center p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer group ${answers[quizData.questions[currentQuestion].id] === option.id ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500 shadow-sm' : 'border-slate-50 hover:border-blue-200 hover:bg-slate-50'}`}>
-                                            <div className="relative flex items-center justify-center mr-4 sm:mr-5 flex-shrink-0">
-                                                <input type="radio" name="quiz-option" className="peer appearance-none w-5 h-5 sm:w-6 sm:h-6 border-2 border-slate-200 rounded-full checked:border-blue-500 transition-all" checked={answers[quizData.questions[currentQuestion].id] === option.id} onChange={() => setAnswers({ ...answers, [quizData.questions[currentQuestion].id]: option.id })} />
-                                                <div className="absolute w-2.5 h-2.5 sm:w-3 h-3 bg-blue-500 rounded-full scale-0 peer-checked:scale-100 transition-transform"></div>
-                                            </div>
-                                            <span className={`text-sm sm:text-base font-medium flex-1 ${answers[quizData.questions[currentQuestion].id] === option.id ? 'text-blue-900' : 'text-slate-700'}`}>{option.text}</span>
-                                        </label>
-                                    ))}
+                                    {(quizData.questions?.[currentQuestion]?.options || []).map((option) => {
+                                        const qId = quizData.questions[currentQuestion].questionId || quizData.questions[currentQuestion].id;
+                                        const optId = option.optionId || option.id;
+                                        return (
+                                            <label key={optId} className={`flex items-center p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer group ${answers[qId] === optId ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500 shadow-sm' : 'border-slate-50 hover:border-blue-200 hover:bg-slate-50'}`}>
+                                                <div className="relative flex items-center justify-center mr-4 sm:mr-5 flex-shrink-0">
+                                                    <input type="radio" name="quiz-option" className="peer appearance-none w-5 h-5 sm:w-6 sm:h-6 border-2 border-slate-200 rounded-full checked:border-blue-500 transition-all" checked={answers[qId] === optId} onChange={() => setAnswers({ ...answers, [qId]: optId })} />
+                                                    <div className="absolute w-2.5 h-2.5 sm:w-3 h-3 bg-blue-500 rounded-full scale-0 peer-checked:scale-100 transition-transform"></div>
+                                                </div>
+                                                <span className={`text-sm sm:text-base font-medium flex-1 ${answers[qId] === optId ? 'text-blue-900' : 'text-slate-700'}`}>{option.optionText || option.text}</span>
+                                            </label>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
@@ -651,9 +662,12 @@ export default function QuizDetail() {
                         <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
                             <h3 className="flex items-center gap-2 text-slate-800 font-semibold mb-5"><LayoutGrid size={20} className="text-blue-600" /> Bản đồ câu hỏi</h3>
                             <div className="grid grid-cols-5 gap-2 mb-6">
-                                {(quizData.questions || []).map((q, i) => (
-                                    <button key={i} onClick={() => setCurrentQuestion(i)} className={`w-full aspect-square flex items-center justify-center rounded-xl text-sm font-bold border-2 transition-all ${currentQuestion === i ? 'border-blue-600 text-blue-600 bg-blue-50 ring-2 ring-blue-100' : answers[q.id] ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100' : 'border-slate-50 bg-slate-50/50 text-slate-400 hover:border-slate-200'}`}>{i + 1}</button>
-                                ))}
+                                {(quizData.questions || []).map((q, i) => {
+                                    const qId = q.questionId || q.id;
+                                    return (
+                                        <button key={i} onClick={() => setCurrentQuestion(i)} className={`w-full aspect-square flex items-center justify-center rounded-xl text-sm font-bold border-2 transition-all ${currentQuestion === i ? 'border-blue-600 text-blue-600 bg-blue-50 ring-2 ring-blue-100' : answers[qId] ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100' : 'border-slate-50 bg-slate-50/50 text-slate-400 hover:border-slate-200'}`}>{i + 1}</button>
+                                    );
+                                })}
                             </div>
                             <div className="space-y-3 pt-6 border-t border-slate-100">
                                 <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-blue-600 shadow-sm"></div><span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Đã trả lời</span></div>

@@ -22,7 +22,8 @@ import { getStudentCourseDetail, getCourseSections, getStudentMyCourses } from "
 import { getLessonsBySection } from '../../../lesson/api/lessonApi';
 import { Spin, message, Tooltip } from 'antd';
 import StudentAssignmentsTab from '../../../assignment/student/components/StudentAssignmentsTab';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, RefreshCw } from 'lucide-react';
+import { getCourseQuizzes } from '../../../quiz/student/api/quizApi';
 
 
 export default function CourseDetail() {
@@ -33,6 +34,8 @@ export default function CourseDetail() {
     const [activeTab, setActiveTab] = useState('curriculum'); // 'curriculum' or 'assignments'
 
     const [sectionsData, setSectionsData] = useState([]);
+    const [summativeQuizzes, setSummativeQuizzes] = useState([]);
+    const [quizzesLoading, setQuizzesLoading] = useState(false);
 
     const fetchDetail = async () => {
         setLoading(true);
@@ -117,9 +120,29 @@ export default function CourseDetail() {
         }
     };
 
+    const fetchQuizzes = async () => {
+        if (!courseId) return;
+        setQuizzesLoading(true);
+        try {
+            const res = await getCourseQuizzes(courseId);
+            const items = res?.data?.items || res?.items || (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+            setSummativeQuizzes(items);
+        } catch (error) {
+            console.error("Lỗi khi tải danh sách quiz:", error);
+        } finally {
+            setQuizzesLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (courseId) fetchDetail();
     }, [courseId]);
+
+    useEffect(() => {
+        if (activeTab === 'quizzes' && summativeQuizzes.length === 0) {
+            fetchQuizzes();
+        }
+    }, [activeTab]);
 
     const toggleSection = (sectionId) => {
         if (expandedSections.includes(sectionId)) {
@@ -168,7 +191,7 @@ export default function CourseDetail() {
             completed: s.isCompleted || false,
             description: s.description || '',
             items: (sLessons || []).map(item => ({
-                id: item.id || item.Id,
+                id: item.id || item.Id || item.quizId,
                 type: item.type?.toLowerCase() || 'video',
                 title: item.title || item.name || 'Bài học',
                 duration: item.duration || '45 p',
@@ -453,19 +476,82 @@ export default function CourseDetail() {
                         )}
 
                         {activeTab === 'quizzes' && (
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-                                <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 text-center shadow-sm">
-                                    <div className="w-24 h-24 bg-amber-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-amber-500 border border-amber-100">
-                                        <ListChecks size={48} />
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-900 leading-none mb-2">Bài tập tổng kết</h2>
+                                        <p className="text-sm text-slate-500 font-medium">Hoàn thành các bài quizz để củng cố toàn bộ kiến thức khóa học</p>
                                     </div>
-                                    <h3 className="text-xl font-bold text-slate-900 mb-3">Đánh giá & Kiểm tra</h3>
-                                    <p className="text-slate-500 text-sm max-w-sm mx-auto font-medium mb-8 leading-relaxed">
-                                        Tất cả các bài kiểm tra trắc nghiệm, đánh giá năng lực định kỳ sẽ được tổng hợp tại đây để bạn dễ dàng theo dõi.
-                                    </p>
-                                    <button className="px-8 py-3 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">
-                                        Xem lịch kiểm tra
+                                    <button
+                                        onClick={fetchQuizzes}
+                                        disabled={quizzesLoading}
+                                        className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm active:scale-95"
+                                    >
+                                        <RefreshCw size={20} className={quizzesLoading ? 'animate-spin' : ''} />
                                     </button>
                                 </div>
+
+                                {quizzesLoading ? (
+                                    <div className="py-20 flex flex-col items-center justify-center gap-4 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
+                                        <Spin size="large" />
+                                        <p className="text-slate-400 font-medium">Đang tải danh sách bài tập...</p>
+                                    </div>
+                                ) : summativeQuizzes.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {summativeQuizzes.map((quiz, idx) => (
+                                            <div key={quiz.id || idx} className="group relative bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 overflow-hidden">
+                                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/30 blur-3xl rounded-full translate-x-10 -translate-y-10 group-hover:scale-150 transition-transform duration-1000" />
+
+                                                <div className="relative z-10">
+                                                    <div className="flex items-center gap-4 mb-6">
+                                                        <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100/50 shadow-inner group-hover:rotate-12 transition-transform duration-500">
+                                                            <ListChecks size={28} />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className="text-lg font-bold text-slate-900 leading-tight mb-1 truncate">{quiz.title || 'Bài tập tổng kết'}</h4>
+                                                            <span className="px-2.5 py-1 bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-amber-100">Summative</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4 mb-8">
+                                                        <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col">
+                                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Số câu hỏi</span>
+                                                            <span className="text-sm font-bold text-slate-900">{quiz.totalQuestions || 0} câu</span>
+                                                        </div>
+                                                        <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col">
+                                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Thời gian</span>
+                                                            <span className="text-sm font-bold text-slate-900">{quiz.duration || quiz.timeLimit || 15} phút</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <Link
+                                                        to={`/dashboard/student/quizzes/${quiz.id || quiz.quizId}`}
+                                                        className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-blue-600 transition-all shadow-lg hover:-translate-y-1 active:scale-95 group-hover:shadow-blue-500/20"
+                                                    >
+                                                        Bắt đầu làm bài
+                                                        <ArrowRight size={18} />
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="bg-white rounded-[2.5rem] p-16 border border-slate-100 text-center shadow-sm">
+                                        <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-slate-100">
+                                            <ListChecks size={48} className="text-slate-200" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-slate-900 mb-3">Chưa có bài tập tổng kết</h3>
+                                        <p className="text-slate-500 text-sm max-w-sm mx-auto font-medium mb-10 leading-relaxed">
+                                            Hiện tại chưa có bài kiểm tra tổng kết cho khóa học này. Hãy hoàn thành các bài học để sẵn sàng nhé!
+                                        </p>
+                                        <button
+                                            onClick={() => setActiveTab('curriculum')}
+                                            className="px-8 py-4 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20"
+                                        >
+                                            Tiếp tục học tập
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

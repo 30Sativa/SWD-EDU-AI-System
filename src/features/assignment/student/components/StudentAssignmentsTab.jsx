@@ -13,13 +13,15 @@ import {
 import { Tag, Spin, Empty, Button, message, Input, Select } from 'antd';
 import dayjs from 'dayjs';
 import { getStudentAssignmentsByCourse } from '../../api/assignmentApi';
-import { getMySubmission } from '../../api/submissionApi';
+import SubmitAssignmentModal from './SubmitAssignmentModal';
 
 export default function StudentAssignmentsTab({ courseId }) {
     const [loading, setLoading] = useState(true);
     const [assignments, setAssignments] = useState([]);
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+    const [selectedAssignment, setSelectedAssignment] = useState(null);
 
     const fetchAssignments = useCallback(async () => {
         if (!courseId) return;
@@ -148,9 +150,13 @@ export default function StudentAssignmentsTab({ courseId }) {
                                 <div className="mt-6 md:mt-0 flex items-center gap-3">
                                     <Button
                                         type="primary"
+                                        onClick={() => {
+                                            setSelectedAssignment(assignment);
+                                            setIsSubmitModalOpen(true);
+                                        }}
                                         className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 border-none font-bold text-sm shadow-lg shadow-indigo-100 flex items-center gap-2 group/btn"
                                     >
-                                        Làm bài ngay
+                                        Nộp bài assignment
                                         <ArrowRight size={16} className="transition-transform group-hover/btn:translate-x-1" />
                                     </Button>
                                 </div>
@@ -172,6 +178,14 @@ export default function StudentAssignmentsTab({ courseId }) {
                     </div>
                 )}
             </div>
+
+            {/* Submission Modal */}
+            <SubmitAssignmentModal
+                visible={isSubmitModalOpen}
+                onClose={() => setIsSubmitModalOpen(false)}
+                assignment={selectedAssignment}
+                onSuccess={fetchAssignments}
+            />
         </div>
     );
 }
