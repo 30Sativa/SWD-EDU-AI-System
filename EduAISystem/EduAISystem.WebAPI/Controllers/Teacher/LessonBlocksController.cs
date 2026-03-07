@@ -92,8 +92,15 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
                 - `File`: Nội dung text đã được trích xuất từ file DOCX/PPTX
 
                 **Chế độ SaveToDB**:
-                - `false` (mặc định): Chỉ trả về preview để giáo viên review trước
-                - `true`: Lưu luôn vào DB và trả về IDs của các blocks
+                - `false` (mặc định): Trả về preview + cache 30 phút. Teacher có thể review, edit rồi save qua /save-preview
+                - `true`: Lưu luôn vào DB và trả về IDs
+
+                **Resilience**: 
+                - Retry tự động 3 lần nếu Gemini lỗi tạm (5xx, 429, network)
+                - Timeout 60s (cấu hình trong appsettings)
+                - Circuit breaker ngắt nếu lỗi liên tiếp 5 lần
+
+                **Giới hạn InputContent**: Tối thiểu 20 ký tự, tối đa 50.000 ký tự (~20 trang).
 
                 **Lưu ý**: AI là OPTIONAL – giáo viên vẫn có thể tạo block thủ công qua POST /blocks.
                 """)]
@@ -109,10 +116,70 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
             var message = result.IsSaved
                 ? $"AI đã sinh và lưu {result.TotalBlocks} blocks thành công"
-                : $"AI đã sinh {result.TotalBlocks} blocks (preview – chưa lưu vào DB). Gửi lại với SaveToDB=true để lưu.";
+                : $"AI đã sinh {result.TotalBlocks} blocks (preview – cache 30 phút). " +
+                  "Dùng GET /preview để xem lại, hoặc POST /save-preview để lưu (có thể edit trước).";
 
             return Ok(ApiResponse<GenerateAiLessonBlocksResult>.Ok(result, message));
         }
+
+        // ===== GET AI PREVIEW (từ cache) =====
+        [HttpGet("preview")]
+        [SwaggerOperation(
+            Summary = "Lấy AI preview đã cache",
+            Description = """
+                Lấy lại preview blocks đã được AI sinh ra (cache 30 phút).
+                
+                **Khi nào dùng?**
+                - Teacher gọi generate-ai với SaveToDB=false → nhận preview
+                - Teacher refresh trang → gọi endpoint này để lấy lại preview
+                - Teacher muốn xem lại trước khi quyết định save
+                
+                **Lưu ý**: Preview hết hạn sau 30 phút. Nếu hết hạn cần generate lại.
+                """)]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<GenerateAiLessonBlocksResult>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetAiPreview(Guid lessonId, CancellationToken ct)
+        {
+            var result = await _mediator.Send(new GetAiPreviewQuery(lessonId), ct);
+
+            if (result == null)
+                return NotFound(ApiResponse<object>.Fail(
+                    "Không có preview nào trong cache. Preview hết hạn sau 30 phút. Vui lòng gọi generate-ai để tạo mới."));
+
+            return Ok(ApiResponse<GenerateAiLessonBlocksResult>.Ok(result,
+                $"Preview {result.TotalBlocks} blocks (chưa lưu). Dùng POST /save-preview để lưu."));
+        }
+
+        // ===== SAVE AI PREVIEW (có thể edit) =====
+        [HttpPost("save-preview")]
+        [SwaggerOperation(
+            Summary = "Lưu blocks từ AI preview vào DB (có thể chỉnh sửa trước)",
+            Description = """
+                Lưu các blocks từ AI preview vào DB. Teacher có thể chỉnh sửa trước khi lưu.
+
+                **Flow đề xuất**:
+                1. `POST /generate-ai` (SaveToDB=false) → nhận preview
+                2. Teacher review + chỉnh sửa nội dung trên UI
+                3. `POST /save-preview` → gửi blocks đã chỉnh sửa → lưu vào DB
+
+                **Teacher có thể**:
+                - Giữ nguyên nội dung từ preview
+                - Chỉnh sửa content, blockType, sortOrder, estimatedMinutes
+                - Bỏ bớt blocks không muốn (chỉ gửi blocks muốn lưu)
+
+                **Sau khi save**: preview bị xoá khỏi cache.
+                """)]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<Guid>>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> SaveAiPreview(
+            Guid lessonId,
+            [FromBody] SaveAiPreviewRequestDto dto,
+            CancellationToken ct)
+        {
+            var savedIds = await _mediator.Send(new SaveAiPreviewCommand(lessonId, dto), ct);
+            return Ok(ApiResponse<List<Guid>>.Ok(savedIds,
+                $"Đã lưu {savedIds.Count} blocks vào DB thành công."));
+        }
     }
 }
-

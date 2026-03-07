@@ -22,6 +22,7 @@ namespace EduAISystem.Application.Features.Lessons.DTOs.Request
         /// </summary>
         [Required]
         [MinLength(20, ErrorMessage = "Nội dung tối thiểu 20 ký tự để AI có thể xử lý")]
+        [MaxLength(50000, ErrorMessage = "Nội dung tối đa 50.000 ký tự (~20 trang) để đảm bảo AI xử lý chính xác")]
         public string InputContent { get; set; } = null!;
 
         /// <summary>

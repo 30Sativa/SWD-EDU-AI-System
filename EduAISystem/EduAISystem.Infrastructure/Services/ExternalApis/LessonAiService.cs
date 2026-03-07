@@ -1,7 +1,9 @@
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Features.Lessons.DTOs.Response;
 using EduAISystem.Infrastructure.Security;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -12,12 +14,18 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
     /// Dịch vụ AI sinh nội dung LessonBlock theo chuẩn sư phạm.
     /// Dùng Gemini API (Flash model) với prompt được thiết kế chuyên biệt cho giáo dục.
     ///
+    /// Cải tiến v2:
+    /// - Logging chi tiết cho mọi AI interaction (request/response/error)
+    /// - Configurable timeout để tránh request treo vô hạn
+    /// - Retry + Circuit Breaker được cấu hình qua DI (Polly)
+    ///
     /// BlockType hợp lệ: 'Concept' | 'Example' | 'Exercise' | 'Reflection'
     /// </summary>
     public class LessonAiService : ILessonAiService
     {
         private readonly HttpClient _httpClient;
         private readonly GeminiSettings _settings;
+        private readonly ILogger<LessonAiService> _logger;
 
         // Số phút ước tính mặc định theo từng loại block
         private static readonly Dictionary<string, int> DefaultEstimatedMinutes = new()
@@ -30,10 +38,12 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
 
         public LessonAiService(
             HttpClient httpClient,
-            IOptions<GeminiSettings> options)
+            IOptions<GeminiSettings> options,
+            ILogger<LessonAiService> logger)
         {
             _httpClient = httpClient;
             _settings = options.Value;
+            _logger = logger;
         }
 
         public async Task<List<GeneratedBlockDto>> GenerateBlocksAsync(
@@ -71,20 +81,46 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
             var requestJson = JsonSerializer.Serialize(requestBody);
             var apiUrl = $"https://generativelanguage.googleapis.com/{apiVersion}/models/{modelName}:generateContent?key={_settings.ApiKey}";
 
+            // ===== LOGGING: Bắt đầu gọi AI =====
+            _logger.LogInformation(
+                "[AI] Bắt đầu gọi Gemini API • Model: {Model} • Lesson: \"{Title}\" • Input length: {InputLength} chars",
+                modelName, lessonTitle, inputContent.Length);
+
+            var stopwatch = Stopwatch.StartNew();
+
+            // ===== TIMEOUT: Tạo linked token với timeout =====
+            var timeoutSeconds = _settings.TimeoutSeconds > 0 ? _settings.TimeoutSeconds : 60;
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
             HttpResponseMessage response;
             try
             {
                 response = await _httpClient.PostAsync(
                     apiUrl,
                     new StringContent(requestJson, Encoding.UTF8, "application/json"),
-                    cancellationToken);
+                    timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                stopwatch.Stop();
+                _logger.LogError(
+                    "[AI] ⏰ TIMEOUT sau {Elapsed}ms (giới hạn: {Timeout}s) • Model: {Model} • Lesson: \"{Title}\"",
+                    stopwatch.ElapsedMilliseconds, timeoutSeconds, modelName, lessonTitle);
+                throw new TimeoutException(
+                    $"Gemini API không phản hồi trong {timeoutSeconds}s. Vui lòng thử lại hoặc giảm nội dung đầu vào.");
             }
             catch (HttpRequestException ex)
             {
+                stopwatch.Stop();
+                _logger.LogError(ex,
+                    "[AI] ❌ Lỗi kết nối Gemini API sau {Elapsed}ms • Model: {Model} • Lesson: \"{Title}\"",
+                    stopwatch.ElapsedMilliseconds, modelName, lessonTitle);
                 throw new InvalidOperationException($"Không thể kết nối Gemini API: {ex.Message}", ex);
             }
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            stopwatch.Stop();
 
             if (!response.IsSuccessStatusCode)
             {
@@ -97,8 +133,18 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
                         errorMessage = $"Gemini API Error: {msgEl.GetString()}";
                 }
                 catch { }
+
+                _logger.LogError(
+                    "[AI] ❌ Gemini trả lỗi {StatusCode} sau {Elapsed}ms • Model: {Model} • Lesson: \"{Title}\" • Error: {Error}",
+                    (int)response.StatusCode, stopwatch.ElapsedMilliseconds, modelName, lessonTitle, errorMessage);
+
                 throw new InvalidOperationException(errorMessage);
             }
+
+            // ===== LOGGING: Phản hồi thành công =====
+            _logger.LogInformation(
+                "[AI] ✅ Gemini phản hồi thành công sau {Elapsed}ms • Model: {Model} • Response length: {ResponseLength} chars",
+                stopwatch.ElapsedMilliseconds, modelName, responseContent.Length);
 
             // Parse response
             try
@@ -107,25 +153,48 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
 
                 if (!doc.RootElement.TryGetProperty("candidates", out var candidates)
                     || candidates.GetArrayLength() == 0)
+                {
+                    _logger.LogWarning("[AI] ⚠️ Gemini response thiếu candidates • Lesson: \"{Title}\"", lessonTitle);
                     throw new InvalidOperationException("Gemini API trả về response không hợp lệ (thiếu candidates).");
+                }
 
                 var firstCandidate = candidates[0];
                 if (!firstCandidate.TryGetProperty("content", out var content)
                     || !content.TryGetProperty("parts", out var parts)
                     || parts.GetArrayLength() == 0)
+                {
+                    _logger.LogWarning("[AI] ⚠️ Gemini response không có nội dung parts • Lesson: \"{Title}\"", lessonTitle);
                     throw new InvalidOperationException("Gemini API response không có nội dung.");
+                }
 
                 var aiText = parts[0].TryGetProperty("text", out var textEl)
                     ? textEl.GetString()
                     : null;
 
                 if (string.IsNullOrWhiteSpace(aiText))
+                {
+                    _logger.LogWarning("[AI] ⚠️ AI trả về text trống • Lesson: \"{Title}\"", lessonTitle);
                     throw new InvalidOperationException("AI trả về nội dung trống.");
+                }
 
-                return ParseBlocksFromAiResponse(aiText);
+                var blocks = ParseBlocksFromAiResponse(aiText);
+
+                // ===== LOGGING: Parse thành công =====
+                _logger.LogInformation(
+                    "[AI] 📦 Parse thành công {BlockCount} blocks • Types: [{BlockTypes}] • Lesson: \"{Title}\"",
+                    blocks.Count,
+                    string.Join(", ", blocks.Select(b => b.BlockType)),
+                    lessonTitle);
+
+                return blocks;
             }
             catch (JsonException ex)
             {
+                _logger.LogError(ex,
+                    "[AI] ❌ Lỗi parse JSON từ Gemini • Lesson: \"{Title}\" • Raw response (500 chars): {Response}",
+                    lessonTitle,
+                    responseContent.Length > 500 ? responseContent[..500] : responseContent);
+
                 throw new InvalidOperationException($"Lỗi phân tích kết quả AI: {ex.Message}", ex);
             }
         }

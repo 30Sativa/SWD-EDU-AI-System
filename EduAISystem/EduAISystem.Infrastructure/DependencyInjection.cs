@@ -5,6 +5,7 @@ using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Infrastructure.Persistence.Context;
 using EduAISystem.Infrastructure.Persistence.Repositories;
 using EduAISystem.Infrastructure.Security;
+using EduAISystem.Infrastructure.Services.Cache;
 using EduAISystem.Infrastructure.Services.Email;
 using EduAISystem.Infrastructure.Services.Excel;
 using EduAISystem.Infrastructure.Services.ExternalApis;
@@ -15,6 +16,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Extensions.Http;
 
 
 namespace EduAISystem.Infrastructure
@@ -71,8 +74,18 @@ namespace EduAISystem.Infrastructure
                     configuration.GetSection("Cloudinary"));
             services.AddScoped<IFileStorageService, CloudinaryFileStorageService>();
 
+            // 7. HttpClient + Polly Resilience cho AI Services
             services.AddHttpClient<ICourseAiService, CourseAiService>();
-            services.AddHttpClient<ILessonAiService, LessonAiService>();
+
+            // ===== LessonAiService: Retry 3 lần + Circuit Breaker =====
+            services.AddHttpClient<ILessonAiService, LessonAiService>()
+                .AddPolicyHandler(GetRetryPolicy())
+                .AddPolicyHandler(GetCircuitBreakerPolicy());
+
+            // 8. MemoryCache cho AI Preview
+            services.AddMemoryCache();
+            services.AddSingleton<IAiPreviewCacheService, AiPreviewCacheService>();
+
             // services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IExcelUserParser, ExcelUserParser>();
             services.AddScoped<IEmailService, EmailService>();
@@ -84,6 +97,57 @@ namespace EduAISystem.Infrastructure
 
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
             return services;
+        }
+
+        /// <summary>
+        /// Retry Policy: 3 lần, exponential backoff (1s → 2s → 4s).
+        /// Chỉ retry cho transient errors (5xx, 408, network errors).
+        /// </summary>
+        private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
+        {
+            return HttpPolicyExtensions
+                .HandleTransientHttpError() // 5xx, 408, HttpRequestException
+                .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.TooManyRequests) // 429
+                .WaitAndRetryAsync(
+                    retryCount: 3,
+                    sleepDurationProvider: retryAttempt =>
+                        TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // 2s, 4s, 8s
+                    onRetry: (outcome, timespan, retryAttempt, context) =>
+                    {
+                        // Log sẽ tự hiển thị qua ILogger nếu cấu hình Polly logging
+                        Console.WriteLine(
+                            $"[Polly] 🔄 Retry #{retryAttempt} sau {timespan.TotalSeconds}s " +
+                            $"• Status: {outcome.Result?.StatusCode} " +
+                            $"• Error: {outcome.Exception?.Message}");
+                    });
+        }
+
+        /// <summary>
+        /// Circuit Breaker: mở circuit sau 5 lỗi liên tiếp, break 30s.
+        /// Ngăn chặn cascade failure khi Gemini API sập.
+        /// </summary>
+        private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
+        {
+            return HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .CircuitBreakerAsync(
+                    handledEventsAllowedBeforeBreaking: 5,
+                    durationOfBreak: TimeSpan.FromSeconds(30),
+                    onBreak: (outcome, breakDelay) =>
+                    {
+                        Console.WriteLine(
+                            $"[Polly] 🔴 Circuit OPEN – break {breakDelay.TotalSeconds}s " +
+                            $"• Status: {outcome.Result?.StatusCode} " +
+                            $"• Error: {outcome.Exception?.Message}");
+                    },
+                    onReset: () =>
+                    {
+                        Console.WriteLine("[Polly] 🟢 Circuit CLOSED – Gemini API hoạt động lại");
+                    },
+                    onHalfOpen: () =>
+                    {
+                        Console.WriteLine("[Polly] 🟡 Circuit HALF-OPEN – đang test lại Gemini API...");
+                    });
         }
     }
 }
