@@ -8,7 +8,11 @@ namespace EduAISystem.Application.Features.Submissions.DTOs.Response
         string? Feedback,
         string Status,
         DateTime? SubmittedAt,
-        DateTime? GradedAt
+        DateTime? GradedAt,
+        string? FileUrl,
+        string? FileName,
+        long? FileSize,
+        string? FileType
     );
 }
 

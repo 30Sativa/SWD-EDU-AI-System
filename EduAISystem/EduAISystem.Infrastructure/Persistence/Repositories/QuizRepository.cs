@@ -131,7 +131,15 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 }
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new Application.Common.Exceptions.NotFoundException(
+                    $"Question {question.Id} đã bị xoá hoặc thay đổi bởi thao tác khác.");
+            }
         }
 
         public async Task DeleteQuestionAsync(Guid quizId, Guid questionId, CancellationToken cancellationToken)

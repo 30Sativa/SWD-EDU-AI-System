@@ -127,7 +127,11 @@ namespace EduAISystem.Application.Features.Submissions.Handler
                     s.Feedback,
                     s.Status.ToString(),
                     s.SubmittedAt,
-                    s.GradedAt))
+                    s.GradedAt,
+                    s.FileUrl,
+                    s.FileName,
+                    s.FileSize,
+                    s.FileType))
                 .ToList();
         }
     }
@@ -172,7 +176,11 @@ namespace EduAISystem.Application.Features.Submissions.Handler
                 submission.Feedback,
                 submission.Status.ToString(),
                 submission.SubmittedAt,
-                submission.GradedAt);
+                submission.GradedAt,
+                submission.FileUrl,
+                submission.FileName,
+                submission.FileSize,
+                submission.FileType);
         }
     }
 }
