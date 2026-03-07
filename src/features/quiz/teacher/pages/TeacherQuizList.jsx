@@ -118,7 +118,7 @@ export default function TeacherQuizList() {
             };
 
             if (editingQuiz) {
-                await updateQuiz(editingQuiz.id, payload);
+                await updateQuiz(editingQuiz.id || editingQuiz.quizId, payload);
                 message.success('Cập nhật bài kiểm tra thành công!');
             } else {
                 await createSummativeQuiz(payload);
@@ -233,7 +233,7 @@ export default function TeacherQuizList() {
                             <span className="text-xs font-bold uppercase tracking-widest">Tỉ lệ tham gia</span>
                         </div>
                         <div className="text-xl font-bold text-slate-800 z-10">82%</div>
-                        <Progress percent={82} size="small" showInfo={false} strokeColor="#0487e2" trailColor="rgba(4, 135, 226, 0.1)" className="mt-1 z-10" />
+                        <Progress percent={82} size="small" showInfo={false} strokeColor="#0487e2" railColor="rgba(4, 135, 226, 0.1)" className="mt-1 z-10" />
                     </div>
                 </div>
 
@@ -271,9 +271,9 @@ export default function TeacherQuizList() {
                 {/* Grid List */}
                 {filteredQuizzes.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredQuizzes.map((quiz) => (
+                        {filteredQuizzes.map((quiz, idx) => (
                             <div
-                                key={quiz.id}
+                                key={quiz.id || quiz.quizId || idx}
                                 className="group bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full hover:border-blue-200"
                             >
                                 <div className="p-5 flex-1 flex flex-col">
@@ -323,7 +323,7 @@ export default function TeacherQuizList() {
                                 <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                                     <Button
                                         type="primary"
-                                        onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id}`)}
+                                        onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id || quiz.quizId}`)}
                                         className="rounded-lg h-9 px-4 font-semibold bg-[#0487e2] hover:bg-[#0374c4] border-none shadow-sm flex items-center gap-1.5"
                                     >
                                         Thiết kế <ChevronRight size={14} />
@@ -343,7 +343,7 @@ export default function TeacherQuizList() {
                                                 type="text"
                                                 size="small"
                                                 icon={<Trash2 size={14} />}
-                                                onClick={() => handleDeleteQuiz(quiz.id)}
+                                                onClick={() => handleDeleteQuiz(quiz.id || quiz.quizId)}
                                                 className="h-8 w-8 flex items-center justify-center rounded-md bg-white text-slate-400 border border-slate-200 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-200"
                                             />
                                         </Tooltip>
@@ -468,19 +468,19 @@ export default function TeacherQuizList() {
                         </div>
                     </div>
 
-                    <Form.Item
-                        name="isPublished"
-                        valuePropName="checked"
-                        className="mb-0"
-                    >
-                        <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                            <div>
-                                <div className="font-bold text-slate-800 text-sm">Công bố bài kiểm tra</div>
-                                <div className="text-xs text-slate-500 mt-0.5">Học sinh có thể nhìn thấy và làm bài ngay.</div>
-                            </div>
-                            <Switch className={form.getFieldValue('isPublished') ? "bg-emerald-500" : ""} />
+                    <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                        <div>
+                            <div className="font-bold text-slate-800 text-sm">Công bố bài kiểm tra</div>
+                            <div className="text-xs text-slate-500 mt-0.5">Học sinh có thể nhìn thấy và làm bài ngay.</div>
                         </div>
-                    </Form.Item>
+                        <Form.Item
+                            name="isPublished"
+                            valuePropName="checked"
+                            noStyle
+                        >
+                            <Switch className="custom-switch-emerald" />
+                        </Form.Item>
+                    </div>
 
                     <div className="flex gap-3 pt-4 border-t border-slate-100">
                         <Button

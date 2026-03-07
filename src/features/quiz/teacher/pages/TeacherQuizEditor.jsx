@@ -25,7 +25,8 @@ import {
     Empty,
     Tag,
     Space,
-    Breadcrumb
+    Breadcrumb,
+    Select
 } from 'antd';
 import {
     getQuizDetail,
@@ -47,7 +48,7 @@ export default function TeacherQuizEditor() {
     const [editingQuestion, setEditingQuestion] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [form] = Form.useForm();
-    const [questionType, setQuestionType] = useState('MultipleChoice');
+    const [questionType, setQuestionType] = useState('MCQ');
 
     const fetchQuizDetail = useCallback(async () => {
         try {
@@ -71,20 +72,20 @@ export default function TeacherQuizEditor() {
     const handleOpenModal = (question = null) => {
         setEditingQuestion(question);
         if (question) {
-            setQuestionType(question.type || 'MultipleChoice');
+            const currentType = question.questionType || question.type || question.QuestionType || 'MCQ';
+            setQuestionType(currentType);
+
             form.setFieldsValue({
-                text: question.text,
-                explanation: question.explanation,
-                point: question.point || 1,
-                options: question.options || [
-                    { text: '', isCorrect: true },
-                    { text: '', isCorrect: false },
-                    { text: '', isCorrect: false },
-                    { text: '', isCorrect: false }
-                ]
+                text: question.questionText || question.text || question.QuestionText,
+                explanation: question.explanation || question.Explanation,
+                point: question.points || question.point || question.Point || 1,
+                options: (question.options || question.Options || []).map(opt => ({
+                    text: opt.optionText || opt.text || opt.OptionText,
+                    isCorrect: opt.isCorrect ?? opt.IsCorrect ?? false
+                }))
             });
         } else {
-            setQuestionType('MultipleChoice');
+            setQuestionType('MCQ');
             form.resetFields();
             form.setFieldsValue({
                 point: 1,
@@ -103,13 +104,15 @@ export default function TeacherQuizEditor() {
         try {
             setSubmitting(true);
             const payload = {
-                text: values.text,
-                type: questionType,
-                point: parseFloat(values.point) || 1,
+                questionText: values.text,
+                questionType: questionType,
+                points: parseFloat(values.point) || 1,
                 explanation: values.explanation || "",
-                options: values.options.map(opt => ({
-                    text: opt.text,
-                    isCorrect: opt.isCorrect ?? false
+                sortOrder: questions.length + 1,
+                options: values.options.map((opt, idx) => ({
+                    optionText: opt.text,
+                    isCorrect: opt.isCorrect ?? false,
+                    sortOrder: idx + 1
                 }))
             };
 
@@ -247,7 +250,7 @@ export default function TeacherQuizEditor() {
                 <div className="space-y-4">
                     {questions.length > 0 ? (
                         questions.map((q, index) => (
-                            <div key={q.id || index} className="group relative">
+                            <div key={q.id || q.questionId || index} className="group relative">
                                 <Card
                                     className="rounded-xl border-slate-200 shadow-sm hover:border-blue-200 hover:shadow transition-all duration-300 bg-white overflow-hidden"
                                     bodyStyle={{ padding: '20px 24px' }}
@@ -268,13 +271,18 @@ export default function TeacherQuizEditor() {
 
                                         {/* Question Content */}
                                         <div className="flex-1 space-y-4 min-w-0">
-                                            <div>
-                                                <div className="inline-flex items-center gap-1.5 mb-2 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold text-slate-500">
-                                                    {q.type === 'MultipleChoice' ? 'TRẮC NGHIỆM' : 'NHIỀU ĐÁP ÁN'}
-                                                </div>
-                                                <div className="text-base font-bold text-slate-800 pr-12">
-                                                    {q.text}
-                                                </div>
+                                            <div className="inline-flex items-center gap-1.5 mb-2 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold text-slate-500">
+                                                {(() => {
+                                                    const type = q.questionType || q.type || q.QuestionType;
+                                                    if (type === 'MCQ') return 'TRẮC NGHIỆM (1 ĐÁP ÁN)';
+                                                    if (type === 'MultipleChoice') return 'CHỌN NHIỀU ĐÁP ÁN';
+                                                    if (type === 'TrueFalse') return 'ĐÚNG/SAI';
+                                                    if (type === 'ShortAnswer') return 'TRẢ LỜI NGẮN';
+                                                    return type;
+                                                })()}
+                                            </div>
+                                            <div className="text-base font-bold text-slate-800 pr-12">
+                                                {q.questionText || q.text || q.QuestionText}
                                             </div>
 
                                             {/* Options Grid */}
@@ -291,7 +299,7 @@ export default function TeacherQuizEditor() {
                                                             }`}>
                                                             {opt.isCorrect ? <Check size={12} /> : String.fromCharCode(65 + oIdx)}
                                                         </div>
-                                                        <span className="text-sm font-medium flex-1 pt-0.5 leading-snug">{opt.text}</span>
+                                                        <span className="text-sm font-medium flex-1 pt-0.5 leading-snug">{opt.optionText || opt.text || opt.OptionText}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -324,7 +332,7 @@ export default function TeacherQuizEditor() {
                                                     type="text"
                                                     size="small"
                                                     icon={<Trash2 size={14} />}
-                                                    onClick={() => handleDeleteQuestion(q.id)}
+                                                    onClick={() => handleDeleteQuestion(q.id || q.questionId)}
                                                     className="h-8 w-8 flex items-center justify-center rounded-md bg-white text-slate-400 border border-slate-200 shadow-sm hover:text-rose-500 hover:bg-rose-50 hover:border-rose-200"
                                                 />
                                             </Tooltip>
@@ -397,14 +405,30 @@ export default function TeacherQuizEditor() {
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Form.Item label={<span className="font-semibold text-slate-700">Loại câu hỏi</span>} className="mb-0">
-                            <Radio.Group
+                            <Select
                                 value={questionType}
-                                onChange={e => setQuestionType(e.target.value)}
-                                className="w-full flex"
+                                onChange={val => {
+                                    setQuestionType(val);
+                                    if (val === 'TrueFalse') {
+                                        form.setFieldsValue({
+                                            options: [
+                                                { text: 'Đúng', isCorrect: true },
+                                                { text: 'Sai', isCorrect: false }
+                                            ]
+                                        });
+                                    } else if (val === 'ShortAnswer') {
+                                        form.setFieldsValue({
+                                            options: [{ text: '', isCorrect: true }]
+                                        });
+                                    }
+                                }}
+                                className="h-10 w-full"
                             >
-                                <Radio.Button value="MultipleChoice" className="flex-1 text-center h-10 leading-[38px] rounded-l-lg">Trắc nghiệm</Radio.Button>
-                                <Radio.Button value="MultipleResponse" className="flex-1 text-center h-10 leading-[38px] rounded-r-lg">Nhiều đáp án</Radio.Button>
-                            </Radio.Group>
+                                <Select.Option value="MCQ">Chọn 1 đáp án (MCQ)</Select.Option>
+                                <Select.Option value="MultipleChoice">Chọn nhiều đáp án</Select.Option>
+                                <Select.Option value="TrueFalse">Đúng / Sai</Select.Option>
+                                <Select.Option value="ShortAnswer">Trả lời ngắn</Select.Option>
+                            </Select>
                         </Form.Item>
 
                         <Form.Item
@@ -426,42 +450,83 @@ export default function TeacherQuizEditor() {
                         <Input.TextArea placeholder="Nhập câu hỏi tại đây..." rows={3} className="rounded-lg bg-white p-3 font-medium" />
                     </Form.Item>
 
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
-                        <div className="flex items-center justify-between">
-                            <span className="font-semibold text-slate-700 text-sm">Các phương án trả lời</span>
-                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Chọn phương án đúng</span>
-                        </div>
+                    {questionType !== 'ShortAnswer' ? (
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="font-semibold text-slate-700 text-sm">Các phương án trả lời</span>
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                                    {questionType === 'MultipleChoice' ? 'Chọn các đáp án đúng' : 'Chọn 1 đáp án đúng'}
+                                </span>
+                            </div>
 
-                        <Form.List name="options">
-                            {(fields) => (
-                                <div className="space-y-3">
-                                    {fields.map(({ key, name, ...restField }, index) => (
-                                        <div key={key} className="flex gap-3 items-center">
-                                            <div className="h-10 w-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-500 shadow-sm">
-                                                {String.fromCharCode(65 + index)}
+                            <Form.List name="options">
+                                {(fields) => (
+                                    <div className="space-y-3">
+                                        {fields.map(({ key, name, ...restField }, index) => (
+                                            <div key={key} className="flex gap-3 items-center">
+                                                <div className="h-10 w-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-500 shadow-sm">
+                                                    {String.fromCharCode(65 + index)}
+                                                </div>
+                                                <Form.Item
+                                                    {...restField}
+                                                    name={[name, 'text']}
+                                                    rules={[{ required: true, message: 'Nhập phương án' }]}
+                                                    className="mb-0 flex-1"
+                                                >
+                                                    <Input
+                                                        placeholder={`Phương án ${index + 1}`}
+                                                        className="h-10 rounded-lg"
+                                                        disabled={questionType === 'TrueFalse'}
+                                                    />
+                                                </Form.Item>
+                                                <Form.Item
+                                                    {...restField}
+                                                    name={[name, 'isCorrect']}
+                                                    valuePropName="checked"
+                                                    className="mb-0 pt-1"
+                                                >
+                                                    {questionType === 'MultipleChoice' ? (
+                                                        <Checkbox className="scale-125" />
+                                                    ) : (
+                                                        <Radio
+                                                            className="scale-125"
+                                                            checked={form.getFieldValue(['options', name, 'isCorrect'])}
+                                                            onChange={(e) => {
+                                                                const options = form.getFieldValue('options').map((opt, i) => ({
+                                                                    ...opt,
+                                                                    isCorrect: i === index
+                                                                }));
+                                                                form.setFieldsValue({ options });
+                                                            }}
+                                                        />
+                                                    )}
+                                                </Form.Item>
                                             </div>
-                                            <Form.Item
-                                                {...restField}
-                                                name={[name, 'text']}
-                                                rules={[{ required: true, message: 'Nhập phương án' }]}
-                                                className="mb-0 flex-1"
-                                            >
-                                                <Input placeholder={`Phương án ${index + 1}`} className="h-10 rounded-lg" />
-                                            </Form.Item>
-                                            <Form.Item
-                                                {...restField}
-                                                name={[name, 'isCorrect']}
-                                                valuePropName="checked"
-                                                className="mb-0 pt-1"
-                                            >
-                                                <Checkbox className="scale-125" />
-                                            </Form.Item>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </Form.List>
-                    </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </Form.List>
+                        </div>
+                    ) : (
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                            <span className="font-semibold text-slate-700 text-sm">Đáp án chính xác</span>
+                            <Form.List name="options">
+                                {(fields) => (
+                                    fields.slice(0, 1).map(({ key, name, ...restField }) => (
+                                        <Form.Item
+                                            key={key}
+                                            {...restField}
+                                            name={[name, 'text']}
+                                            rules={[{ required: true, message: 'Nhập đáp án đúng' }]}
+                                            className="mb-0"
+                                        >
+                                            <Input placeholder="Nhập đáp án đúng tại đây..." className="h-11 rounded-lg bg-white" />
+                                        </Form.Item>
+                                    ))
+                                )}
+                            </Form.List>
+                        </div>
+                    )}
 
                     <Form.Item
                         label={
