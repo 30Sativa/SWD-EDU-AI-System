@@ -130,6 +130,32 @@ Thêm một câu hỏi trắc nghiệm mới vào quiz.
             }
         }
 
+        [HttpGet("{quizId:guid}/questions")]
+        [SwaggerOperation(
+            Summary = "GV - Lấy danh sách câu hỏi của quiz",
+            Description = "Lấy đầy đủ danh sách câu hỏi trong một quiz bao gồm đáp án đúng và giải thích, phục vụ cho giao diện quản lý của giáo viên."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<TeacherQuestionDetailResponseDto>>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
+        public async Task<IActionResult> GetQuestionsByQuiz(
+            Guid quizId,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var questions = await _mediator.Send(new GetTeacherQuestionsByQuizQuery(quizId), cancellationToken);
+                return Ok(ApiResponse<List<TeacherQuestionDetailResponseDto>>.Ok(questions, "Lấy danh sách câu hỏi thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI LẤY DANH SÁCH CÂU HỎI] MãTrace: {TraceId} | MãQuiz: {QuizId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, quizId, ex.GetType().Name, ex.Message);
+                throw;
+            }
+        }
+
         [HttpPut("{quizId:guid}")]
         [SwaggerOperation(
             Summary = "GV - Cập nhật thông tin quiz",
@@ -228,6 +254,33 @@ Cập nhật nội dung câu hỏi, các đáp án, đáp án đúng và giải 
                 var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
                 _logger.LogError(ex,
                     "[LỖI CẬP NHẬT CÂU HỎI TRONG QUIZ] MãTrace: {TraceId} | MãQuiz: {QuizId} | MãCâuHỏi: {QuestionId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, quizId, questionId, ex.GetType().Name, ex.Message);
+                throw;
+            }
+        }
+
+        [HttpGet("{quizId:guid}/questions/{questionId:guid}")]
+        [SwaggerOperation(
+            Summary = "GV - Lấy chi tiết một câu hỏi trong quiz",
+            Description = "Lấy đầy đủ thông tin câu hỏi (bao gồm options, đáp án đúng, giải thích) để hiển thị trong màn hình chỉnh sửa của giáo viên."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<TeacherQuestionDetailResponseDto>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
+        public async Task<IActionResult> GetQuestionDetail(
+            Guid quizId,
+            Guid questionId,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var question = await _mediator.Send(new GetTeacherQuestionDetailQuery(quizId, questionId), cancellationToken);
+                return Ok(ApiResponse<TeacherQuestionDetailResponseDto>.Ok(question, "Lấy chi tiết câu hỏi thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI LẤY CHI TIẾT CÂU HỎI] MãTrace: {TraceId} | MãQuiz: {QuizId} | MãCâuHỏi: {QuestionId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
                     traceId, quizId, questionId, ex.GetType().Name, ex.Message);
                 throw;
             }

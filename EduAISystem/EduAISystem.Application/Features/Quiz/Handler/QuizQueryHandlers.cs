@@ -218,31 +218,119 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                 Questions: questionResults
             );
         }
-        // =============================================
-        // GET QUESTION OPTIONS
-        // =============================================
-        public class GetQuestionOptionsQueryHandler
-            : IRequestHandler<GetQuestionOptionsQuery, List<OptionDetailResponseDto>>
+    }
+
+    // =============================================
+    // GET QUESTION OPTIONS
+    // =============================================
+    public class GetQuestionOptionsQueryHandler
+        : IRequestHandler<GetQuestionOptionsQuery, List<OptionDetailResponseDto>>
+    {
+        private readonly IQuizRepository _quizRepository;
+
+        public GetQuestionOptionsQueryHandler(IQuizRepository quizRepository)
         {
-            private readonly IQuizRepository _quizRepository;
+            _quizRepository = quizRepository;
+        }
 
-            public GetQuestionOptionsQueryHandler(IQuizRepository quizRepository)
-            {
-                _quizRepository = quizRepository;
-            }
+        public async Task<List<OptionDetailResponseDto>> Handle(
+            GetQuestionOptionsQuery request, CancellationToken cancellationToken)
+        {
+            var options = await _quizRepository.GetQuestionOptionsAsync(request.QuestionId, cancellationToken);
 
-            public async Task<List<OptionDetailResponseDto>> Handle(
-                GetQuestionOptionsQuery request, CancellationToken cancellationToken)
-            {
-                var options = await _quizRepository.GetQuestionOptionsAsync(request.QuestionId, cancellationToken);
+            return options.Select(o => new OptionDetailResponseDto(
+                OptionId: o.Id,
+                OptionText: o.OptionText,
+                IsCorrect: o.IsCorrect,
+                SortOrder: o.SortOrder
+            )).ToList();
+        }
+    }
 
-                return options.Select(o => new OptionDetailResponseDto(
-                    OptionId: o.Id,
-                    OptionText: o.OptionText,
-                    IsCorrect: o.IsCorrect,
-                    SortOrder: o.SortOrder
-                )).ToList();
-            }
+    // =============================================
+    // Teacher — Lấy danh sách câu hỏi theo Quiz
+    // =============================================
+    public class GetTeacherQuestionsByQuizQueryHandler
+        : IRequestHandler<GetTeacherQuestionsByQuizQuery, List<TeacherQuestionDetailResponseDto>>
+    {
+        private readonly IQuizRepository _quizRepository;
+
+        public GetTeacherQuestionsByQuizQueryHandler(IQuizRepository quizRepository)
+        {
+            _quizRepository = quizRepository;
+        }
+
+        public async Task<List<TeacherQuestionDetailResponseDto>> Handle(
+            GetTeacherQuestionsByQuizQuery request, CancellationToken cancellationToken)
+        {
+            var quizWithQuestions = await _quizRepository.GetWithQuestionsAsync(request.QuizId, cancellationToken)
+                ?? throw new NotFoundException("Quiz không tồn tại.");
+
+            return quizWithQuestions.Questions
+                .OrderBy(q => q.SortOrder)
+                .Select(q => new TeacherQuestionDetailResponseDto(
+                    QuestionId: q.Id,
+                    QuizId: q.QuizId,
+                    QuestionText: q.QuestionText,
+                    QuestionType: q.QuestionType,
+                    Points: q.Points,
+                    SortOrder: q.SortOrder,
+                    Explanation: q.Explanation,
+                    CorrectAnswer: q.CorrectAnswer,
+                    Options: q.Options
+                        .Select(o => new OptionDetailResponseDto(
+                            OptionId: o.Id,
+                            OptionText: o.OptionText,
+                            IsCorrect: o.IsCorrect,
+                            SortOrder: o.SortOrder
+                        ))
+                        .ToList()
+                ))
+                .ToList();
+        }
+    }
+
+    // =============================================
+    // Teacher — Lấy chi tiết 1 câu hỏi trong Quiz
+    // =============================================
+    public class GetTeacherQuestionDetailQueryHandler
+        : IRequestHandler<GetTeacherQuestionDetailQuery, TeacherQuestionDetailResponseDto>
+    {
+        private readonly IQuizRepository _quizRepository;
+
+        public GetTeacherQuestionDetailQueryHandler(IQuizRepository quizRepository)
+        {
+            _quizRepository = quizRepository;
+        }
+
+        public async Task<TeacherQuestionDetailResponseDto> Handle(
+            GetTeacherQuestionDetailQuery request, CancellationToken cancellationToken)
+        {
+            var quizWithQuestions = await _quizRepository.GetWithQuestionsAsync(request.QuizId, cancellationToken)
+                ?? throw new NotFoundException("Quiz không tồn tại.");
+
+            var question = quizWithQuestions.Questions
+                .FirstOrDefault(q => q.Id == request.QuestionId)
+                ?? throw new NotFoundException("Câu hỏi không tồn tại trong quiz này.");
+
+            return new TeacherQuestionDetailResponseDto(
+                QuestionId: question.Id,
+                QuizId: question.QuizId,
+                QuestionText: question.QuestionText,
+                QuestionType: question.QuestionType,
+                Points: question.Points,
+                SortOrder: question.SortOrder,
+                Explanation: question.Explanation,
+                CorrectAnswer: question.CorrectAnswer,
+                Options: question.Options
+                    .Select(o => new OptionDetailResponseDto(
+                        OptionId: o.Id,
+                        OptionText: o.OptionText,
+                        IsCorrect: o.IsCorrect,
+                        SortOrder: o.SortOrder
+                    ))
+                    .ToList()
+            );
         }
     }
 }

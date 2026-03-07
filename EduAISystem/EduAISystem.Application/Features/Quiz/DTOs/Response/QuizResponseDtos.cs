@@ -58,6 +58,21 @@ namespace EduAISystem.Application.Features.Quiz.DTOs.Response
     );
 
     // =============================================
+    // Teacher — Chi tiết câu hỏi (bao gồm đáp án đúng)
+    // =============================================
+    public record TeacherQuestionDetailResponseDto(
+        Guid QuestionId,
+        Guid QuizId,
+        string QuestionText,
+        string QuestionType,
+        decimal Points,
+        int SortOrder,
+        string? Explanation,
+        string? CorrectAnswer,
+        List<OptionDetailResponseDto> Options
+    );
+
+    // =============================================
     // Kết quả sau khi nộp bài (AttemptResult)
     // =============================================
     public record AttemptResultResponseDto(

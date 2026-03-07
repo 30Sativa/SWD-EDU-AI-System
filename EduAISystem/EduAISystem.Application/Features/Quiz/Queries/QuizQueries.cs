@@ -27,4 +27,16 @@ namespace EduAISystem.Application.Features.Quiz.Queries
     // API hỗ trợ lấy options cho 1 question
     // =============================================
     public record GetQuestionOptionsQuery(Guid QuestionId) : IRequest<List<OptionDetailResponseDto>>;
+
+    // =============================================
+    // Teacher — Lấy danh sách câu hỏi của một Quiz
+    // =============================================
+    public record GetTeacherQuestionsByQuizQuery(Guid QuizId)
+        : IRequest<List<TeacherQuestionDetailResponseDto>>;
+
+    // =============================================
+    // Teacher — Lấy chi tiết một câu hỏi trong Quiz
+    // =============================================
+    public record GetTeacherQuestionDetailQuery(Guid QuizId, Guid QuestionId)
+        : IRequest<TeacherQuestionDetailResponseDto>;
 }
