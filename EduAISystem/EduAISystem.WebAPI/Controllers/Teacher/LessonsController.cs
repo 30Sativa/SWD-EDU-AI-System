@@ -1,10 +1,13 @@
 using EduAISystem.Application.Abstractions.Common;
+using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Lessons.Commands;
 using EduAISystem.Application.Features.Lessons.DTOs.Request;
+using EduAISystem.Application.Features.Lessons.DTOs.Response;
 using EduAISystem.Application.Features.Lessons.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Diagnostics;
 
 namespace EduAISystem.WebAPI.Controllers.Teacher
@@ -22,16 +25,14 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             _logger = logger;
         }
 
-        // GET: api/teacher/lessons
-        [HttpGet]
-        //public async Task<IActionResult> GetAll()
-        //{
-        //    var result = await _mediator.Send(new GetAllLessonsQuery());
-        //    return Ok(result);
-        //}
-
         // GET: api/teacher/lessons/{id}
         [HttpGet("{id:guid}")]
+        [SwaggerOperation(
+            Summary = "GV - Chi tiết bài học",
+            Description = "Giáo viên xem thông tin chi tiết của một bài học theo Id, bao gồm nội dung, tài liệu đính kèm và trạng thái sử dụng AI."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<LessonResponseDto>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> GetById(Guid id)
         {
             try
@@ -51,6 +52,12 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
         // GET: api/teacher/lessons/by-section/{sectionId}
         [HttpGet("by-section/{sectionId:guid}")]
+        [SwaggerOperation(
+            Summary = "GV - Danh sách bài học theo section",
+            Description = "Giáo viên xem tất cả bài học thuộc một section, sắp xếp theo thứ tự (SortOrder)."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<LessonResponseDto>>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> GetBySection(Guid sectionId)
         {
             try
@@ -70,6 +77,23 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
         // POST: api/teacher/lessons
         [HttpPost]
+        [SwaggerOperation(
+            Summary = "GV - Tạo bài học mới",
+            Description = @"
+Giáo viên tạo một bài học mới trong một section của khóa học.
+
+**Trường bắt buộc:** `SectionId`, `Title`
+
+**Tùy chọn:**
+- `CanUseAI`: cho phép AI sinh nội dung blocks (mặc định: false)
+- `MaterialUrl` / `MaterialType`: tài liệu đính kèm (video, PDF, DOCX)
+- Nếu muốn upload file tài liệu → dùng `POST /api/teacher/lessons/{id}/upload-material` trước rồi lấy URL
+
+**Sau khi tạo:** Dùng `POST /api/teacher/lessons/{id}/blocks` để thêm nội dung block."
+        )]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> Create([FromBody] CreateLessonRequestDto dto)
         {
             try
@@ -89,6 +113,19 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
         // PUT: api/teacher/lessons/{id}
         [HttpPut("{id:guid}")]
+        [SwaggerOperation(
+            Summary = "GV - Cập nhật bài học",
+            Description = @"
+Giáo viên cập nhật thông tin bài học: tiêu đề, mô tả, tài liệu, thứ tự, trạng thái CanUseAI.
+
+**Lưu ý:**
+- Để cập nhật tài liệu: upload file mới qua `POST /{id}/upload-material` → lấy URL → truyền vào `MaterialUrl`
+- Không ảnh hưởng đến các blocks hiện có
+- Trả về 204 No Content khi thành công"
+        )]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> Update(
             Guid id,
             [FromBody] UpdateLessonRequestDto dto)
@@ -111,6 +148,18 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
         // DELETE: api/teacher/lessons/{id}
         [HttpDelete("{id:guid}")]
+        [SwaggerOperation(
+            Summary = "GV - Xoá bài học",
+            Description = @"
+Xoá (soft delete) một bài học khỏi section.
+
+**Lưu ý:**
+- Đây là soft delete — bài học bị đánh dấu xóa, không xóa vật lý
+- Tất cả blocks và FAQs thuộc bài học cũng bị xóa theo
+- Không thể hoàn tác qua API; cần can thiệp DB nếu muốn khôi phục"
+        )]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> Delete(Guid id)
         {
             try
@@ -131,6 +180,26 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         // POST: api/teacher/lessons/{id}/upload-material
         [HttpPost("{id:guid}/upload-material")]
         [Consumes("multipart/form-data")]
+        [SwaggerOperation(
+            Summary = "GV - Upload tài liệu bài học lên Cloudinary",
+            Description = @"
+Upload file tài liệu (video, PDF, DOCX, PPTX) cho bài học lên Cloudinary.
+
+**Định dạng hỗ trợ:** MP4, PDF, DOCX, PPTX, DOC, PPT
+
+**Giới hạn kích thước:** Tùy cấu hình Cloudinary (thường tối đa 100MB)
+
+**Flow sử dụng:**
+1. Gọi endpoint này để upload file → nhận `MaterialUrl` và `MaterialType`
+2. Dùng `PUT /api/teacher/lessons/{id}` với `MaterialUrl` nhận được để gán tài liệu vào bài học
+
+**Response trả về:**
+- `MaterialUrl`: URL công khai trên Cloudinary
+- `MaterialType`: loại tài liệu (MP4, PDF, DOCX, v.v.)
+- `VideoType`: nếu là video thì trả về 'File', ngược lại null"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> UploadMaterial(
             Guid id,
             IFormFile file,
@@ -168,4 +237,3 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         }
     }
 }
-

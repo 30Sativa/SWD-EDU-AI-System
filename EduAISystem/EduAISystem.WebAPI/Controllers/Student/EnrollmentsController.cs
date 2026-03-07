@@ -27,8 +27,8 @@ namespace EduAISystem.WebAPI.Controllers.Student
         // =========================
         [HttpPost("{courseId}/enroll")]
         [SwaggerOperation(
-            Summary = "Đăng ký khóa học",
-            Description = "Sinh viên đăng ký khóa học đã publish"
+            Summary = "HS - Đăng ký khóa học",
+            Description = "Sinh viên đăng ký vào một khóa học cụ thể đã được publish."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
         public async Task<IActionResult> Enroll(Guid courseId)
@@ -43,8 +43,8 @@ namespace EduAISystem.WebAPI.Controllers.Student
         // =========================
         [HttpGet("my")]
         [SwaggerOperation(
-            Summary = "Danh sách khóa học đã đăng ký",
-            Description = "Lấy danh sách khóa học của sinh viên hiện tại"
+            Summary = "HS - Danh sách khóa học đã đăng ký",
+            Description = "Lấy danh sách các khóa học mà học sinh hiện tại đã đăng ký kèm tiến độ học tập."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<MyEnrolledCourseResponseDto>>))]
         public async Task<IActionResult> GetMyCourses(

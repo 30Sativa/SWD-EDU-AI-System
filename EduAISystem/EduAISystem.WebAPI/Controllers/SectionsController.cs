@@ -24,8 +24,8 @@ namespace EduAISystem.WebAPI.Controllers
         // GET: api/courses/{courseId}/sections
         [HttpGet]
         [SwaggerOperation(
-            Summary = "Lấy danh sách section của khóa học",
-            Description = "Lấy toàn bộ section thuộc một khóa học theo CourseId"
+            Summary = "Shared - Lấy danh sách section của khóa học",
+            Description = "Lấy toàn bộ section thuộc một khóa học theo CourseId (Giáo viên và Học sinh đều truy cập được)"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<SectionResponseDto>>))]
         public async Task<IActionResult> GetSectionsByCourseAsync(Guid courseId)
@@ -45,7 +45,7 @@ namespace EduAISystem.WebAPI.Controllers
         // GET: api/courses/{courseId}/sections/{sectionId}
         [HttpGet("{sectionId:guid}")]
         [SwaggerOperation(
-            Summary = "Lấy chi tiết section",
+            Summary = "Shared - Lấy chi tiết section",
             Description = "Lấy thông tin chi tiết của một section theo Id"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<SectionResponseDto>))]
@@ -67,8 +67,8 @@ namespace EduAISystem.WebAPI.Controllers
         // POST: api/courses/{courseId}/sections
         [HttpPost]
         [SwaggerOperation(
-            Summary = "Tạo section cho khóa học",
-            Description = "Thêm section mới vào khóa học hiện tại"
+            Summary = "GV - Tạo section cho khóa học",
+            Description = "Thêm section mới vào khóa học hiện tại (chỉ Giáo viên quản lý khóa học)"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<SectionResponseDto>))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
@@ -89,8 +89,8 @@ namespace EduAISystem.WebAPI.Controllers
         // PUT: api/courses/{courseId}/sections/{sectionId}
         [HttpPut("{sectionId:guid}")]
         [SwaggerOperation(
-            Summary = "Cập nhật section",
-            Description = "Cập nhật tiêu đề/nội dung của section theo Id"
+            Summary = "GV - Cập nhật section",
+            Description = "Cập nhật tiêu đề/nội dung của section theo Id (chỉ Giáo viên quản lý khóa học)"
         )]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
@@ -106,8 +106,8 @@ namespace EduAISystem.WebAPI.Controllers
         // DELETE: api/courses/{courseId}/sections/{sectionId}
         [HttpDelete("{sectionId:guid}")]
         [SwaggerOperation(
-            Summary = "Xoá section",
-            Description = "Xoá (soft delete) một section khỏi khóa học"
+            Summary = "GV - Xoá section",
+            Description = "Xoá (soft delete) một section khỏi khóa học (chỉ Giáo viên quản lý khóa học)"
         )]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]

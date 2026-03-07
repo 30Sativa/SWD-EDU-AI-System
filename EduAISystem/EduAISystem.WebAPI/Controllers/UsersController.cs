@@ -24,8 +24,8 @@ namespace EduAISystem.WebAPI.Controllers
 
         [HttpGet("me")]
         [SwaggerOperation(
-            Summary = "Lấy thông tin người dùng hiện tại",
-            Description = "Đọc userId từ JWT và trả về thông tin cá nhân"
+            Summary = "User - Lấy thông tin người dùng hiện tại",
+            Description = "Đọc userId từ JWT và trả về thông tin cá nhân cho người dùng đang đăng nhập"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse<object>))]
@@ -44,8 +44,8 @@ namespace EduAISystem.WebAPI.Controllers
         [HttpPut("me/profile")]
         [Authorize]
         [SwaggerOperation(
-            Summary = "Cập nhật thông tin cá nhân",
-            Description = "Chỉ update các field được truyền (null = giữ nguyên)"
+            Summary = "User - Cập nhật thông tin cá nhân",
+            Description = "Cập nhật các thông tin cơ bản cho người dùng đang đăng nhập (chỉ update các field được truyền, null = giữ nguyên)"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

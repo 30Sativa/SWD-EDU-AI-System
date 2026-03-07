@@ -1,6 +1,9 @@
 ﻿using EduAISystem.Application.Abstractions.Persistence;
+using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Application.Features.Courses.DTOs.Response;
+using EduAISystem.Domain.Entities;
 using EduAISystem.Infrastructure.Security;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -17,13 +20,22 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
     {
         private readonly HttpClient _httpClient;
         private readonly GeminiSettings _settings;
+        private readonly IAilogRepository _aiLogRepository;
+        private readonly ICurrentUserService _currentUser;
+        private readonly ILogger<CourseAiService> _logger;
 
         public CourseAiService(
             HttpClient httpClient,
-            IOptions<GeminiSettings> options)
+            IOptions<GeminiSettings> options,
+            IAilogRepository aiLogRepository,
+            ICurrentUserService currentUser,
+            ILogger<CourseAiService> logger)
         {
             _httpClient = httpClient;
             _settings = options.Value;
+            _aiLogRepository = aiLogRepository;
+            _currentUser = currentUser;
+            _logger = logger;
         }
 
         public async Task<ScanTemplateCourseResponseDto> AnalyzeStructureAsync(string text)
@@ -135,6 +147,36 @@ Nội dung:
             try
             {
                 using var doc = JsonDocument.Parse(responseContent);
+
+                if (doc.RootElement.TryGetProperty("usageMetadata", out var usage))
+                {
+                    var promptTokens = usage.TryGetProperty("promptTokenCount", out var pt) ? pt.GetInt32() : 0;
+                    var outputTokens = usage.TryGetProperty("candidatesTokenCount", out var ct) ? ct.GetInt32() : 0;
+                    var totalTokens = promptTokens + outputTokens;
+
+                    _logger.LogInformation("[Course AI] Tokens: input={Input} output={Output} total={Total}", promptTokens, outputTokens, totalTokens);
+
+                    try
+                    {
+                        Guid? userId = _currentUser.UserId != Guid.Empty ? _currentUser.UserId : null;
+
+                        decimal cost = (promptTokens * 0.075m / 1000000m) + (outputTokens * 0.3m / 1000000m);
+                        
+                        _ = _aiLogRepository.AddAsync(new AilogDomain
+                        {
+                            Feature = "ScanTemplateCourse",
+                            UserId = userId,
+                            InputText = $"Course text (Length: {text.Length})",
+                            OutputText = $"Response length: {responseContent.Length}",
+                            TokensUsed = totalTokens,
+                            Cost = cost
+                        }).ConfigureAwait(false);
+                    }
+                    catch (Exception logEx)
+                    {
+                        _logger.LogWarning(logEx, "[Course AI] Không thể lưu token tracking vào DB.");
+                    }
+                }
 
                 if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || 
                     candidates.GetArrayLength() == 0)

@@ -23,7 +23,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpGet]
         [SwaggerOperation(
-            Summary = "Danh sách môn học",
+            Summary = "Manager - Danh sách môn học",
             Description = "Lấy danh sách môn học kèm phân trang và bộ lọc"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<SubjectListResponseDto>>))]
@@ -35,7 +35,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpGet("{id:guid}")]
         [SwaggerOperation(
-            Summary = "Chi tiết môn học",
+            Summary = "Manager - Chi tiết môn học",
             Description = "Lấy thông tin môn học theo Id"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<SubjectDetailResponseDto>))]
@@ -51,7 +51,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpPost]
         [SwaggerOperation(
-            Summary = "Tạo môn học",
+            Summary = "Manager - Tạo môn học",
             Description = "Thêm mới môn học với tên, mã và trạng thái"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<SubjectDetailResponseDto>))]
@@ -64,7 +64,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpPut("{id:guid}")]
         [SwaggerOperation(
-            Summary = "Cập nhật môn học",
+            Summary = "Manager - Cập nhật môn học",
             Description = "Cập nhật thông tin môn học theo Id"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<SubjectDetailResponseDto>))]
@@ -80,7 +80,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpPatch("{id:guid}/status")]
         [SwaggerOperation(
-            Summary = "Đổi trạng thái môn học",
+            Summary = "Manager - Đổi trạng thái môn học",
             Description = "Kích hoạt/Vô hiệu hóa môn học theo Id"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]

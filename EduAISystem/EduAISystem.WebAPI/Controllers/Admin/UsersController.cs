@@ -92,10 +92,28 @@ namespace EduAISystem.WebAPI.Controllers.Admin
         }
         [HttpPost("import")]
         [Consumes("multipart/form-data")]
+        [SwaggerOperation(
+            Summary = "Admin - Import người dùng từ file Excel",
+            Description = @"
+Import hàng loạt người dùng (giáo viên/học sinh) từ file Excel (.xlsx).
+
+**Định dạng file Excel:**
+- Cột bắt buộc: `Email`, `FullName`, `Role` (Teacher/Student)
+- Cột tùy chọn: `PhoneNumber`, `DateOfBirth`, `ClassCode`
+
+**Xử lý lỗi:**
+- Email đã tồn tại → bỏ qua, ghi log
+- Dữ liệu thiếu/sai format → ghi vào danh sách lỗi trong response
+- Import thành công một phần vẫn trả về 200 kèm danh sách lỗi
+
+**Sau khi import:** Người dùng sẽ nhận email với link đặt mật khẩu lần đầu."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]
         public async Task<IActionResult> ImportUsers(IFormFile file)
         {
             if (file == null || file.Length == 0)
-                return BadRequest("File is required");
+                return BadRequest(ApiResponse<object>.Fail("File là bắt buộc và không được rỗng"));
 
             using var ms = new MemoryStream();
             await file.CopyToAsync(ms);
@@ -107,7 +125,7 @@ namespace EduAISystem.WebAPI.Controllers.Admin
 
             await _mediator.Send(command);
 
-            return Ok(ApiResponse<object>.Ok(null,"Import thành công"));
+            return Ok(ApiResponse<object>.Ok(null, "Import thành công"));
         }
     }
 }

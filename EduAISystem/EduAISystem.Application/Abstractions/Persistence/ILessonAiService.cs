@@ -3,19 +3,25 @@ using EduAISystem.Application.Features.Lessons.DTOs.Response;
 namespace EduAISystem.Application.Abstractions.Persistence
 {
     /// <summary>
-    /// Dịch vụ AI chuyên sinh nội dung sư phạm chuẩn cho LessonBlock.
+    /// EduVN AI – Dịch vụ AI chuyên sinh nội dung sư phạm chuẩn cho LessonBlock.
     /// Nhận đầu vào là văn bản (text gõ hoặc trích từ PDF/File)
     /// và trả về danh sách blocks được phân loại: Concept, Example, Exercise, Reflection.
     /// </summary>
     public interface ILessonAiService
     {
         /// <summary>
-        /// Phân tích nội dung đầu vào và sinh ra các LessonBlock theo chuẩn sư phạm.
+        /// Sinh blocks (non-streaming) – trả về toàn bộ kết quả sau khi hoàn thành.
         /// </summary>
-        /// <param name="inputContent">Văn bản nội dung bài học (trích từ PDF, DOCX hay text giáo viên nhập)</param>
-        /// <param name="lessonTitle">Tiêu đề bài học để AI hiểu ngữ cảnh</param>
-        /// <returns>Danh sách GeneratedBlockDto đã phân loại theo BlockType</returns>
         Task<List<GeneratedBlockDto>> GenerateBlocksAsync(
+            string inputContent,
+            string lessonTitle,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Sinh blocks (streaming) – trả về từng chunk text real-time qua IAsyncEnumerable.
+        /// Client nhận data ngay khi AI bắt đầu sinh, không cần chờ toàn bộ.
+        /// </summary>
+        IAsyncEnumerable<string> GenerateBlocksStreamAsync(
             string inputContent,
             string lessonTitle,
             CancellationToken cancellationToken = default);

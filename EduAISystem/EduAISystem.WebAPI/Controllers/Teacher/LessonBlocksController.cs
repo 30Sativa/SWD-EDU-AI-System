@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Lessons.Commands;
 using EduAISystem.Application.Features.Lessons.DTOs.Request;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Text.Json;
 
 namespace EduAISystem.WebAPI.Controllers.Teacher
 {
@@ -16,10 +18,12 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
     public class LessonBlocksController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly ILessonAiService _aiService;
 
-        public LessonBlocksController(IMediator mediator)
+        public LessonBlocksController(IMediator mediator, ILessonAiService aiService)
         {
             _mediator = mediator;
+            _aiService = aiService;
         }
 
         // ===== GET ALL =====
@@ -34,7 +38,9 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
         // ===== GET BY ID =====
         [HttpGet("{id:guid}")]
-        [SwaggerOperation(Summary = "Chi tiết block")]
+        [SwaggerOperation(
+            Summary = "Chi tiết block",
+            Description = "Lấy nội dung chi tiết của một lesson block theo Id, bao gồm loại block (BlockType), nội dung văn bản và thứ tự sắp xếp.")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<LessonBlockResponseDto>))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetBlock(Guid lessonId, Guid id, CancellationToken ct)
@@ -59,7 +65,9 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
         // ===== UPDATE =====
         [HttpPut("{id:guid}")]
-        [SwaggerOperation(Summary = "Cập nhật block")]
+        [SwaggerOperation(
+            Summary = "Cập nhật block",
+            Description = "Giáo viên cập nhật nội dung, loại block, thứ tự hoặc thời gian ước tính của một lesson block.")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> UpdateBlock(Guid lessonId, Guid id, [FromBody] UpdateLessonBlockRequestDto dto, CancellationToken ct)
         {
@@ -69,7 +77,9 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
         // ===== DELETE =====
         [HttpDelete("{id:guid}")]
-        [SwaggerOperation(Summary = "Xoá block")]
+        [SwaggerOperation(
+            Summary = "Xoá block",
+            Description = "Xóa một lesson block khỏi bài học. Không thể hoàn tác sau khi xóa.")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> DeleteBlock(Guid lessonId, Guid id, CancellationToken ct)
         {
@@ -180,6 +190,83 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
             var savedIds = await _mediator.Send(new SaveAiPreviewCommand(lessonId, dto), ct);
             return Ok(ApiResponse<List<Guid>>.Ok(savedIds,
                 $"Đã lưu {savedIds.Count} blocks vào DB thành công."));
+        }
+
+        // ===== STREAMING AI GENERATION (SSE) =====
+        [HttpPost("generate-ai-stream")]
+        [SwaggerOperation(
+            Summary = "Sinh blocks bằng AI (streaming real-time)",
+            Description = """
+                Giống generate-ai nhưng trả kết quả real-time qua Server-Sent Events (SSE).
+                
+                **Cách dùng (Frontend):**
+                ```javascript
+                const response = await fetch('/api/.../generate-ai-stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inputSourceType: 'Text', inputContent: '...', lessonTitle: '...' })
+                });
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const text = decoder.decode(value);
+                    // Hiển thị text lên UI ngay lập tức
+                }
+                ```
+                
+                **Khi nào dùng?**
+                - Khi muốn teacher thấy nội dung xuất hiện real-time (như ChatGPT)
+                - Giảm thời gian chờ, tăng trải nghiệm người dùng
+                
+                **Lưu ý:** Endpoint này KHÔNG cache preview và KHÔNG lưu DB.
+                Sau khi stream xong, teacher dùng generate-ai (non-stream) để lấy structured data và save.
+                """)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task GenerateAiBlocksStream(
+            Guid lessonId,
+            [FromBody] GenerateAiLessonBlocksRequestDto dto,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(dto.InputContent) || dto.InputContent.Length < 20)
+            {
+                Response.StatusCode = 400;
+                Response.ContentType = "application/json";
+                await Response.WriteAsync(
+                    JsonSerializer.Serialize(ApiResponse<object>.Fail("InputContent phải có ít nhất 20 ký tự.")), ct);
+                return;
+            }
+
+            Response.ContentType = "text/event-stream";
+            Response.Headers.Append("Cache-Control", "no-cache");
+            Response.Headers.Append("Connection", "keep-alive");
+            Response.Headers.Append("X-Accel-Buffering", "no");
+
+            var lessonTitle = dto.LessonTitle ?? "Bài học";
+
+            try
+            {
+                await foreach (var chunk in _aiService.GenerateBlocksStreamAsync(
+                    dto.InputContent, lessonTitle, ct))
+                {
+                    var sseData = $"data: {JsonSerializer.Serialize(new { text = chunk })}\n\n";
+                    await Response.WriteAsync(sseData, ct);
+                    await Response.Body.FlushAsync(ct);
+                }
+
+                // Signal stream end
+                await Response.WriteAsync("data: [DONE]\n\n", ct);
+                await Response.Body.FlushAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                var errorData = $"data: {JsonSerializer.Serialize(new { error = ex.Message })}\n\n";
+                await Response.WriteAsync(errorData, ct);
+                await Response.WriteAsync("data: [DONE]\n\n", ct);
+                await Response.Body.FlushAsync(ct);
+            }
         }
     }
 }

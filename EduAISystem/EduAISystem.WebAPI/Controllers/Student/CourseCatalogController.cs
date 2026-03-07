@@ -30,7 +30,7 @@ namespace EduAISystem.WebAPI.Controllers.Student
         // ===========================
         [HttpGet("categories")]
         [SwaggerOperation(
-            Summary = "Danh mục khóa học công khai",
+            Summary = "Public - Danh mục khóa học",
             Description = "Trả về danh sách danh mục (category) đang active. Hỗ trợ filter theo parentId để lấy sub-category."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<CourseCategoryListResponseDto>>))]
@@ -59,8 +59,8 @@ namespace EduAISystem.WebAPI.Controllers.Student
         // ===========================
         [HttpGet("courses")]
         [SwaggerOperation(
-            Summary = "Danh sách khóa học công khai",
-            Description = "Tìm kiếm + lọc khóa học đã publish. Filter theo: môn (subjectId), khối (gradeLevelId), kỳ học (termId), danh mục (categoryId)."
+            Summary = "Public - Danh sách khóa học",
+            Description = "Tìm kiếm và lọc khóa học đã được publish. Hỗ trợ filter theo: môn (subjectId), khối (gradeLevelId), kỳ học (termId), danh mục (categoryId)."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<CourseListItemResponseDto>>))]
         public async Task<IActionResult> GetCourses(
@@ -93,8 +93,8 @@ namespace EduAISystem.WebAPI.Controllers.Student
         // ===========================
         [HttpGet("categories/{categoryId:guid}/courses")]
         [SwaggerOperation(
-            Summary = "Khóa học theo danh mục",
-            Description = "Lấy danh sách khóa học thuộc một danh mục cụ thể."
+            Summary = "Public - Khóa học theo danh mục",
+            Description = "Lấy danh sách khóa học thuộc một danh mục cụ thể (categoryId)."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<CourseListItemResponseDto>>))]
         public async Task<IActionResult> GetCoursesByCategory(
@@ -121,8 +121,8 @@ namespace EduAISystem.WebAPI.Controllers.Student
         // ===========================
         [HttpGet("courses/{id:guid}")]
         [SwaggerOperation(
-            Summary = "Chi tiết khóa học công khai",
-            Description = "Xem chi tiết một khóa học đã publish."
+            Summary = "Public - Chi tiết khóa học",
+            Description = "Xem thông tin chi tiết của một khóa học đã publish."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<CourseDetailResponseDto>))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

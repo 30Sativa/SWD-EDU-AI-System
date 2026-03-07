@@ -34,7 +34,9 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
         // ===== GET BY ID =====
         [HttpGet("{id:guid}")]
-        [SwaggerOperation(Summary = "Chi tiết FAQ")]
+        [SwaggerOperation(
+            Summary = "Chi tiết FAQ",
+            Description = "Lấy nội dung chi tiết của một câu hỏi thường gặp theo Id, bao gồm câu hỏi, câu trả lời và thứ tự.")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<LessonFaqResponseDto>))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetFaq(Guid lessonId, Guid id, CancellationToken ct)
@@ -47,7 +49,9 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
         // ===== CREATE =====
         [HttpPost]
-        [SwaggerOperation(Summary = "Tạo FAQ mới")]
+        [SwaggerOperation(
+            Summary = "Tạo FAQ mới",
+            Description = "Giáo viên thêm câu hỏi thường gặp mới vào bài học. Các trường bắt buộc: `Question`, `Answer`. Tùy chọn: `SortOrder` để sắp xếp thứ tự hiển thị.")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
         public async Task<IActionResult> CreateFaq(Guid lessonId, [FromBody] CreateLessonFaqRequestDto dto, CancellationToken ct)
         {
@@ -57,7 +61,9 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
         // ===== UPDATE =====
         [HttpPut("{id:guid}")]
-        [SwaggerOperation(Summary = "Cập nhật FAQ")]
+        [SwaggerOperation(
+            Summary = "Cập nhật FAQ",
+            Description = "Cập nhật câu hỏi, câu trả lời hoặc thứ tự hiển thị của một FAQ.")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> UpdateFaq(Guid lessonId, Guid id, [FromBody] UpdateLessonFaqRequestDto dto, CancellationToken ct)
         {
@@ -67,7 +73,9 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
 
         // ===== DELETE =====
         [HttpDelete("{id:guid}")]
-        [SwaggerOperation(Summary = "Xoá FAQ")]
+        [SwaggerOperation(
+            Summary = "Xoá FAQ",
+            Description = "Xóa một câu hỏi thường gặp khỏi bài học. Thao tác không thể hoàn tác.")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> DeleteFaq(Guid lessonId, Guid id, CancellationToken ct)
         {

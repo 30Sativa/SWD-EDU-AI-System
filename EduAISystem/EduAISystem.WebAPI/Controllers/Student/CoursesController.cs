@@ -26,8 +26,10 @@ namespace EduAISystem.WebAPI.Controllers.Student
         // ===========================
         [HttpGet("{studentId:guid}/courses")]
         [SwaggerOperation(
-            Summary = "Lấy danh sách khóa học theo student",
-            Description = "Trả về các khóa học được gán cho LỚP mà student đang thuộc (StudentClass → CourseClass → Course). Hỗ trợ phân trang, tìm kiếm và filter theo status."
+            Summary = "HS - Lấy danh sách khóa học theo student",
+            Description = @"
+Trả về các khóa học được gán cho LỚP mà student đang thuộc (StudentClass → CourseClass → Course). 
+Hỗ trợ phân trang, tìm kiếm và filter theo status."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<CourseListItemResponseDto>>))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

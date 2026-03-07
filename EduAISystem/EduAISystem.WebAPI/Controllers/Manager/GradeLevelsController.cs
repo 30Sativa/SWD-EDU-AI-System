@@ -23,7 +23,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpGet]
         [SwaggerOperation(
-            Summary = "Danh sách khối/lớp",
+            Summary = "Manager - Danh sách khối/lớp",
             Description = "Lấy danh sách khối/lớp có phân trang"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<GradeLevelListResponseDto>>))]
@@ -35,7 +35,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpGet("{id:guid}")]
         [SwaggerOperation(
-            Summary = "Chi tiết khối/lớp",
+            Summary = "Manager - Chi tiết khối/lớp",
             Description = "Lấy thông tin khối/lớp theo Id"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<GradeLevelDetailResponseDto>))]
@@ -51,7 +51,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpPost]
         [SwaggerOperation(
-            Summary = "Tạo khối/lớp",
+            Summary = "Manager - Tạo khối/lớp",
             Description = "Thêm mới khối/lớp với thông tin cơ bản"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<GradeLevelDetailResponseDto>))]
@@ -64,7 +64,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpPut("{id:guid}")]
         [SwaggerOperation(
-            Summary = "Cập nhật khối/lớp",
+            Summary = "Manager - Cập nhật khối/lớp",
             Description = "Cập nhật thông tin khối/lớp theo Id"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<GradeLevelDetailResponseDto>))]
@@ -80,7 +80,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpPatch("{id:guid}/status")]
         [SwaggerOperation(
-            Summary = "Đổi trạng thái khối/lớp",
+            Summary = "Manager - Đổi trạng thái khối/lớp",
             Description = "Kích hoạt/Vô hiệu hóa khối/lớp"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]

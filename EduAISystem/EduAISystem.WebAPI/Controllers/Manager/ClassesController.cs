@@ -25,7 +25,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpGet]
         [SwaggerOperation(
-            Summary = "Danh sách lớp học",
+            Summary = "Manager - Danh sách lớp học",
             Description = "Lấy danh sách lớp học có phân trang + filter theo kỳ học/giáo viên/khối"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<PagedResult<ClassListResponseDto>>))]
@@ -37,7 +37,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpGet("{id:guid}")]
         [SwaggerOperation(
-            Summary = "Chi tiết lớp học",
+            Summary = "Manager - Chi tiết lớp học",
             Description = "Lấy thông tin lớp học theo Id"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<ClassDetailResponseDto>))]
@@ -53,7 +53,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpPost]
         [SwaggerOperation(
-            Summary = "Tạo lớp học",
+            Summary = "Manager - Tạo lớp học",
             Description = "Thêm mới lớp học"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<ClassDetailResponseDto>))]
@@ -66,7 +66,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpPut("{id:guid}")]
         [SwaggerOperation(
-            Summary = "Cập nhật lớp học (bao gồm gán GVCN)",
+            Summary = "Manager - Cập nhật lớp học (bao gồm gán GVCN)",
             Description = "Cập nhật thông tin lớp học theo Id. Có thể thay đổi giáo viên chủ nhiệm qua field TeacherId nếu cần."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<ClassDetailResponseDto>))]
@@ -82,7 +82,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpPatch("{id:guid}/status")]
         [SwaggerOperation(
-            Summary = "Đổi trạng thái lớp học",
+            Summary = "Manager - Đổi trạng thái lớp học",
             Description = "Kích hoạt/Vô hiệu hóa lớp học"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
@@ -99,7 +99,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpDelete("{id:guid}")]
         [SwaggerOperation(
-            Summary = "Xóa lớp học",
+            Summary = "Manager - Xóa lớp học",
             Description = "Xóa lớp học (chỉ xóa được nếu không có học sinh và không bị gán vào khóa học)"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
@@ -114,7 +114,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
         }
 
         [HttpPost("{id:guid}/subject-teachers")]
-        [SwaggerOperation(Summary = "Phân công GV bộ môn", Description = "Gán giáo viên dạy môn học cụ thể cho lớp")]
+        [SwaggerOperation(Summary = "Manager - Phân công GV bộ môn", Description = "Gán giáo viên dạy môn học cụ thể cho lớp")]
         public async Task<IActionResult> AssignSubjectTeacher(Guid id, [FromBody] AssignSubjectTeacherRequestDto dto, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(new AssignSubjectTeacherCommand 
@@ -129,7 +129,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpGet("{id:guid}/subject-teachers")]
         [SwaggerOperation(
-            Summary = "Danh sách GV bộ môn của lớp",
+            Summary = "Manager - Danh sách GV bộ môn của lớp",
             Description = "Lấy danh sách tất cả giáo viên được phân công dạy bộ môn trong lớp học theo classId")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<ClassSubjectTeacherResponseDto>>))]
         public async Task<IActionResult> GetClassSubjectTeachers(Guid id, CancellationToken cancellationToken)
@@ -140,7 +140,7 @@ namespace EduAISystem.WebAPI.Controllers.Manager
 
         [HttpGet("teacher/{teacherId:guid}/class-subjects")]
         [SwaggerOperation(
-            Summary = "Danh sách lớp GV được phân công",
+            Summary = "Manager - Danh sách lớp GV được phân công",
             Description = "Lấy danh sách các lớp mà giáo viên đó được phân công dạy bộ môn theo teacherId")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<TeacherClassSubjectResponseDto>>))]
         public async Task<IActionResult> GetTeacherClassSubjects(Guid teacherId, CancellationToken cancellationToken)
