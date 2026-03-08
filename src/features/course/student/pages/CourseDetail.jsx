@@ -19,12 +19,20 @@ import {
     ChevronRight,
     Trophy
 } from 'lucide-react';
-import { getStudentCourseDetail, getCourseSections, getStudentMyCourses } from "../../api/courseApi";
+import { getStudentCourseDetail, getCourseSections } from "../../api/courseApi";
 import { getLessonsBySection } from '../../../lesson/api/lessonApi';
 import { Spin, message, Tooltip } from 'antd';
 import StudentAssignmentsTab from '../../../assignment/student/components/StudentAssignmentsTab';
 import { ArrowRight, RefreshCw, Target } from 'lucide-react';
 import { getCourseQuizzes, getLessonQuizzes } from '../../../quiz/student/api/quizApi';
+
+// Session-level completed cache (shared logic with LessonDetail)
+const getCompletedSet = (courseId) => {
+    try {
+        const raw = sessionStorage.getItem(`completed_${courseId}`);
+        return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch { return new Set(); }
+};
 
 
 export default function CourseDetail() {
@@ -208,29 +216,44 @@ export default function CourseDetail() {
     };
 
     // Mapping sections từ sectionsData sang format UI
+    const completedSet = getCompletedSet(courseId);
     const sections = sectionsData.map((s, index) => {
         const sId = s.id || s.Id;
         const sLessons = s.lessons || [];
-
-        return {
-            id: sId,
-            title: s.title || s.name || `Chương ${index + 1}`,
-            status: s.isLocked ? 'Đã khóa' : s.isCompleted ? 'Đã hoàn thành' : 'Đang học',
-            lessonsCount: s.lessonsCount || sLessons.length,
-            duration: s.duration || '---',
-            completed: s.isCompleted || false,
-            description: s.description || '',
-            items: (sLessons || []).map(item => ({
-                id: item.id || item.Id || item.quizId,
+        const mappedItems = (sLessons || []).map(item => {
+            const itemId = item.id || item.Id || item.quizId;
+            const isItemCompleted = !!(item.isCompleted || item.IsCompleted || item.is_completed || item.completed || item.Completed || completedSet.has(itemId));
+            return {
+                id: itemId,
                 type: item.type?.toLowerCase() || 'video',
                 title: item.title || item.name || 'Bài học',
                 duration: item.duration || '45 p',
-                completed: item.isCompleted || false,
+                completed: isItemCompleted,
                 isNew: item.isNew || false
-            }))
+            };
+        });
+        const allDone = mappedItems.length > 0 && mappedItems.every(i => i.completed);
+        return {
+            id: sId,
+            title: s.title || s.name || `Chương ${index + 1}`,
+            status: s.isLocked ? 'Đã khóa' : allDone ? 'Đã hoàn thành' : 'Đang học',
+            lessonsCount: s.lessonsCount || sLessons.length,
+            duration: s.duration || '---',
+            completed: allDone,
+            description: s.description || '',
+            items: mappedItems
         };
     });
 
+    // Compute actual progress from completed lesson counts (merge API + sessionStorage)
+    const allMappedItems = sections.flatMap(s => s.items);
+    const completedCount = allMappedItems.filter(i => i.completed).length;
+    const totalCount = allMappedItems.length;
+    const computedProgress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : (courseData.progress || 0);
+
+    // Find first incomplete (non-completed) lesson for 'Học tiếp' button
+    const firstIncompleteLesson = allMappedItems.find(i => !i.completed);
+    const continueLessonId = firstIncompleteLesson?.id || sections[0]?.items[0]?.id;
     const resources = courseData.resources || [
         { id: 1, title: 'Đề cương ôn tập.pdf', icon: Download },
         { id: 2, title: 'Bảng công thức bổ trợ', icon: FileText }
@@ -297,19 +320,19 @@ export default function CourseDetail() {
                                         <div className="w-24 bg-slate-100 rounded-full h-1.5 flex flex-col justify-center">
                                             <div
                                                 className="bg-[#0487e2] h-1.5 rounded-full"
-                                                style={{ width: `${courseInfo.progress}%` }}
+                                                style={{ width: `${computedProgress}%` }}
                                             />
                                         </div>
-                                        <span className="text-xs font-bold text-[#0487e2]">{courseInfo.progress}%</span>
+                                        <span className="text-xs font-bold text-[#0487e2]">{computedProgress}%</span>
                                     </div>
 
-                                    {sections.length > 0 && sections[0].items.length > 0 ? (
+                                    {continueLessonId ? (
                                         <Link
-                                            to={`/dashboard/student/courses/${courseId}/lessons/${sections[0].items[0].id}`}
+                                            to={`/dashboard/student/courses/${courseId}/lessons/${continueLessonId}`}
                                             className="flex items-center gap-2 px-5 py-2 bg-[#0487e2] hover:bg-[#0374c4] text-white rounded-lg font-bold text-xs shadow-sm transition-colors"
                                         >
                                             <PlayCircle size={16} />
-                                            Học tiếp
+                                            {firstIncompleteLesson ? 'Học tiếp' : 'Xem lại'}
                                         </Link>
                                     ) : (
                                         <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-500 text-xs font-medium rounded-lg">
@@ -361,7 +384,7 @@ export default function CourseDetail() {
                                     </div>
                                 </div>
 
-                                {sections.map((section, sIdx) => {
+                                {sections.map((section) => {
                                     const isExpanded = expandedSections.includes(section.id);
                                     const isLocked = section.status === 'Đã khóa' || section.status === 'Sắp học';
 
@@ -401,7 +424,7 @@ export default function CourseDetail() {
                                                 )}
                                             </button>
 
-                                            {isExpanded && !isLocked && section.items.map((item, idx) => (
+                                            {isExpanded && !isLocked && section.items.map((item) => (
                                                 <div key={item.id} className="px-4 pb-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                                                     <Link
                                                         to={item.type === 'quiz' ? `/dashboard/student/quizzes/${item.id}` : `/dashboard/student/courses/${courseId}/lessons/${item.id}`}
@@ -649,7 +672,7 @@ export default function CourseDetail() {
                                 Học liệu bổ trợ
                             </h4>
                             <div className="space-y-2">
-                                {resources.map((resource, rIdx) => {
+                                {resources.map((resource) => {
                                     const Icon = resource.icon;
                                     return (
                                         <button

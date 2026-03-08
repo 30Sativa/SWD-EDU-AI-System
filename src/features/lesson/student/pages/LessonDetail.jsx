@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     ArrowLeft,
     Play,
@@ -28,15 +28,38 @@ import {
     MoreVertical,
     Bot,
     Clock,
-    ListChecks
+    ListChecks,
+    BookOpen
 } from 'lucide-react';
 import { getLessonDetail, getStudentLessonDetail, updateLessonProgress, getLessonsBySection, getStudentLessonBlocks, getStudentLessonFaqs } from '../../api/lessonApi';
 import { getStudentCourseDetail, getCourseSections } from '../../../course/api/courseApi';
 import { getLessonQuizzes } from '../../../quiz/student/api/quizApi';
 import { Spin, message, Tooltip } from 'antd';
 
+// ----- Session-level completed lessons cache (per course) -----
+const getCompletedSet = (courseId) => {
+    try {
+        const raw = sessionStorage.getItem(`completed_${courseId}`);
+        return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch { return new Set(); }
+};
+const addCompletedLesson = (courseId, lessonId) => {
+    try {
+        const set = getCompletedSet(courseId);
+        set.add(lessonId);
+        sessionStorage.setItem(`completed_${courseId}`, JSON.stringify([...set]));
+    } catch { /* ignore */ }
+};
+// ---------------------------------------------------------------
+
 export default function LessonDetail() {
     const { courseId, lessonId } = useParams();
+    const navigate = useNavigate();
+    const location = useLocation();
+    // lessonId that was just completed before navigating here
+    const justCompletedLessonId = location.state?.completedLessonId || null;
+    // If we just arrived here from a completed lesson, persist it in session cache
+    if (justCompletedLessonId) addCompletedLesson(courseId, justCompletedLessonId);
     const [activeTab, setActiveTab] = useState('content');
     const [isPlaying, setIsPlaying] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -45,6 +68,7 @@ export default function LessonDetail() {
     const [lessonFaqs, setLessonFaqs] = useState([]);
     const [courseData, setCourseData] = useState(null);
     const [courseSections, setCourseSections] = useState([]);
+    const courseSectionsRef = useRef([]); // always-fresh ref for use in async handlers
     const [quizData, setQuizData] = useState(null);
 
     // Sidebar States
@@ -82,7 +106,6 @@ export default function LessonDetail() {
 
                 const lData = lessonRes?.data || lessonRes;
                 const cData = (courseRes?.data || courseRes) || {};
-                const qData = (quizRes?.data || quizRes) || null;
                 const sData = sectionsRes?.data || sectionsRes || [];
 
                 // Process Blocks
@@ -112,15 +135,30 @@ export default function LessonDetail() {
                 setQuizData(quizzes.length > 0 ? quizzes[0] : null);
 
                 const apiSections = (cData?.sections || cData?.Sections || cData?.items || (Array.isArray(sData) ? sData : (sData?.items || []))) || [];
+                const completedSet = getCompletedSet(courseId);
                 const initialSections = Array.isArray(apiSections) ? apiSections.map(s => ({
                     id: s.id || s.Id,
-                    title: s.title || s.name || 'Chương học',
-                    lessons: s.lessons || s.Lessons || s.items || s.Items || [],
+                    title: s.title || s.name || s.Title || 'Chương học',
+                    lessons: (s.lessons || s.Lessons || s.items || s.Items || []).map(l => ({
+                        ...l,
+                        isCompleted: !!(
+                            l.isCompleted || l.IsCompleted || l.is_completed || l.completed || l.Completed ||
+                            completedSet.has(l.id || l.Id || l.quizId)
+                        )
+                    })),
                     isLocked: s.isLocked || false
                 })) : [];
                 setCourseSections(initialSections);
+                courseSectionsRef.current = initialSections;
 
-                if (initialSections.length > 0) {
+                // Auto-expand the section that contains the current lessonId
+                const currentSection = initialSections.find(s =>
+                    (s.lessons || []).some(l => (l.id || l.Id || l.quizId) === lessonId)
+                );
+                if (currentSection) {
+                    setExpandedSections([currentSection.id]);
+                } else if (initialSections.length > 0) {
+                    // fallback: open first section
                     setExpandedSections([initialSections[0].id]);
                 }
 
@@ -129,10 +167,28 @@ export default function LessonDetail() {
                     if (section.lessons.length === 0) {
                         try {
                             const res = await getLessonsBySection(section.id);
-                            const lessons = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
-                            setCourseSections(prev => prev.map(s =>
-                                s.id === section.id ? { ...s, lessons: lessons } : s
-                            ));
+                            const rawLessons = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
+                            const completedSetLazy = getCompletedSet(courseId);
+                            const lessons = rawLessons.map(l => ({
+                                ...l,
+                                isCompleted: !!(
+                                    l.isCompleted || l.IsCompleted || l.is_completed || l.completed || l.Completed ||
+                                    completedSetLazy.has(l.id || l.Id || l.quizId)
+                                )
+                            }));
+                            setCourseSections(prev => {
+                                const updated = prev.map(s =>
+                                    s.id === section.id ? { ...s, lessons: lessons } : s
+                                );
+                                courseSectionsRef.current = updated;
+                                return updated;
+                            });
+                            // If this section contains the current lesson, expand it
+                            if (lessons.some(l => (l.id || l.Id || l.quizId) === lessonId)) {
+                                setExpandedSections(prev =>
+                                    prev.includes(section.id) ? prev : [...prev, section.id]
+                                );
+                            }
                         } catch (e) {
                             console.error("Error fetching sidebar lessons:", e);
                         }
@@ -154,6 +210,12 @@ export default function LessonDetail() {
     const videoRef = useRef(null);
     const [watchedTime, setWatchedTime] = useState(0);
 
+    // Reset timer when switching lessons
+    useEffect(() => {
+        setWatchedTime(0);
+        setIsPlaying(false);
+    }, [lessonId]);
+
     useEffect(() => {
         if (isPlaying) {
             progressIntervalRef.current = setInterval(() => {
@@ -172,6 +234,7 @@ export default function LessonDetail() {
         if (watchedTime > 0 && watchedTime % 30 === 0) {
             handleUpdateProgress(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [watchedTime]);
 
     const handleUpdateProgress = async (isCompleted = false) => {
@@ -181,7 +244,44 @@ export default function LessonDetail() {
                 isCompleted: isCompleted
             });
             if (isCompleted) {
+                // Persist to session cache immediately so all future lesson loads show this as green
+                addCompletedLesson(courseId, lessonId);
                 message.success("Chúc mừng! Bạn đã hoàn thành bài học này.");
+                setLessonData(prev => ({ ...prev, progress: 100, isCompleted: true }));
+                setCourseSections(prev => {
+                    const updated = prev.map(s => ({
+                        ...s,
+                        lessons: s.lessons.map(l =>
+                            (l.id === lessonId || l.Id === lessonId)
+                                ? { ...l, completed: true, isCompleted: true }
+                                : l
+                        )
+                    }));
+                    courseSectionsRef.current = updated;
+                    return updated;
+                });
+
+                // Use ref (always fresh) to find next lesson
+                const allLessons = courseSectionsRef.current.flatMap(s => s.lessons || []);
+                const currentIdx = allLessons.findIndex(l => (l.id || l.Id || l.quizId) === lessonId);
+                if (currentIdx !== -1 && currentIdx < allLessons.length - 1) {
+                    const nextLesson = allLessons[currentIdx + 1];
+                    const nextId = nextLesson.id || nextLesson.Id || nextLesson.quizId;
+                    const isNextQuiz = nextLesson.type?.toLowerCase() === 'quiz';
+                    setTimeout(() => {
+                        if (isNextQuiz) {
+                            navigate(`/dashboard/student/quizzes/${nextId}`, {
+                                state: { completedLessonId: lessonId }
+                            });
+                        } else {
+                            navigate(`/dashboard/student/courses/${courseId}/lessons/${nextId}`, {
+                                state: { completedLessonId: lessonId }
+                            });
+                        }
+                    }, 1500);
+                } else {
+                    message.info("Bạn đã hoàn thành tất cả bài học trong khóa này! 🎉");
+                }
             }
         } catch (error) {
             console.error("Error updating progress:", error);
@@ -240,7 +340,7 @@ export default function LessonDetail() {
             type: item.type?.toLowerCase() || 'video',
             title: item.title || item.name || 'Bài học',
             duration: item.duration || '45 p',
-            completed: item.isCompleted || false,
+            completed: !!(item.isCompleted || item.IsCompleted || item.is_completed || item.completed || item.Completed),
             isCurrent: (item.id || item.Id || item.quizId) === lessonId
         }))
     }));
@@ -270,43 +370,6 @@ export default function LessonDetail() {
             }
         ] : []);
 
-    const contentSections = [
-        {
-            id: 1,
-            icon: '📖',
-            title: 'Định nghĩa Dao động điều hòa',
-            content: 'Dao động điều hòa là dao động trong đó li độ của vật là một hàm côsin (hay sin) của thời gian.',
-            subsections: [
-                {
-                    title: 'Phương trình dao động:',
-                    items: [
-                        { label: 'x = Acos(ωt + φ)', text: '' },
-                        { label: 'x:', text: 'Li độ (khoảng cách từ VTCB)' },
-                        { label: 'A:', text: 'Biên độ (li độ cực đại, A > 0)' },
-                        { label: 'ω (omega):', text: 'Tần số góc (rad/s)' },
-                        { label: 'φ (phi):', text: 'Pha ban đầu (tại t=0)' }
-                    ]
-                }
-            ]
-        },
-        {
-            id: 2,
-            icon: '⚡',
-            title: 'Vận tốc và Gia tốc',
-            examples: [
-                {
-                    title: 'VẬN TỐC (v)',
-                    description: 'v = x\' = -ωAsin(ωt + φ). Vận tốc sớm pha pi/2 so với li độ.',
-                    type: 'info'
-                },
-                {
-                    title: 'GIA TỐC (a)',
-                    description: 'a = v\' = -ω²x. Gia tốc ngược pha với li độ và tỉ lệ với li độ.',
-                    type: 'warning'
-                }
-            ]
-        }
-    ];
 
     const handleSendMessage = () => {
         if (inputMessage.trim()) {
@@ -377,6 +440,15 @@ export default function LessonDetail() {
                         </div>
                         <span className="text-xs font-semibold text-slate-900">{lessonInfo.progress}%</span>
                     </div>
+                    {!lessonData?.isCompleted && (
+                        <button
+                            onClick={() => handleUpdateProgress(true)}
+                            className="hidden md:flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full border border-emerald-200 hover:bg-emerald-100 transition-colors font-medium text-[11px] shadow-sm hover:shadow"
+                        >
+                            <CheckCircle size={14} />
+                            Hoàn thành
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -385,7 +457,7 @@ export default function LessonDetail() {
 
                 {/* 2.1 Left Sidebar - Curriculum */}
                 <div
-                    className={`${isLeftSidebarOpen ? 'w-80 translate-x-0 border-r' : 'w-0 -translate-x-full border-none'} transition-all duration-300 ease-in-out bg-white border-slate-200 flex flex-col flex-shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}
+                    className={`${isLeftSidebarOpen ? 'w-80 translate-x-0 border-r' : 'w-0 -translate-x-full border-none'} transition-all duration-300 ease-in-out bg-white border-slate-200 flex flex-col flex-shrink-0 z-20 overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}
                 >
                     <div className="p-5 border-b border-slate-100 flex items-center justify-between">
                         <h2 className="font-semibold text-slate-900 text-sm uppercase tracking-wide">Nội Dung Bài Học</h2>
@@ -526,6 +598,10 @@ export default function LessonDetail() {
                                             controls={false}
                                             onPlay={() => setIsPlaying(true)}
                                             onPause={() => setIsPlaying(false)}
+                                            onEnded={() => {
+                                                setIsPlaying(false);
+                                                handleUpdateProgress(true);
+                                            }}
                                         />
 
                                         {/* Premium Overlay Play Button */}
@@ -625,7 +701,7 @@ export default function LessonDetail() {
 
                             {/* Tabs & Content */}
                             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                                <div className="flex border-b border-slate-100 px-6 pt-2">
+                                <div className="flex border-b border-slate-100 px-2 pt-2 overflow-x-auto hide-scrollbar">
                                     {tabs.map((tab) => {
                                         const Icon = tab.icon;
                                         const isActive = activeTab === tab.id;
@@ -633,12 +709,12 @@ export default function LessonDetail() {
                                             <button
                                                 key={tab.id}
                                                 onClick={() => setActiveTab(tab.id)}
-                                                className={`flex items-center gap-2.5 px-6 py-4 text-sm font-semibold border-b-[3px] transition-all ${isActive
+                                                className={`flex items-center gap-2 px-4 py-4 text-sm font-semibold border-b-[3px] transition-all whitespace-nowrap flex-shrink-0 ${isActive
                                                     ? 'border-blue-600 text-blue-600'
                                                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'
                                                     }`}
                                             >
-                                                <Icon size={18} className={isActive ? 'stroke-[2.5px]' : 'stroke-2'} />
+                                                <Icon size={16} className={isActive ? 'stroke-[2.5px]' : 'stroke-2'} />
                                                 {tab.label}
                                             </button>
                                         );
@@ -704,7 +780,7 @@ export default function LessonDetail() {
                                                                 <div className={`relative p-8 md:p-10 rounded-[32px] bg-gradient-to-br ${theme.bg} border border-slate-100 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.03)] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500 group-hover/block:-translate-y-1`}>
                                                                     <div className={`absolute top-0 right-10 h-1 w-24 ${theme.accent} rounded-b-full opacity-30`} />
                                                                     <div
-                                                                        className="prose prose-slate prose-lg max-w-none text-slate-700 leading-relaxed font-medium"
+                                                                        className="prose prose-slate prose-lg max-w-none text-slate-700 leading-relaxed font-medium break-words overflow-hidden w-full"
                                                                     >
                                                                         {block.content && (
                                                                             <div dangerouslySetInnerHTML={{ __html: block.content.includes('<') ? block.content : block.content.replace(/\n/g, '<br/>') }} />
@@ -717,7 +793,7 @@ export default function LessonDetail() {
                                                 </div>
                                             ) : lessonData.content ? (
                                                 <div
-                                                    className="prose prose-slate max-w-none text-slate-600 leading-7 text-[15px] bg-white p-8 rounded-2xl border border-slate-100 shadow-sm"
+                                                    className="prose prose-slate max-w-none text-slate-600 leading-7 text-[15px] bg-white p-8 rounded-2xl border border-slate-100 shadow-sm break-words overflow-hidden w-full"
                                                     dangerouslySetInnerHTML={{ __html: lessonData.content }}
                                                 />
                                             ) : (
