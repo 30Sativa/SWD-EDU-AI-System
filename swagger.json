@@ -3497,6 +3497,48 @@
         }
       }
     },
+    "/api/student/courses/{courseId}/progress": {
+      "get": {
+        "tags": [
+          "Enrollments"
+        ],
+        "summary": "HS - Tiến độ chi tiết của khóa học",
+        "description": "Lấy outline khóa học (sections, lessons) kèm trạng thái hoàn thành và thời lượng đã xem cho từng bài, cho học sinh hiện tại.",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseProgressDetailResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseProgressDetailResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseProgressDetailResponseDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/manager/grade-levels": {
       "get": {
         "tags": [
@@ -10436,6 +10478,45 @@
         },
         "additionalProperties": false
       },
+      "CourseLessonProgressResponseDto": {
+        "type": "object",
+        "properties": {
+          "lessonId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "isCompleted": {
+            "type": "boolean"
+          },
+          "watchedDuration": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastAccessedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CourseLevelDomain": {
         "enum": [
           1,
@@ -10536,6 +10617,88 @@
           },
           "data": {
             "$ref": "#/components/schemas/CourseListItemResponseDtoPagedResult"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CourseProgressDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "courseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "courseTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "progress": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalLessons": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completedLessons": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseSectionProgressResponseDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CourseProgressDetailResponseDtoApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/CourseProgressDetailResponseDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CourseSectionProgressResponseDto": {
+        "type": "object",
+        "properties": {
+          "sectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lessons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseLessonProgressResponseDto"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false

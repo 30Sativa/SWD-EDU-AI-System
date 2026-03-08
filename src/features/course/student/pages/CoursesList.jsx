@@ -10,7 +10,8 @@ import {
     Filter,
     ArrowUpDown,
 } from 'lucide-react';
-import { getStudentMyCourses, enrollCourse } from '../../api/courseApi';
+import { getStudentMyCourses, enrollCourse, getCourseSections } from '../../api/courseApi';
+import { getLessonsBySection } from '../../../lesson/api/lessonApi';
 import { getSubjects } from '../../../subject/api/subjectApi';
 import { getGradeLevels } from '../../../grade/api/gradeApi';
 import { getCurrentUser } from '../../../user/api/userApi';
@@ -18,6 +19,13 @@ import axiosClient from '../../../../lib/axiosClient';
 import { Spin, message } from 'antd';
 
 const PAGE_SIZE = 6;
+
+const getCompletedSet = (courseId) => {
+    try {
+        const raw = sessionStorage.getItem(`completed_${courseId}`);
+        return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch { return new Set(); }
+};
 
 export default function CoursesList() {
     const [activeTab, setActiveTab] = useState('my'); // 'my' hoặc 'discover'
@@ -99,22 +107,52 @@ export default function CoursesList() {
             const data = res?.data || res;
             const items = data.items || data || [];
 
-            const mappedItems = items.map(c => ({
-                id: c.id,
-                title: c.title || c.name || 'Khóa học',
-                instructor: c.teacherName || c.instructor || 'Giảng viên',
-                grade: c.level || c.gradeLevelName || 'Lớp 11',
-                subject: c.subjectName || 'Môn học',
-                status: c.status || (c.progress === 100 ? 'Đã hoàn thành' : c.progress > 0 ? 'Đang học' : 'Chưa bắt đầu'),
-                type: c.type || 'Chính khóa',
-                progress: c.progress || 0,
-                lessons: c.totalLessons || 0,
-                totalHours: c.totalDuration ? Math.floor(c.totalDuration / 60) : 0,
-                students: c.totalStudents || 0,
-                rating: c.rating || 4.5,
-                nextLesson: c.nextLessonName || 'Bài giảng tiếp theo',
-                image: c.thumbnail || c.thumbnailUrl || 'https://images.unsplash.com/photo-1516031190212-da133013de50?auto=format&fit=crop&q=80&w=900',
-                badge: c.progress === 100 ? 'Đã hoàn thành' : c.progress > 80 ? 'HOT' : null
+            const mappedItems = await Promise.all(items.map(async c => {
+                let progress = c.progress || 0;
+                let totalLessons = c.totalLessons || 0;
+
+                try {
+                    const sectionsRes = await getCourseSections(c.id);
+                    const sections = sectionsRes?.data?.items || sectionsRes?.items || sectionsRes?.data || (Array.isArray(sectionsRes) ? sectionsRes : []);
+                    const completedSet = getCompletedSet(c.id);
+
+                    const lessonsPromises = sections.map(async (section) => {
+                        const lessonsRes = await getLessonsBySection(section.id || section.Id);
+                        return lessonsRes?.data?.items || lessonsRes?.items || lessonsRes?.data || (Array.isArray(lessonsRes) ? lessonsRes : []);
+                    });
+
+                    const allSectionsLessons = await Promise.all(lessonsPromises);
+                    const allLessons = allSectionsLessons.flat();
+
+                    if (allLessons.length > 0) {
+                        totalLessons = allLessons.length;
+                        const completedLessons = allLessons.filter(item => {
+                            const itemId = item.id || item.Id || item.quizId;
+                            return !!(item.isCompleted || item.IsCompleted || item.is_completed || item.completed || item.Completed || completedSet.has(itemId));
+                        }).length;
+                        progress = Math.round((completedLessons / totalLessons) * 100);
+                    }
+                } catch (error) {
+                    console.error("Error fetching progress for course", c.id, error);
+                }
+
+                return {
+                    id: c.id,
+                    title: c.title || c.name || 'Khóa học',
+                    instructor: c.teacherName || c.instructor || 'Giảng viên',
+                    grade: c.level || c.gradeLevelName || 'Lớp 11',
+                    subject: c.subjectName || 'Môn học',
+                    status: c.status || (progress === 100 ? 'Đã hoàn thành' : progress > 0 ? 'Đang học' : 'Chưa bắt đầu'),
+                    type: c.type || 'Chính khóa',
+                    progress: progress,
+                    lessons: totalLessons,
+                    totalHours: c.totalDuration ? Math.floor(c.totalDuration / 60) : 0,
+                    students: c.totalStudents || 0,
+                    rating: c.rating || 4.5,
+                    nextLesson: c.nextLessonName || 'Bài giảng tiếp theo',
+                    image: c.thumbnail || c.thumbnailUrl || 'https://images.unsplash.com/photo-1516031190212-da133013de50?auto=format&fit=crop&q=80&w=900',
+                    badge: progress === 100 ? 'Đã hoàn thành' : progress > 80 ? 'HOT' : null
+                };
             }));
 
             setCourses(mappedItems);
