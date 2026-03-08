@@ -1,11 +1,12 @@
-using System;
-
 namespace EduAISystem.Application.Common.Exceptions
 {
     public class BusinessException : AppException
     {
-        public BusinessException(string message) : base(message)
+        public string? ErrorCode { get; }
+
+        public BusinessException(string message, string? errorCode = null) : base(message)
         {
+            ErrorCode = errorCode;
         }
     }
 }

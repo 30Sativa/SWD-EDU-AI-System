@@ -271,20 +271,13 @@ Xoá một quiz khỏi khóa học/bài học.
 
         [HttpPut("{quizId:guid}/questions/{questionId:guid}")]
         [SwaggerOperation(
-            Summary = "GV - Cập nhật câu hỏi trong quiz",
-            Description = @"
-Cập nhật nội dung câu hỏi, các đáp án, đáp án đúng và giải thích trong quiz.
-
-**Các trường có thể cập nhật:**
-- `QuestionText`: nội dung câu hỏi
-- `Options`: toàn bộ danh sách đáp án (ghi đè)
-- `CorrectOptionIndex`: index đáp án đúng mới
-- `Explanation`: giải thích đáp án đúng
-- `SortOrder`: thứ tự hiển thị"
+            Summary = "GV - Cập nhật câu hỏi trong quiz (partial update)",
+            Description = "Partial update: null, empty, whitespace = giữ nguyên. Các trường nullable: questionText, questionType, points, explanation, sortOrder, options. Options: null/[] = giữ nguyên; có dữ liệu = merge (update/add, không xóa). optionId có = cập nhật; null = thêm mới. Lỗi: QUIZ_NOT_FOUND(404), QUESTION_NOT_IN_QUIZ(404), QUESTION_TEXT_REQUIRED(400), QUESTION_TYPE_INVALID(400), QUESTION_POINTS_INVALID(400), OPTION_TEXT_REQUIRED(400), DB_UPDATE_CONCURRENCY(409)."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
-        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]
-        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> UpdateQuestion(
             Guid quizId,
             Guid questionId,
@@ -392,12 +385,12 @@ Xoá một câu hỏi cụ thể khỏi quiz.
 
         [HttpPut("questions/{questionId:guid}/options/{optionId:guid}")]
         [SwaggerOperation(
-            Summary = "GV - Cập nhật một option trong câu hỏi",
-            Description = "Cập nhật trực tiếp nội dung, đáp án (đúng/sai) và thứ tự hiển thị của một option."
+            Summary = "GV - Cập nhật một option trong câu hỏi (partial update)",
+            Description = "Partial update: null, empty, whitespace = giữ nguyên. Các trường nullable: optionText, isCorrect, sortOrder. Lỗi: OPTION_NOT_IN_QUESTION(404), OPTION_TEXT_REQUIRED(400), DB_UPDATE(400 - FK AttemptAnswers khi xóa option đã có học sinh chọn)."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
-        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]
-        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateQuestionOption(
             Guid questionId,
             Guid optionId,

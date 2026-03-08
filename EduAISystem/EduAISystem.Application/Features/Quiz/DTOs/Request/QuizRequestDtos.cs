@@ -80,26 +80,35 @@ namespace EduAISystem.Application.Features.Quiz.DTOs.Request
         int? MaxAttempts
     );
 
+    /// <summary>
+    /// DTO cập nhật câu hỏi - partial update: null/empty/whitespace = giữ nguyên giá trị cũ.
+    /// </summary>
     public record UpdateQuestionRequestDto(
-        string QuestionText,
-        string QuestionType,
-        decimal Points,
+        string? QuestionText,
+        string? QuestionType,
+        decimal? Points,
         string? Explanation,
-        int SortOrder,
-        List<UpdateOptionRequestDto> Options
+        int? SortOrder,
+        List<UpdateOptionRequestDto>? Options
     );
 
+    /// <summary>
+    /// DTO cập nhật option - partial update: null/empty/whitespace = giữ nguyên.
+    /// </summary>
     public record UpdateOptionRequestDto(
         Guid? OptionId,
-        string OptionText,
-        bool IsCorrect,
-        int SortOrder
+        string? OptionText,
+        bool? IsCorrect,
+        int? SortOrder
     );
 
+    /// <summary>
+    /// DTO cập nhật một option riêng lẻ - partial update.
+    /// </summary>
     public record UpdateSingleOptionRequestDto(
-        string OptionText,
-        bool IsCorrect,
-        int SortOrder
+        string? OptionText,
+        bool? IsCorrect,
+        int? SortOrder
     );
 
     // =============================================

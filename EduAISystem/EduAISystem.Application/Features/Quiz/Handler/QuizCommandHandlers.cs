@@ -1,9 +1,11 @@
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Application.Common.Exceptions;
+using EduAISystem.Application.Common.Helpers;
 using EduAISystem.Application.Features.Quiz.Commands;
 using EduAISystem.Application.Features.Quiz.DTOs.Request;
 using EduAISystem.Application.Features.Quiz.DTOs.Response;
+using EduAISystem.Application.Features.Quiz;
 using EduAISystem.Domain.Entities;
 using MediatR;
 
@@ -377,7 +379,7 @@ namespace EduAISystem.Application.Features.Quiz.Handler
     }
 
     // =============================================
-    // UPDATE QUESTION — Teacher
+    // UPDATE QUESTION — Teacher (partial update: có dữ liệu mới update, không có thì giữ nguyên)
     // =============================================
     public class UpdateQuestionInQuizCommandHandler
         : IRequestHandler<UpdateQuestionInQuizCommand, Unit>
@@ -392,33 +394,41 @@ namespace EduAISystem.Application.Features.Quiz.Handler
         public async Task<Unit> Handle(UpdateQuestionInQuizCommand request, CancellationToken cancellationToken)
         {
             var quizDetail = await _quizRepository.GetWithQuestionsAsync(request.QuizId, cancellationToken)
-                ?? throw new NotFoundException($"Quiz {request.QuizId} không tồn tại.");
+                ?? throw new NotFoundException($"Quiz không tồn tại hoặc đã bị xóa.", QuizErrorCodes.QUIZ_NOT_FOUND);
 
             var existingQuestion = quizDetail.Questions.FirstOrDefault(q => q.Id == request.QuestionId);
             if (existingQuestion is null)
-                throw new NotFoundException($"Question {request.QuestionId} không tồn tại trong quiz.");
+                throw new NotFoundException($"Câu hỏi không tồn tại trong quiz này.", QuizErrorCodes.QUESTION_NOT_IN_QUIZ);
 
             var dto = request.Request;
 
-            var options = dto.Options.Select(o =>
+            // Validation: nếu gửi QuestionText rỗng/whitespace khi đang cập nhật → lỗi
+            if (dto.QuestionText != null && !StringUpdateHelper.HasValue(dto.QuestionText))
+                throw new BusinessException("Nội dung câu hỏi không được để trống.", QuizErrorCodes.QUESTION_TEXT_REQUIRED);
+
+            if (dto.QuestionType != null && !StringUpdateHelper.HasValue(dto.QuestionType))
+                throw new BusinessException("Loại câu hỏi không hợp lệ.", QuizErrorCodes.QUESTION_TYPE_INVALID);
+
+            if (dto.Points.HasValue && dto.Points.Value < 0)
+                throw new BusinessException("Điểm số không được âm.", QuizErrorCodes.QUESTION_POINTS_INVALID);
+
+            if (dto.SortOrder.HasValue && dto.SortOrder.Value < 0)
+                throw new BusinessException("Thứ tự hiển thị không được âm.", QuizErrorCodes.QUESTION_OPTIONS_INVALID);
+
+            // Partial update: chỉ cập nhật khi có giá trị mới
+            var questionText = StringUpdateHelper.Resolve(dto.QuestionText, existingQuestion.QuestionText);
+            var questionType = StringUpdateHelper.Resolve(dto.QuestionType, existingQuestion.QuestionType);
+            var points = dto.Points ?? existingQuestion.Points;
+            var explanation = StringUpdateHelper.ResolveNullable(dto.Explanation, existingQuestion.Explanation);
+            var sortOrder = dto.SortOrder ?? existingQuestion.SortOrder;
+
+            // Options: null/empty = giữ nguyên; có dữ liệu = merge (update/add, không xóa)
+            var options = BuildMergedOptions(dto.Options, existingQuestion);
+
+            string? correctAnswer = existingQuestion.CorrectAnswer;
+            if (questionType == "TrueFalse" || questionType == "ShortAnswer")
             {
-                var optionId = o.OptionId ?? Guid.NewGuid();
-
-                var option = (QuestionOptionDomain)Activator.CreateInstance(
-                    typeof(QuestionOptionDomain),
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
-                    null,
-                    new object[] { optionId, existingQuestion.Id, o.OptionText, o.IsCorrect, o.SortOrder },
-                    null
-                )!;
-
-                return option;
-            }).ToList();
-
-            string? correctAnswer = null;
-            if (dto.QuestionType == "TrueFalse" || dto.QuestionType == "ShortAnswer")
-            {
-                var correctOption = dto.Options.FirstOrDefault(o => o.IsCorrect);
+                var correctOption = options.FirstOrDefault(o => o.IsCorrect == true);
                 correctAnswer = correctOption?.OptionText ?? existingQuestion.CorrectAnswer ?? "Correct Answer";
             }
 
@@ -430,12 +440,12 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                 {
                     existingQuestion.Id,
                     request.QuizId,
-                    dto.QuestionText,
-                    dto.QuestionType,
+                    questionText,
+                    questionType,
                     correctAnswer,
-                    dto.Points,
-                    dto.Explanation,
-                    dto.SortOrder,
+                    points,
+                    explanation,
+                    sortOrder,
                     options
                 },
                 null
@@ -444,6 +454,67 @@ namespace EduAISystem.Application.Features.Quiz.Handler
             await _quizRepository.UpdateQuestionAsync(question, cancellationToken);
 
             return Unit.Value;
+        }
+
+        /// <summary>
+        /// Merge options: update existing by OptionId, add new khi OptionId null. Không xóa option nào.
+        /// </summary>
+        private static List<QuestionOptionDomain> BuildMergedOptions(
+            List<UpdateOptionRequestDto>? dtoOptions,
+            QuestionDomain existingQuestion)
+        {
+            if (dtoOptions is null || dtoOptions.Count == 0)
+                return existingQuestion.Options.ToList();
+
+            var existingById = existingQuestion.Options.ToDictionary(o => o.Id);
+            var result = new List<QuestionOptionDomain>();
+
+            foreach (var dto in dtoOptions)
+            {
+                var optionId = dto.OptionId ?? Guid.Empty;
+                existingById.TryGetValue(optionId, out var existingOpt);
+                var found = optionId != Guid.Empty && existingOpt != null;
+
+                string optionText;
+                bool? isCorrect;
+                int optSortOrder;
+                Guid id;
+
+                if (found)
+                {
+                    optionText = StringUpdateHelper.Resolve(dto.OptionText, existingOpt.OptionText);
+                    isCorrect = dto.IsCorrect ?? existingOpt.IsCorrect;
+                    optSortOrder = dto.SortOrder ?? existingOpt.SortOrder;
+                    id = optionId;
+                }
+                else
+                {
+                    if (!StringUpdateHelper.HasValue(dto.OptionText))
+                        throw new BusinessException("Khi thêm đáp án mới, nội dung đáp án không được để trống.", QuizErrorCodes.OPTION_TEXT_REQUIRED);
+                    optionText = dto.OptionText!.Trim();
+                    isCorrect = dto.IsCorrect ?? false;
+                    optSortOrder = dto.SortOrder ?? result.Count;
+                    id = Guid.NewGuid();
+                }
+                var opt = (QuestionOptionDomain)Activator.CreateInstance(
+                    typeof(QuestionOptionDomain),
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
+                    null,
+                    new object[] { id, existingQuestion.Id, optionText, isCorrect, optSortOrder },
+                    null
+                )!;
+                result.Add(opt);
+            }
+
+            // Giữ lại các option cũ không có trong dto (merge, không xóa)
+            foreach (var existingOpt in existingQuestion.Options)
+            {
+                if (dtoOptions.Any(o => o.OptionId == existingOpt.Id))
+                    continue;
+                result.Add(existingOpt);
+            }
+
+            return result;
         }
     }
 
@@ -468,7 +539,7 @@ namespace EduAISystem.Application.Features.Quiz.Handler
     }
 
     // =============================================
-    // UPDATE QUESTION OPTION — Teacher
+    // UPDATE QUESTION OPTION — Teacher (partial update)
     // =============================================
     public class UpdateQuestionOptionCommandHandler
         : IRequestHandler<UpdateQuestionOptionCommand, Unit>
@@ -482,12 +553,23 @@ namespace EduAISystem.Application.Features.Quiz.Handler
 
         public async Task<Unit> Handle(UpdateQuestionOptionCommand request, CancellationToken cancellationToken)
         {
+            var existingOptions = await _quizRepository.GetQuestionOptionsAsync(request.QuestionId, cancellationToken);
+            var existing = existingOptions.FirstOrDefault(o => o.Id == request.OptionId)
+                ?? throw new NotFoundException($"Option không tồn tại hoặc không thuộc câu hỏi này.", QuizErrorCodes.OPTION_NOT_IN_QUESTION);
+
             var dto = request.Request;
+
+            if (dto.OptionText != null && !StringUpdateHelper.HasValue(dto.OptionText))
+                throw new BusinessException("Nội dung đáp án không được để trống.", QuizErrorCodes.OPTION_TEXT_REQUIRED);
+            var optionText = StringUpdateHelper.Resolve(dto.OptionText, existing.OptionText);
+            var isCorrect = dto.IsCorrect ?? existing.IsCorrect;
+            var sortOrder = dto.SortOrder ?? existing.SortOrder;
+
             var option = (QuestionOptionDomain)Activator.CreateInstance(
                 typeof(QuestionOptionDomain),
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
                 null,
-                [request.OptionId, request.QuestionId, dto.OptionText, dto.IsCorrect, dto.SortOrder],
+                [request.OptionId, request.QuestionId, optionText, isCorrect, sortOrder],
                 null
             )!;
 

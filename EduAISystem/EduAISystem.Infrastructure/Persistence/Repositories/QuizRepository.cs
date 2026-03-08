@@ -1,4 +1,6 @@
 using EduAISystem.Application.Abstractions.Persistence;
+using EduAISystem.Application.Common.Exceptions;
+using EduAISystem.Application.Features.Quiz;
 using EduAISystem.Domain.Entities;
 using EduAISystem.Domain.Enums;
 using EduAISystem.Infrastructure.Persistence.Context;
@@ -90,7 +92,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             var entity = await _context.Questions
                 .Include(q => q.QuestionOptions)
                 .FirstOrDefaultAsync(q => q.Id == question.Id && q.QuizId == question.QuizId, cancellationToken)
-                ?? throw new KeyNotFoundException($"Question {question.Id} không tồn tại.");
+                ?? throw new NotFoundException($"Câu hỏi không tồn tại.", QuizErrorCodes.QUESTION_NOT_FOUND);
 
             entity.QuestionText = question.QuestionText;
             entity.QuestionType = question.QuestionType;
@@ -123,23 +125,9 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 }
             }
 
-            foreach (var optEntity in existingOptions.Values)
-            {
-                if (!incomingOptions.ContainsKey(optEntity.Id))
-                {
-                    _context.QuestionOptions.Remove(optEntity);
-                }
-            }
-
-            try
-            {
-                await _context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                throw new Application.Common.Exceptions.NotFoundException(
-                    $"Question {question.Id} đã bị xoá hoặc thay đổi bởi thao tác khác.");
-            }
+            // Merge mode: KHÔNG xóa option — tránh DbUpdateConcurrencyException và FK với AttemptAnswer.
+            // Option muốn xóa phải gọi DELETE /questions/{questionId}/options/{optionId} riêng.
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         public async Task DeleteQuestionAsync(Guid quizId, Guid questionId, CancellationToken cancellationToken)
@@ -147,7 +135,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             var entity = await _context.Questions
                 .Include(q => q.QuestionOptions)
                 .FirstOrDefaultAsync(q => q.Id == questionId && q.QuizId == quizId, cancellationToken)
-                ?? throw new KeyNotFoundException($"Question {questionId} không tồn tại.");
+                ?? throw new NotFoundException($"Câu hỏi không tồn tại trong quiz này.", QuizErrorCodes.QUESTION_NOT_IN_QUIZ);
 
             _context.QuestionOptions.RemoveRange(entity.QuestionOptions);
             _context.Questions.Remove(entity);
@@ -158,7 +146,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         {
             var entity = await _context.QuestionOptions
                 .FirstOrDefaultAsync(o => o.Id == option.Id && o.QuestionId == questionId, cancellationToken)
-                ?? throw new KeyNotFoundException($"Option {option.Id} không tồn tại trong question {questionId}.");
+                ?? throw new NotFoundException($"Option không tồn tại trong câu hỏi này.", QuizErrorCodes.OPTION_NOT_IN_QUESTION);
 
             entity.OptionText = option.OptionText;
             entity.IsCorrect = option.IsCorrect;
@@ -171,7 +159,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         {
             var entity = await _context.QuestionOptions
                 .FirstOrDefaultAsync(o => o.Id == optionId && o.QuestionId == questionId, cancellationToken)
-                ?? throw new KeyNotFoundException($"Option {optionId} không tồn tại trong question {questionId}.");
+                ?? throw new NotFoundException($"Option không tồn tại hoặc không thuộc câu hỏi này.", QuizErrorCodes.OPTION_NOT_IN_QUESTION);
 
             _context.QuestionOptions.Remove(entity);
             await _context.SaveChangesAsync(cancellationToken);

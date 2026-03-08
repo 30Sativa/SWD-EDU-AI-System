@@ -1,4 +1,5 @@
 using EduAISystem.Application;
+using EduAISystem.Application.Common.Models;
 using EduAISystem.WebAPI.Converters;
 using EduAISystem.Infrastructure;
 using EduAISystem.Infrastructure.Persistence.Seed;
@@ -80,6 +81,21 @@ builder.Services.AddSwaggerGen(c =>
                 }
             },
             Array.Empty<string>()
+        }
+    });
+
+    // Schema cho lỗi API (dùng khi 4xx/5xx)
+    c.MapType<ApiError>(() => new OpenApiSchema
+    {
+        Type = "object",
+        Properties = new Dictionary<string, OpenApiSchema>
+        {
+            ["message"] = new() { Type = "string", Description = "Thông báo lỗi" },
+            ["errorCode"] = new() { Type = "string", Description = "Mã lỗi (vd: QUIZ_NOT_FOUND, OPTION_TEXT_REQUIRED)" },
+            ["statusCode"] = new() { Type = "integer", Description = "HTTP status" },
+            ["traceId"] = new() { Type = "string", Description = "Mã trace để debug" },
+            ["detail"] = new() { Type = "string", Description = "Chi tiết kỹ thuật (khi có)" },
+            ["errors"] = new() { Type = "object", Description = "Lỗi validation theo trường" }
         }
     });
 });

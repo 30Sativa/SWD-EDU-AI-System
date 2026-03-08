@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +8,11 @@ namespace EduAISystem.Application.Common.Exceptions
 {
     public class NotFoundException : AppException
     {
-        public NotFoundException(string message) : base(message) { } // 404 
+        public string? ErrorCode { get; }
+
+        public NotFoundException(string message, string? errorCode = null) : base(message)
+        {
+            ErrorCode = errorCode;
+        }
     }
 }
