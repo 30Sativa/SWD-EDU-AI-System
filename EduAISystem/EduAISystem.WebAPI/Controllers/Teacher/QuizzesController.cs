@@ -156,6 +156,52 @@ Thêm một câu hỏi trắc nghiệm mới vào quiz.
             }
         }
 
+        [HttpPut("{quizId:guid}/attempt-settings")]
+        [SwaggerOperation(
+            Summary = "GV - Cập nhật cài đặt số lần làm bài (attempt)",
+            Description = @"
+API riêng để chỉnh cài đặt liên quan đến số lần học sinh được làm quiz.
+
+**Request body:**
+| Trường | Kiểu | Mô tả |
+|--------|------|-------|
+| maxAttempts | int? | Số lần làm bài tối đa |
+
+**Ý nghĩa maxAttempts:**
+| Giá trị | Ý nghĩa |
+|---------|---------|
+| **null** | Không giới hạn — học sinh làm vô hạn lần |
+| **1** | Chỉ làm 1 lần duy nhất (phù hợp bài thi cuối khoá) |
+| **3** | Tối đa 3 lần (ví dụ: formative quiz cho phép thử lại) |
+
+**Ví dụ request:**
+- Làm vô hạn lần: `{ ""maxAttempts"": null }`
+- Chỉ 1 lần: `{ ""maxAttempts"": 1 }`
+- Tối đa 5 lần: `{ ""maxAttempts"": 5 }`"
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
+        public async Task<IActionResult> UpdateAttemptSettings(
+            Guid quizId,
+            [FromBody] UpdateQuizAttemptSettingsRequestDto dto,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var updatedId = await _mediator.Send(new UpdateQuizAttemptSettingsCommand(quizId, dto), cancellationToken);
+                return Ok(ApiResponse<Guid>.Ok(updatedId, "Cập nhật cài đặt attempt thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex,
+                    "[LỖI CẬP NHẬT ATTEMPT SETTINGS] MãTrace: {TraceId} | MãQuiz: {QuizId} | Loại lỗi: {ExType} | Chi tiết: {ExMsg}",
+                    traceId, quizId, ex.GetType().Name, ex.Message);
+                throw;
+            }
+        }
+
         [HttpPut("{quizId:guid}")]
         [SwaggerOperation(
             Summary = "GV - Cập nhật thông tin quiz",
@@ -165,7 +211,8 @@ Cập nhật tiêu đề, mô tả và cài đặt của quiz (thời gian làm 
 **Lưu ý:** Không cập nhật danh sách câu hỏi qua endpoint này. Dùng:
 - `POST /{quizId}/questions` để thêm câu hỏi mới
 - `PUT /{quizId}/questions/{questionId}` để sửa câu hỏi
-- `DELETE /{quizId}/questions/{questionId}` để xóa câu hỏi"
+- `DELETE /{quizId}/questions/{questionId}` để xóa câu hỏi
+- `PUT /{quizId}/attempt-settings` để chỉnh riêng số lần làm bài"
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]

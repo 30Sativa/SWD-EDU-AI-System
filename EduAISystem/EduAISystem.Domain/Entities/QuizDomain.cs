@@ -1,4 +1,4 @@
-﻿using EduAISystem.Domain.Enums;
+using EduAISystem.Domain.Enums;
 
 namespace EduAISystem.Domain.Entities
 {
@@ -213,6 +213,16 @@ namespace EduAISystem.Domain.Entities
             quiz.ShuffleQuestions = shuffleQuestions ?? quiz.ShuffleQuestions;
             quiz.UpdatedAt = DateTime.UtcNow;
             return quiz;
+        }
+
+        /// <summary>
+        /// Cập nhật riêng cài đặt số lần làm bài.
+        /// Cho phép set null = không giới hạn.
+        /// </summary>
+        public static void UpdateAttemptSettings(QuizDomain quiz, int? maxAttempts)
+        {
+            quiz.MaxAttempts = maxAttempts;
+            quiz.UpdatedAt = DateTime.UtcNow;
         }
 
         // =============================================

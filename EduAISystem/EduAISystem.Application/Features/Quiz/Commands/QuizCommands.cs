@@ -46,6 +46,9 @@ namespace EduAISystem.Application.Features.Quiz.Commands
 
     public record UpdateQuizCommand(Guid QuizId, UpdateQuizRequestDto Request) : IRequest<Guid>;
 
+    /// <summary>Teacher cập nhật cài đặt attempt của quiz (số lần làm tối đa).</summary>
+    public record UpdateQuizAttemptSettingsCommand(Guid QuizId, UpdateQuizAttemptSettingsRequestDto Request) : IRequest<Guid>;
+
     public record DeleteQuizCommand(Guid QuizId) : IRequest<Unit>;
 
     // =============================================

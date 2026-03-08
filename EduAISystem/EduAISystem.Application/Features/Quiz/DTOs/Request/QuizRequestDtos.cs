@@ -66,6 +66,20 @@ namespace EduAISystem.Application.Features.Quiz.DTOs.Request
         bool? ShuffleQuestions
     );
 
+    /// <summary>
+    /// DTO cập nhật cài đặt số lần làm bài (attempt) của quiz.
+    /// Dùng cho API riêng: PUT /api/teacher/quizzes/{quizId}/attempt-settings
+    /// </summary>
+    public record UpdateQuizAttemptSettingsRequestDto(
+        /// <summary>
+        /// Số lần làm bài tối đa.
+        /// - null: không giới hạn (học sinh làm vô hạn lần).
+        /// - 1: chỉ làm 1 lần duy nhất.
+        /// - 3: tối đa 3 lần.
+        /// </summary>
+        int? MaxAttempts
+    );
+
     public record UpdateQuestionRequestDto(
         string QuestionText,
         string QuestionType,

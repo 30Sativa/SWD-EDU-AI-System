@@ -287,6 +287,33 @@ namespace EduAISystem.Application.Features.Quiz.Handler
     }
 
     // =============================================
+    // UPDATE QUIZ ATTEMPT SETTINGS — Teacher
+    // API riêng để chỉnh số lần làm bài (1 lần / vô hạn / N lần)
+    // =============================================
+    public class UpdateQuizAttemptSettingsCommandHandler
+        : IRequestHandler<UpdateQuizAttemptSettingsCommand, Guid>
+    {
+        private readonly IQuizRepository _quizRepository;
+
+        public UpdateQuizAttemptSettingsCommandHandler(IQuizRepository quizRepository)
+        {
+            _quizRepository = quizRepository;
+        }
+
+        public async Task<Guid> Handle(
+            UpdateQuizAttemptSettingsCommand request, CancellationToken cancellationToken)
+        {
+            var quiz = await _quizRepository.GetByIdAsync(request.QuizId, cancellationToken)
+                ?? throw new NotFoundException($"Quiz {request.QuizId} không tồn tại.");
+
+            QuizDomain.UpdateAttemptSettings(quiz, request.Request.MaxAttempts);
+            await _quizRepository.UpdateAsync(quiz, cancellationToken);
+
+            return quiz.Id;
+        }
+    }
+
+    // =============================================
     // UPDATE QUIZ — Teacher
     // =============================================
     public class UpdateQuizCommandHandler
