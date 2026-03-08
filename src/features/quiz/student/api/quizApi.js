@@ -13,6 +13,7 @@ export const getQuizDetail = (quizId) => {
 };
 
 export const startQuizAttempt = (quizId) => {
+    console.log(`Starting quiz attempt for: ${quizId}`);
     return axiosClient.post(`/api/student/quizzes/${quizId}/attempts/start`, {});
 };
 

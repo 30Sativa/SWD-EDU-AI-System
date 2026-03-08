@@ -16,14 +16,15 @@ import {
     Circle,
     User,
     ListChecks,
-    ChevronRight
+    ChevronRight,
+    Trophy
 } from 'lucide-react';
 import { getStudentCourseDetail, getCourseSections, getStudentMyCourses } from "../../api/courseApi";
 import { getLessonsBySection } from '../../../lesson/api/lessonApi';
 import { Spin, message, Tooltip } from 'antd';
 import StudentAssignmentsTab from '../../../assignment/student/components/StudentAssignmentsTab';
-import { ArrowRight, RefreshCw } from 'lucide-react';
-import { getCourseQuizzes } from '../../../quiz/student/api/quizApi';
+import { ArrowRight, RefreshCw, Target } from 'lucide-react';
+import { getCourseQuizzes, getLessonQuizzes } from '../../../quiz/student/api/quizApi';
 
 
 export default function CourseDetail() {
@@ -35,6 +36,7 @@ export default function CourseDetail() {
 
     const [sectionsData, setSectionsData] = useState([]);
     const [summativeQuizzes, setSummativeQuizzes] = useState([]);
+    const [formativeQuizzes, setFormativeQuizzes] = useState([]);
     const [quizzesLoading, setQuizzesLoading] = useState(false);
 
     const fetchDetail = async () => {
@@ -124,9 +126,37 @@ export default function CourseDetail() {
         if (!courseId) return;
         setQuizzesLoading(true);
         try {
+            // Fetch Summative
             const res = await getCourseQuizzes(courseId);
             const items = res?.data?.items || res?.items || (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
             setSummativeQuizzes(items);
+
+            // Fetch Formative
+            let formatives = [];
+            if (sectionsData.length > 0) {
+                const lessonIds = sectionsData.flatMap(s => (s.lessons || []).map(l => l.id || l.lessonId));
+
+                const promises = lessonIds.map(id => getLessonQuizzes(id).catch(() => null));
+                const results = await Promise.all(promises);
+
+                results.forEach((res, index) => {
+                    const list = res?.data || res || [];
+                    if (Array.isArray(list)) {
+                        let lName = "Bài học";
+                        for (const s of sectionsData) {
+                            const l = (s.lessons || []).find(x => (x.id || x.lessonId) === lessonIds[index]);
+                            if (l) lName = l.title || l.name || "Bài học";
+                        }
+
+                        formatives = [...formatives, ...list.map(q => ({
+                            ...q,
+                            lessonName: lName
+                        }))];
+                    }
+                });
+            }
+            setFormativeQuizzes(formatives);
+
         } catch (error) {
             console.error("Lỗi khi tải danh sách quiz:", error);
         } finally {
@@ -215,152 +245,104 @@ export default function CourseDetail() {
     };
 
     return (
-        <div className="p-8 bg-[#f8fafc] min-h-screen font-sans">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800 animate-in fade-in duration-500">
+            <div className="max-w-6xl mx-auto space-y-6">
 
-                {/* --- HEADER SECTION --- */}
-                <div className="relative group overflow-hidden rounded-[3rem] p-10 lg:p-12 border border-slate-100/50 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.06)] bg-white transition-all duration-700 hover:shadow-[0_48px_100px_-20px_rgba(0,0,0,0.12)]">
-                    <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-blue-50/50 to-transparent pointer-events-none" />
-                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-100/30 blur-[100px] rounded-full pointer-events-none" />
-
-                    <div className="relative z-10 flex flex-col lg:flex-row gap-12">
-                        <div className="flex-shrink-0 relative w-full lg:w-64 h-64 rounded-[2.5rem] overflow-hidden bg-slate-100 flex items-center justify-center border-4 border-white shadow-2xl transition-all duration-500 group-hover:scale-102">
+                {/* --- COURSE INFO CARD --- */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <div className="flex flex-col md:flex-row gap-6">
+                        <div className="flex-shrink-0 relative w-32 h-32 md:w-48 md:h-32 rounded-lg overflow-hidden bg-blue-50 flex items-center justify-center border border-slate-100 shadow-sm text-[#0487e2]">
                             {courseData.thumbnail ? (
-                                <>
-                                    <img
-                                        src={courseData.thumbnail}
-                                        className="w-full h-full object-cover"
-                                        alt="Thumbnail"
-                                        onError={(e) => { e.target.style.display = 'none'; }}
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                                </>
+                                <img
+                                    src={courseData.thumbnail}
+                                    className="absolute inset-0 z-10 w-full h-full object-cover"
+                                    alt="Thumbnail"
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                />
                             ) : (
-                                <div className="flex flex-col items-center gap-3 text-slate-400">
-                                    <BookOpen size={48} className="opacity-20" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">EdAI Course</span>
-                                </div>
+                                <BookOpen size={48} className="opacity-50" />
                             )}
                         </div>
 
-                        <div className="flex-1 flex flex-col justify-center">
-                            <div className="space-y-6">
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <div className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-blue-500/30">
-                                        {courseInfo.tag}
-                                    </div>
-                                    <div className="px-5 py-2 bg-white text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-slate-100 shadow-sm backdrop-blur-sm">
-                                        Niên khóa 2023 - 2024
-                                    </div>
-                                </div>
-                                <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                        <div className="flex-1 flex flex-col justify-between">
+                            <div className="space-y-2">
+                                <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
                                     {courseInfo.title}
                                 </h1>
-                                <p className="text-slate-500 text-base max-w-2xl leading-relaxed font-medium">
-                                    {courseData.description || "Chào mừng bạn đến với khóa học. Đây là lộ trình học tập được thiết kế tối ưu."}
+                                <p className="text-slate-500 text-sm max-w-3xl leading-relaxed line-clamp-2">
+                                    {courseData.description || "Chào mừng bạn đến với khóa học."}
                                 </p>
                             </div>
 
-                            <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-8 p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100/80">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-blue-600 shadow-sm border border-slate-100">
-                                        <User size={20} />
+                            <div className="flex flex-wrap gap-2 gap-y-4 pt-4 mt-2 justify-between items-center border-t border-slate-100">
+                                <div className="flex gap-6">
+                                    <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                                        <User size={16} className="text-blue-500" />
+                                        <span className="font-bold text-slate-700">{courseInfo.instructor}</span>
                                     </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5">Giảng viên</p>
-                                        <p className="text-sm font-bold text-slate-900 truncate">{courseInfo.instructor}</p>
+                                    <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                                        <Clock size={16} className="text-amber-500" />
+                                        <span className="font-bold text-slate-700">
+                                            {courseInfo.totalHours}h {courseData.totalDuration % 60 || 0}m
+                                        </span>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-indigo-600 shadow-sm border border-slate-100">
-                                        <Clock size={20} />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Thời lượng</p>
-                                        <p className="text-sm font-black text-slate-900 truncate">{courseInfo.totalHours} Tiết / {courseData.totalDuration || 0}m</p>
+                                    <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                                        <ListChecks size={16} className="text-emerald-500" />
+                                        <span className="font-bold text-slate-700">{courseInfo.totalLessons}</span> bài học
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-emerald-600 shadow-sm border border-slate-100">
-                                        <ListChecks size={20} />
+                                <div className="flex items-center gap-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-xs font-semibold text-slate-500">Tiến trình</div>
+                                        <div className="w-24 bg-slate-100 rounded-full h-1.5 flex flex-col justify-center">
+                                            <div
+                                                className="bg-[#0487e2] h-1.5 rounded-full"
+                                                style={{ width: `${courseInfo.progress}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-xs font-bold text-[#0487e2]">{courseInfo.progress}%</span>
                                     </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Bài giảng</p>
-                                        <p className="text-sm font-black text-slate-900 truncate">{courseInfo.totalLessons} Bài học</p>
-                                    </div>
+
+                                    {sections.length > 0 && sections[0].items.length > 0 ? (
+                                        <Link
+                                            to={`/dashboard/student/courses/${courseId}/lessons/${sections[0].items[0].id}`}
+                                            className="flex items-center gap-2 px-5 py-2 bg-[#0487e2] hover:bg-[#0374c4] text-white rounded-lg font-bold text-xs shadow-sm transition-colors"
+                                        >
+                                            <PlayCircle size={16} />
+                                            Học tiếp
+                                        </Link>
+                                    ) : (
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-500 text-xs font-medium rounded-lg">
+                                            <Lock size={14} />
+                                            Khóa học đang cập nhật
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="mt-12 pt-10 border-t border-slate-100 flex flex-col lg:flex-row items-center justify-between gap-10">
-                        <div className="w-full lg:max-w-xl">
-                            <div className="flex justify-between items-end mb-5 px-1">
-                                <div>
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Tiến trình học tập</h4>
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-2xl font-bold text-[#22c55e] leading-none">{courseInfo.progress}%</span>
-                                        <span className="text-xs font-semibold text-slate-400">Đã hoàn thành</span>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <span className="text-xs font-bold text-slate-900">{courseInfo.completedLessons}</span>
-                                    <span className="text-xs font-semibold text-slate-400 mx-1">/</span>
-                                    <span className="text-xs font-semibold text-slate-400">{courseInfo.totalLessons} bài giảng</span>
-                                </div>
-                            </div>
-                            <div className="w-full bg-slate-100 rounded-2xl h-4 overflow-hidden shadow-inner p-1">
-                                <div
-                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-xl transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-                                    style={{ width: `${courseInfo.progress}%` }}
-                                ></div>
-                            </div>
-                        </div>
-
-                        {sections.length > 0 && sections[0].items.length > 0 ? (
-                            <Link
-                                to={`/dashboard/student/courses/${courseId}/lessons/${sections[0].items[0].id}`}
-                                className="w-full lg:w-auto min-w-[280px] group/cta px-10 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[2rem] transition-all duration-500 hover:scale-105 active:scale-95 shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-4"
-                            >
-                                <PlayCircle size={22} className="fill-current" />
-                                <span className="text-sm font-bold uppercase tracking-widest">Tiếp tục học tập</span>
-                                <ArrowRight size={20} className="ml-2 transition-transform duration-500 group-hover/cta:translate-x-2" />
-                            </Link>
-                        ) : (
-                            <div className="w-full lg:w-auto min-w-[280px] px-10 py-5 bg-slate-100 text-slate-400 text-xs font-black uppercase tracking-widest rounded-[2rem] border border-slate-200 flex items-center justify-center gap-3">
-                                <Lock size={18} />
-                                Khóa học đang cập nhật
-                            </div>
-                        )}
                     </div>
                 </div>
 
-                {/* --- NAVIGATION TABS --- */}
-                <div className="flex items-center gap-4 bg-white/50 backdrop-blur-md p-1.5 rounded-[2rem] border border-slate-200 shadow-sm w-fit max-w-full overflow-x-auto">
-                    {[
-                        { id: 'curriculum', label: 'Chương trình học', icon: BookOpen },
-                        { id: 'assignments', label: 'Bài tập về nhà', icon: FileText },
-                        { id: 'quizzes', label: 'Bài kiểm tra', icon: ListChecks }
-                    ].map(tab => {
-                        const Icon = tab.icon;
-                        const active = activeTab === tab.id;
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-3 px-8 py-4 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${active
-                                    ? 'bg-white text-blue-600 shadow-lg shadow-blue-500/5'
-                                    : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
-                                    }`}
-                            >
-                                <Icon size={18} className={active ? 'text-blue-600' : 'text-slate-400'} />
-                                {tab.label}
-                                {active && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse ml-1" />
-                                )}
-                            </button>
-                        )
-                    })}
+                {/* --- TABS --- */}
+                <div className="flex border-b border-slate-200 mb-6 font-sans">
+                    <button
+                        className={`pb-3 px-6 font-bold text-sm transition-colors border-b-2 ${activeTab === 'curriculum' ? 'border-[#0487e2] text-[#0487e2]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => setActiveTab('curriculum')}
+                    >
+                        Chương trình học
+                    </button>
+                    <button
+                        className={`pb-3 px-6 font-bold text-sm transition-colors border-b-2 ${activeTab === 'assignments' ? 'border-[#0487e2] text-[#0487e2]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => setActiveTab('assignments')}
+                    >
+                        Bài tập (Assignments)
+                    </button>
+                    <button
+                        className={`pb-3 px-6 font-bold text-sm transition-colors border-b-2 ${activeTab === 'quizzes' ? 'border-[#0487e2] text-[#0487e2]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => setActiveTab('quizzes')}
+                    >
+                        Hệ thống Kiểm tra
+                    </button>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -385,82 +367,78 @@ export default function CourseDetail() {
 
                                     return (
                                         <div key={section.id}
-                                            className={`group/section border rounded-[3rem] overflow-hidden transition-all duration-500 bg-white ${isExpanded ? 'border-blue-100 shadow-[0_20px_50px_-12px_rgba(37,99,235,0.08)]' : 'border-slate-100/80 hover:border-blue-100/50 shadow-sm'}`}
-                                            style={{ animationDelay: `${sIdx * 0.1}s` }}>
+                                            className={`group/section border rounded-xl overflow-hidden transition-all duration-300 bg-white ${isExpanded ? 'border-blue-100 shadow-sm' : 'border-slate-100 hover:border-blue-100/50'}`}
+                                        >
                                             <button
                                                 onClick={() => !isLocked && toggleSection(section.id)}
-                                                className={`w-full p-8 flex items-center justify-between transition-all duration-300 ${isLocked ? 'cursor-not-allowed bg-slate-50/50 opacity-80' : 'hover:bg-slate-50/20 active:scale-[0.99]'}`}
+                                                className={`w-full p-4 flex items-center justify-between transition-colors ${isLocked ? 'cursor-not-allowed bg-slate-50/50 opacity-80' : 'hover:bg-slate-50/20'}`}
                                             >
-                                                <div className="flex items-center gap-6">
-                                                    <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all duration-500 group-hover/section:scale-110 ${isLocked ? 'bg-slate-100 text-slate-400' : section.completed ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${isLocked ? 'bg-slate-100 text-slate-400' : section.completed ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-[#0487e2]'}`}>
                                                         {isLocked ? (
-                                                            <Lock size={28} />
+                                                            <Lock size={18} />
                                                         ) : section.completed ? (
-                                                            <CheckCircle size={28} strokeWidth={2.5} />
+                                                            <CheckCircle size={18} strokeWidth={2.5} />
                                                         ) : (
-                                                            <BookOpen size={28} strokeWidth={2.5} />
+                                                            <BookOpen size={18} strokeWidth={2.5} />
                                                         )}
                                                     </div>
                                                     <div className="text-left">
-                                                        <div className="flex items-center gap-3 mb-1.5">
-                                                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] opacity-80">Chương {sIdx + 1}</span>
-                                                            {isLocked && <span className="px-2 py-0.5 bg-slate-200 text-slate-500 text-[8px] font-black uppercase rounded">Locked</span>}
-                                                        </div>
-                                                        <h3 className="font-bold text-xl text-slate-900 tracking-tight leading-none mb-2">{section.title}</h3>
-                                                        <div className="flex items-center gap-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-                                                            <span className={section.completed ? "text-emerald-500" : ""}>{section.status}</span>
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+                                                        <h3 className="font-bold text-base text-slate-800 tracking-tight leading-none mb-1.5">{section.title}</h3>
+                                                        <div className="flex items-center gap-3 text-xs font-medium text-slate-500 leading-none">
+                                                            <span className={section.completed ? "text-emerald-500 font-bold" : ""}>{section.status}</span>
+                                                            <span className="w-1 h-1 rounded-full bg-slate-200"></span>
                                                             <span>{section.lessonsCount} Bài học</span>
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+                                                            <span className="w-1 h-1 rounded-full bg-slate-200"></span>
                                                             <span>{section.duration}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 {!isLocked && (
-                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${isExpanded ? 'bg-blue-600 text-white rotate-180 shadow-xl shadow-blue-500/20' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
-                                                        <ChevronDown size={24} strokeWidth={3} />
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'text-[#0487e2] rotate-180 bg-blue-50' : 'text-slate-400 bg-transparent hover:bg-slate-100'}`}>
+                                                        <ChevronDown size={18} />
                                                     </div>
                                                 )}
                                             </button>
 
                                             {isExpanded && !isLocked && section.items.map((item, idx) => (
-                                                <div key={item.id} className="px-8 pb-8 space-y-4 animate-in fade-in slide-in-from-top-6 duration-500 fill-mode-both" style={{ animationDelay: `${idx * 0.05}s` }}>
+                                                <div key={item.id} className="px-4 pb-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                                                     <Link
                                                         to={item.type === 'quiz' ? `/dashboard/student/quizzes/${item.id}` : `/dashboard/student/courses/${courseId}/lessons/${item.id}`}
-                                                        className="group/item flex items-center justify-between p-6 rounded-[2rem] bg-slate-50/50 hover:bg-white border-2 border-transparent hover:border-blue-100 hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-300"
+                                                        className="group flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-white border border-transparent hover:border-blue-100 hover:shadow-sm transition-all"
                                                     >
-                                                        <div className="flex items-center gap-6">
-                                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover/item:rotate-12 ${item.completed ? 'bg-emerald-50 text-emerald-600' : item.type === 'quiz' ? 'bg-amber-50 text-amber-500' : 'bg-white text-blue-500 shadow-sm'}`}>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`w-8 h-8 rounded-md flex items-center justify-center ${item.completed ? 'bg-emerald-50 text-emerald-600' : item.type === 'quiz' ? 'bg-amber-50 text-amber-500' : 'bg-blue-50 text-[#0487e2]'}`}>
                                                                 {item.completed ? (
-                                                                    <CheckCircle size={22} strokeWidth={2.5} />
+                                                                    <CheckCircle size={14} strokeWidth={2.5} />
                                                                 ) : item.type === 'quiz' ? (
-                                                                    <ListChecks size={22} strokeWidth={2.5} />
+                                                                    <ListChecks size={14} />
                                                                 ) : (
-                                                                    <PlayCircle size={22} strokeWidth={2.5} />
+                                                                    <PlayCircle size={14} />
                                                                 )}
                                                             </div>
                                                             <div>
-                                                                <div className="flex items-center gap-3 mb-1.5">
-                                                                    <h4 className={`text-sm font-bold tracking-tight transition-colors ${item.completed ? 'text-slate-400 line-through decoration-2' : 'text-slate-800 group-hover:text-blue-700'}`}>
+                                                                <div className="flex items-center gap-2 mb-0.5">
+                                                                    <h4 className={`text-sm font-semibold transition-colors ${item.completed ? 'text-slate-400 line-through decoration-1' : 'text-slate-700 group-hover:text-[#0487e2]'}`}>
                                                                         {item.title}
                                                                     </h4>
                                                                     {item.isNew && (
-                                                                        <span className="px-2 py-0.5 bg-rose-500 text-white text-[8px] font-black uppercase tracking-[0.1em] rounded shadow-lg shadow-rose-200">NEW</span>
+                                                                        <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-100 text-[10px] font-black uppercase rounded">Mới</span>
                                                                     )}
                                                                 </div>
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-white/50 rounded-lg border border-slate-100">
-                                                                        <Clock size={12} className="text-slate-400" />
-                                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{item.duration}</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="flex items-center gap-1 text-slate-400">
+                                                                        <Clock size={10} />
+                                                                        <span className="text-xs font-medium">{item.duration}</span>
                                                                     </div>
-                                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                                                                        {item.type === 'quiz' ? 'Kiểm tra trắc nghiệm' : 'Bài giảng video'}
+                                                                    <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest bg-slate-100 px-1 rounded">
+                                                                        {item.type === 'quiz' ? 'Kiểm tra' : 'Video bài giảng'}
                                                                     </span>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div className="w-12 h-12 rounded-full bg-blue-600 text-white opacity-0 translate-x-4 group-hover/item:opacity-100 group-hover/item:translate-x-0 flex items-center justify-center shadow-xl shadow-blue-500/20 transition-all duration-500">
-                                                            <ArrowRight size={20} strokeWidth={3} />
+                                                        <div className="w-8 h-8 rounded-md bg-transparent text-slate-300 group-hover:text-[#0487e2] flex items-center justify-center transition-colors">
+                                                            <ArrowRight size={16} />
                                                         </div>
                                                     </Link>
                                                 </div>
@@ -476,136 +454,219 @@ export default function CourseDetail() {
                         )}
 
                         {activeTab === 'quizzes' && (
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-slate-900 leading-none mb-2">Bài tập tổng kết</h2>
-                                        <p className="text-sm text-slate-500 font-medium">Hoàn thành các bài quizz để củng cố toàn bộ kiến thức khóa học</p>
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100">
+                                            <ListChecks size={24} />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-slate-900 leading-none mb-1">Hệ thống bài kiểm tra</h2>
+                                            <p className="text-sm text-slate-500 font-medium">Hoàn thành bài tập để củng cố kiến thức</p>
+                                        </div>
                                     </div>
                                     <button
                                         onClick={fetchQuizzes}
                                         disabled={quizzesLoading}
-                                        className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm active:scale-95"
+                                        className="p-3 md:px-5 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm active:scale-95 flex items-center gap-2"
                                     >
-                                        <RefreshCw size={20} className={quizzesLoading ? 'animate-spin' : ''} />
+                                        <RefreshCw size={18} className={quizzesLoading ? 'animate-spin' : ''} />
+                                        <span className="text-sm font-bold hidden md:inline">Làm mới</span>
                                     </button>
                                 </div>
 
                                 {quizzesLoading ? (
                                     <div className="py-20 flex flex-col items-center justify-center gap-4 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
                                         <Spin size="large" />
-                                        <p className="text-slate-400 font-medium">Đang tải danh sách bài tập...</p>
-                                    </div>
-                                ) : summativeQuizzes.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {summativeQuizzes.map((quiz, idx) => (
-                                            <div key={quiz.id || idx} className="group relative bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 overflow-hidden">
-                                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/30 blur-3xl rounded-full translate-x-10 -translate-y-10 group-hover:scale-150 transition-transform duration-1000" />
-
-                                                <div className="relative z-10">
-                                                    <div className="flex items-center gap-4 mb-6">
-                                                        <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-100/50 shadow-inner group-hover:rotate-12 transition-transform duration-500">
-                                                            <ListChecks size={28} />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <h4 className="text-lg font-bold text-slate-900 leading-tight mb-1 truncate">{quiz.title || 'Bài tập tổng kết'}</h4>
-                                                            <span className="px-2.5 py-1 bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-amber-100">Summative</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-2 gap-4 mb-8">
-                                                        <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col">
-                                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Số câu hỏi</span>
-                                                            <span className="text-sm font-bold text-slate-900">{quiz.totalQuestions || 0} câu</span>
-                                                        </div>
-                                                        <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col">
-                                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Thời gian</span>
-                                                            <span className="text-sm font-bold text-slate-900">{quiz.duration || quiz.timeLimit || 15} phút</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <Link
-                                                        to={`/dashboard/student/quizzes/${quiz.id || quiz.quizId}`}
-                                                        className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-blue-600 transition-all shadow-lg hover:-translate-y-1 active:scale-95 group-hover:shadow-blue-500/20"
-                                                    >
-                                                        Bắt đầu làm bài
-                                                        <ArrowRight size={18} />
-                                                    </Link>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        <p className="text-slate-400 font-medium tracking-wide">Đang tải danh sách bài tập...</p>
                                     </div>
                                 ) : (
-                                    <div className="bg-white rounded-[2.5rem] p-16 border border-slate-100 text-center shadow-sm">
-                                        <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-slate-100">
-                                            <ListChecks size={48} className="text-slate-200" />
+                                    <div className="space-y-10">
+                                        {/* Summative Quizzes */}
+                                        <div className="space-y-6">
+                                            <div className="flex items-center gap-3 border-l-4 border-amber-400 pl-4">
+                                                <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+                                                    <Trophy size={16} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-slate-900 leading-tight mb-0.5">Bài tập tổng kết (Summative)</h3>
+                                                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Đánh giá chung khóa học</p>
+                                                </div>
+                                            </div>
+
+                                            {summativeQuizzes.length > 0 ? (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    {summativeQuizzes.map((quiz, idx) => (
+                                                        <div key={quiz.id || idx} className="group relative bg-white border border-slate-100 rounded-[2rem] p-6 text-left shadow-sm hover:shadow-2xl hover:border-amber-200 hover:shadow-amber-500/10 transition-all duration-300 overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50/50 blur-3xl rounded-full translate-x-10 -translate-y-10 group-hover:scale-150 transition-transform duration-1000 pointer-events-none" />
+
+                                                            <div className="relative z-10">
+                                                                <div className="flex items-start justify-between mb-4">
+                                                                    <div className="flex gap-3">
+                                                                        <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100 shadow-sm group-hover:rotate-12 transition-transform duration-500">
+                                                                            <ListChecks size={22} />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h4 className="text-base font-bold text-slate-900 leading-tight mb-1 truncate">{quiz.title || 'Bài tập tổng kết'}</h4>
+                                                                            <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-amber-200 shadow-sm">Summative</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-3 gap-3 mb-6">
+                                                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-center items-center">
+                                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Câu hỏi</span>
+                                                                        <span className="text-sm font-bold text-slate-800">{quiz.totalQuestions || quiz.questions?.length || 0}</span>
+                                                                    </div>
+                                                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-center items-center">
+                                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Thời gian</span>
+                                                                        <span className="text-sm font-bold text-slate-800">{quiz.duration || quiz.timeLimit || 0}p</span>
+                                                                    </div>
+                                                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-center items-center">
+                                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Điểm đạt</span>
+                                                                        <span className="text-sm font-bold text-emerald-600">{quiz.passingScore || 50}%</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <Link
+                                                                    to={`/dashboard/student/quizzes/${quiz.id || quiz.quizId}`}
+                                                                    className="w-full h-11 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-[#0487e2] transition-colors shadow-md group-hover:shadow-blue-500/20"
+                                                                >
+                                                                    Làm bài ngay
+                                                                    <ArrowRight size={16} />
+                                                                </Link>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="py-10 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200 text-center">
+                                                    <ListChecks size={32} className="mx-auto text-slate-300 mb-3" />
+                                                    <p className="text-sm font-medium text-slate-500">Chưa có bài tập tổng kết nào.</p>
+                                                </div>
+                                            )}
                                         </div>
-                                        <h3 className="text-xl font-bold text-slate-900 mb-3">Chưa có bài tập tổng kết</h3>
-                                        <p className="text-slate-500 text-sm max-w-sm mx-auto font-medium mb-10 leading-relaxed">
-                                            Hiện tại chưa có bài kiểm tra tổng kết cho khóa học này. Hãy hoàn thành các bài học để sẵn sàng nhé!
-                                        </p>
-                                        <button
-                                            onClick={() => setActiveTab('curriculum')}
-                                            className="px-8 py-4 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20"
-                                        >
-                                            Tiếp tục học tập
-                                        </button>
+
+                                        {/* Formative Quizzes */}
+                                        <div className="space-y-6">
+                                            <div className="flex items-center gap-3 border-l-4 border-blue-400 pl-4">
+                                                <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500">
+                                                    <BookOpen size={16} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-slate-900 leading-tight mb-0.5">Bài luyện tập (Formative)</h3>
+                                                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Đánh giá theo bài học</p>
+                                                </div>
+                                            </div>
+
+                                            {formativeQuizzes.length > 0 ? (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    {formativeQuizzes.map((quiz, idx) => (
+                                                        <div key={quiz.id || idx} className="group relative bg-white border border-slate-100 rounded-[2rem] p-6 text-left shadow-sm hover:shadow-xl hover:border-blue-200 hover:shadow-blue-500/10 transition-all duration-300 overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 blur-3xl rounded-full translate-x-12 -translate-y-12 group-hover:scale-150 transition-transform duration-1000 pointer-events-none" />
+
+                                                            <div className="relative z-10">
+                                                                <div className="flex items-start justify-between mb-4">
+                                                                    <div className="flex gap-3">
+                                                                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 shadow-sm">
+                                                                            <FileText size={18} />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h4 className="text-sm font-bold text-slate-900 leading-tight mb-1 truncate max-w-[180px]">{quiz.title || 'Bài luyện tập'}</h4>
+                                                                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-widest rounded border border-blue-200">Formative</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {quiz.lessonName && (
+                                                                    <div className="flex items-center gap-1.5 mb-5 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100 w-fit">
+                                                                        <BookOpen size={12} className="text-slate-400" />
+                                                                        <span className="text-[10px] font-bold text-slate-500 truncate max-w-[200px]">
+                                                                            Bài: {quiz.lessonName}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+
+                                                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                                                    <div className="flex items-center gap-2 bg-slate-50 py-2 px-3 rounded-lg border border-slate-100">
+                                                                        <Clock size={14} className="text-slate-400" />
+                                                                        <span className="text-xs font-bold text-slate-700">{quiz.timeLimit || 0} phút</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 bg-slate-50 py-2 px-3 rounded-lg border border-slate-100">
+                                                                        <Target size={14} className="text-emerald-500" />
+                                                                        <span className="text-xs font-bold text-slate-700">{quiz.questions?.length || quiz.totalQuestions || 0} câu</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <Link
+                                                                    to={`/dashboard/student/quizzes/${quiz.id || quiz.quizId}`}
+                                                                    className="w-full h-10 flex items-center justify-center gap-2 bg-[#0487e2] text-white rounded-xl font-bold text-xs hover:bg-[#0374c4] transition-colors shadow-sm"
+                                                                >
+                                                                    Bắt đầu luyện tập
+                                                                    <ArrowRight size={14} />
+                                                                </Link>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="py-10 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200 text-center">
+                                                    <BookOpen size={32} className="mx-auto text-slate-300 mb-3" />
+                                                    <p className="text-sm font-medium text-slate-500">Chưa có bài luyện tập nào.</p>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         )}
                     </div>
 
-                    {/* Sidebar Area */}
-                    <div className="space-y-8">
+                    <div className="space-y-6 lg:col-span-1">
                         {/* Live/Next session info */}
-                        <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm overflow-hidden relative group">
-                            <div className="relative z-10">
-                                <h4 className="text-[10px] font-black text-[#0487e2] uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                                    <Clock size={14} />
-                                    Lịch học tiếp theo
-                                </h4>
-                                <div className="p-5 bg-blue-50/50 rounded-3xl border border-blue-100 mb-6">
-                                    <p className="text-base font-bold text-slate-900 mb-1 leading-tight">{nextClass.title}</p>
-                                    <p className="text-xs text-slate-500 font-medium mb-3">{nextClass.description}</p>
-                                    <div className="flex items-center gap-2 text-[10px] font-bold text-[#0487e2] uppercase tracking-wider">
-                                        <Clock size={12} strokeWidth={3} />
-                                        {nextClass.time}
-                                    </div>
+                        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm relative overflow-hidden group">
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <Clock size={14} className="text-[#0487e2]" />
+                                Lịch học tiếp theo
+                            </h4>
+                            <div className="p-4 bg-blue-50 rounded-lg mb-4">
+                                <p className="text-sm font-bold text-slate-800 mb-1">{nextClass.title}</p>
+                                <p className="text-xs text-slate-500 mb-2">{nextClass.description}</p>
+                                <div className="flex items-center gap-2 text-xs font-bold text-[#0487e2]">
+                                    <Clock size={12} />
+                                    {nextClass.time}
                                 </div>
-                                <button className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-slate-200">
-                                    Mở Zoom / Google Meet
-                                </button>
                             </div>
-                            <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-blue-50/50 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+                            <button className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition-colors">
+                                Mở Zoom / Google Meet
+                            </button>
                         </div>
 
                         {/* Resources area */}
-                        <div className="bg-white rounded-[3rem] p-8 border border-slate-100 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.04)] overflow-hidden relative">
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50/30 blur-3xl rounded-full" />
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
+                        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm relative overflow-hidden">
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                                 <FileText size={14} className="text-blue-500" />
                                 Học liệu bổ trợ
                             </h4>
-                            <div className="space-y-4">
+                            <div className="space-y-2">
                                 {resources.map((resource, rIdx) => {
                                     const Icon = resource.icon;
                                     return (
                                         <button
                                             key={resource.id}
-                                            className="w-full flex items-center justify-between p-5 rounded-[2rem] bg-slate-50/50 hover:bg-white transition-all duration-300 border border-transparent hover:border-blue-100 group shadow-sm hover:shadow-xl hover:shadow-blue-500/5"
+                                            className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-blue-50 transition-colors border-transparent hover:border-blue-100 group shadow-sm text-left"
                                         >
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-blue-600 group-hover:border-blue-100 shadow-sm transition-all duration-500 group-hover:rotate-[10deg]">
-                                                    <Icon size={20} />
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-md bg-white border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-[#0487e2] shadow-sm transition-colors">
+                                                    <Icon size={14} />
                                                 </div>
-                                                <div className="text-left">
-                                                    <span className="block text-sm font-black text-slate-800 tracking-tight leading-none mb-1 uppercase">{resource.title}</span>
-                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">PDF • v.1.0</span>
+                                                <div className="text-left flex-1 min-w-0">
+                                                    <span className="block text-[13px] font-semibold text-slate-700 truncate">{resource.title}</span>
+                                                    <span className="text-[10px] text-slate-400 uppercase tracking-widest">PDF • 1.2MB</span>
                                                 </div>
                                             </div>
-                                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-slate-300 bg-white group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm">
-                                                <Download size={16} />
+                                            <div className="w-7 h-7 rounded text-slate-300 group-hover:text-[#0487e2] flex items-center justify-center transition-colors">
+                                                <Download size={14} />
                                             </div>
                                         </button>
                                     );
@@ -614,27 +675,24 @@ export default function CourseDetail() {
                         </div>
 
                         {/* Instructor Note */}
-                        <div className="relative group overflow-hidden bg-gradient-to-br from-amber-400 to-orange-500 rounded-[3rem] p-10 text-white shadow-2xl shadow-orange-500/20">
-                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 blur-3xl rounded-full transition-transform duration-1000 group-hover:scale-150" />
+                        <div className="bg-gradient-to-br from-amber-400 to-amber-500 rounded-xl p-6 text-white shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-2xl rounded-full" />
                             <div className="relative z-10">
-                                <div className="flex items-center gap-4 mb-8">
-                                    <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl overflow-hidden">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 overflow-hidden">
                                         {courseData.instructorThumbnail ? (
                                             <img src={courseData.instructorThumbnail} className="w-full h-full object-cover" alt="Instructor" />
                                         ) : (
-                                            <User size={24} className="text-white" />
+                                            <User size={18} className="text-white" />
                                         )}
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 leading-none mb-1.5">Note from Instructor</p>
-                                        <h5 className="text-lg font-bold tracking-tight leading-none">{courseInfo.instructor}</h5>
+                                        <p className="text-[10px] uppercase tracking-wider opacity-80 mb-0.5 font-bold">Lời nhắn từ Giảng viên</p>
+                                        <h5 className="text-sm font-bold">{courseInfo.instructor}</h5>
                                     </div>
                                 </div>
-                                <div className="relative">
-                                    <MessageSquare size={48} className="absolute -top-6 -left-6 opacity-10 rotate-12" />
-                                    <p className="text-sm font-bold leading-relaxed italic relative z-10 text-white/90">
-                                        "Các em nhớ hoàn thành bài tập trắc nghiệm chương 1 trước thứ Sáu tuần này để thầy tổng hợp điểm cộng nhé. Chúc các em học tốt!"
-                                    </p>
+                                <div className="bg-white/10 rounded-lg p-4 text-sm font-medium leading-relaxed italic border border-white/10 backdrop-blur-sm">
+                                    "Các em nhớ hoàn thành bài tập trắc nghiệm chương 1 trước thứ Sáu tuần này để thầy tổng hợp điểm cộng nhé. Chúc các em học tốt!"
                                 </div>
                             </div>
                         </div>

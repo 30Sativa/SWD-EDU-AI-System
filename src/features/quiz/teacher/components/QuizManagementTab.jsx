@@ -34,6 +34,7 @@ import {
     getLessonQuizzes,
     createSummativeQuiz,
     updateQuiz,
+    updateAttemptSettings,
     deleteQuiz
 } from '../api/quizApi';
 
@@ -233,12 +234,14 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
     const handleQuizSubmit = async (values) => {
         try {
             setSubmitting(true);
+            const attemptSettingsValue = values.maxAttempts === 0 ? null : (values.maxAttempts || null);
+
             const payload = {
                 courseId: courseId,
                 title: values.title,
                 description: values.description || "",
                 timeLimit: values.timeLimit || 0,
-                maxAttempts: values.maxAttempts || 1,
+                maxAttempts: attemptSettingsValue, // Pass it along for Creation if needed
                 passingScore: values.passingScore || 50,
                 isPublished: values.isPublished ?? false,
                 isRequired: true,
@@ -248,6 +251,7 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
 
             if (editingQuiz) {
                 await updateQuiz(editingQuiz.id, payload);
+                await updateAttemptSettings(editingQuiz.id, attemptSettingsValue);
                 message.success('Cập nhật bài kiểm tra thành công!');
             } else {
                 await createSummativeQuiz(payload);
@@ -463,11 +467,16 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
                             </Form.Item>
 
                             <Form.Item
-                                label={<span className="font-bold text-slate-600 text-xs text-center block w-full">Số lượt (lần)</span>}
+                                label={
+                                    <div className="text-center w-full">
+                                        <span className="font-bold text-slate-600 text-xs">Số lượt làm</span>
+                                        <span className="block text-[10px] text-slate-400 font-medium">0 = Vô hạn</span>
+                                    </div>
+                                }
                                 name="maxAttempts"
                                 rules={[{ required: true, message: 'Thiếu' }]}
                             >
-                                <InputNumber min={1} className="w-full h-10 rounded-xl flex items-center bg-white border-none shadow-sm" />
+                                <InputNumber min={0} className="w-full h-10 rounded-xl flex items-center bg-white border-none shadow-sm" />
                             </Form.Item>
 
                             <Form.Item

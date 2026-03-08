@@ -28,6 +28,11 @@ export const updateQuiz = (quizId, data) => {
     return axiosClient.put(`/api/teacher/quizzes/${quizId}`, data);
 };
 
+// Update Quiz Attempt Settings
+export const updateAttemptSettings = (quizId, maxAttempts) => {
+    return axiosClient.put(`/api/teacher/quizzes/${quizId}/attempt-settings`, { maxAttempts });
+};
+
 // Delete Quiz
 export const deleteQuiz = (quizId) => {
     return axiosClient.delete(`/api/teacher/quizzes/${quizId}`);
@@ -87,6 +92,7 @@ export const getLessonQuizzes = (lessonId) => {
 
 // Start Attempt
 export const startQuizAttempt = (quizId) => {
+    console.log(`Starting quiz attempt for: ${quizId}`);
     return axiosClient.post(`/api/student/quizzes/${quizId}/attempts/start`, {});
 };
 

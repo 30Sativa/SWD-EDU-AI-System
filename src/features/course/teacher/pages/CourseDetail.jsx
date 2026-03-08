@@ -59,7 +59,8 @@ import {
     getCourseQuizzes,
     updateQuiz,
     deleteQuiz,
-    getQuizDetail
+    getQuizDetail,
+    updateAttemptSettings
 } from '../../../quiz/teacher/api/quizApi';
 import QuizManagementTab from '../../../quiz/teacher/components/QuizManagementTab';
 
@@ -268,11 +269,13 @@ export default function CourseDetail() {
     const handleQuizSubmit = async (values) => {
         try {
             setSubmitting(true);
+            const attemptSettingsValue = values.maxAttempts === 0 ? null : (parseInt(values.maxAttempts) || null);
+
             const payload = {
                 title: values.title,
                 description: values.description || "",
                 timeLimit: parseInt(values.timeLimit) || 0,
-                maxAttempts: parseInt(values.maxAttempts) || 0,
+                maxAttempts: attemptSettingsValue,
                 passingScore: parseInt(values.passingScore) || 50,
                 isPublished: values.isPublished ?? true,
                 isRequired: values.isRequired ?? true,
@@ -281,7 +284,9 @@ export default function CourseDetail() {
             };
 
             if (editingQuiz) {
-                await updateQuiz(editingQuiz.id || editingQuiz.quizId, payload);
+                const quizIdToUpdate = editingQuiz.id || editingQuiz.quizId;
+                await updateQuiz(quizIdToUpdate, payload);
+                await updateAttemptSettings(quizIdToUpdate, attemptSettingsValue);
                 message.success('Cập nhật thông tin Quiz thành công!');
             } else if (quizMode === 'formative') {
                 payload.lessonId = activeQuizTargetId;
@@ -1734,8 +1739,8 @@ export default function CourseDetail() {
                         <Form.Item name="passingScore" label="Điểm đạt (%)">
                             <Input className="h-11 rounded-lg bg-slate-50 border-transparent shadow-none" type="number" placeholder="50" />
                         </Form.Item>
-                        <Form.Item name="maxAttempts" label="Số lần làm tối đa">
-                            <Input className="h-11 rounded-lg bg-slate-50 border-transparent shadow-none" type="number" placeholder="1" />
+                        <Form.Item name="maxAttempts" label="Số lượt (0 = Vô hạn)">
+                            <Input className="h-11 rounded-lg bg-slate-50 border-transparent shadow-none" type="number" min={0} placeholder="1" />
                         </Form.Item>
                     </div>
 

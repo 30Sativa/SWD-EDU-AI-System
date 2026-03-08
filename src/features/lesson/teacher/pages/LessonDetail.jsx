@@ -42,7 +42,7 @@ import {
     updateLessonFaq,
     deleteLessonFaq
 } from '../../api/lessonApi';
-import { getLessonQuizzes, createFormativeQuiz, updateQuiz, deleteQuiz } from '../../../quiz/teacher/api/quizApi';
+import { getLessonQuizzes, createFormativeQuiz, updateQuiz, deleteQuiz, updateAttemptSettings } from '../../../quiz/teacher/api/quizApi';
 
 
 const getYoutubeId = (url) => {
@@ -370,12 +370,20 @@ export default function LessonDetail() {
     const handleQuizSubmit = async (values) => {
         try {
             setSubmittingQuiz(true);
+            const attemptSettingsValue = values.maxAttempts === 0 ? null : (values.maxAttempts || null);
+
+            const payload = {
+                ...values,
+                maxAttempts: attemptSettingsValue
+            };
+
             if (editingQuiz) {
-                await updateQuiz(editingQuiz.id, values);
+                await updateQuiz(editingQuiz.id, payload);
+                await updateAttemptSettings(editingQuiz.id, attemptSettingsValue);
                 message.success("Cập nhật bài kiểm tra thành công");
             } else {
                 await createFormativeQuiz({
-                    ...values,
+                    ...payload,
                     lessonId: lessonId
                 });
                 message.success("Tạo bài kiểm tra thành công");
@@ -1181,11 +1189,11 @@ export default function LessonDetail() {
                             </Form.Item>
                             <Form.Item
                                 name="maxAttempts"
-                                label={<span className="font-semibold text-slate-600 text-xs">Số lần làm lại</span>}
+                                label={<span className="font-semibold text-slate-600 text-xs text-center block w-full">Số lượt (0 = Vô hạn)</span>}
                                 initialValue={1}
                                 className="mb-0"
                             >
-                                <InputNumber min={1} max={10} className="w-full h-10 rounded-lg flex items-center" />
+                                <InputNumber min={0} max={10} className="w-full h-10 rounded-lg flex items-center" />
                             </Form.Item>
                             <Form.Item
                                 name="isPublished"

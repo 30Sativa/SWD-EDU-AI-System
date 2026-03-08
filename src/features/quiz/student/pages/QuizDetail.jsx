@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getQuizDetail, startQuizAttempt, submitQuizAttempt, getQuizAttemptResult } from '../api/quizApi';
-import { Spin, message } from 'antd';
+import { Spin, message, Modal } from 'antd';
 
 export default function QuizDetail() {
     const navigate = useNavigate();
@@ -90,28 +90,85 @@ export default function QuizDetail() {
             setAttemptId(data.attemptId || data.id);
             setMode('taking');
         } catch (error) {
-            console.error("Lỗi khi bắt đầu làm bài:", error.response?.data || error);
-            const serverMsg = error.response?.data?.message || error.response?.data?.Message;
+            const errorData = error.response?.data;
+            let serverMsg = errorData?.message || errorData?.Message || errorData?.error || errorData?.title;
+
+            // Handle validation errors from .NET
+            if (errorData?.errors) {
+                serverMsg = Object.entries(errorData.errors)
+                    .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(", ") : val}`)
+                    .join("; ");
+            } else if (errorData && typeof errorData === 'object' && !serverMsg) {
+                serverMsg = JSON.stringify(errorData);
+            }
+
+            // Detect stuck/unsubmitted attempt from server message
+            if (serverMsg) {
+                // Pattern: "AttemptId: <uuid>"
+                const match = serverMsg.match(/AttemptId:\s*([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/);
+                if (match && match[1]) {
+                    const stuckAttemptId = match[1];
+                    Modal.confirm({
+                        title: 'Bài làm chưa nộp',
+                        content: 'Bạn đang có một lượt làm bài trước đó chưa nộp. Bạn muốn tiếp tục làm bài dở hay nộp ngay (bỏ trống)?',
+                        okText: 'Tiếp tục làm bài',
+                        cancelText: 'Nộp ngay (bỏ trống)',
+                        cancelButtonProps: { danger: true },
+                        zIndex: 10000,
+                        onOk: async () => {
+                            // Resume the existing attempt - fetch questions first
+                            try {
+                                setLoading(true);
+                                const qRes = await getQuizDetail(quizId);
+                                const qData = qRes.data || qRes;
+                                setQuizData(qData);
+                                if (qData.duration || qData.timeLimit) {
+                                    setTimeLeft((qData.duration || qData.timeLimit) * 60);
+                                }
+                                setAttemptId(stuckAttemptId);
+                                setMode('taking');
+                            } catch (e) {
+                                message.error("Không thể tiếp tục bài làm. Vui lòng thử lại.");
+                            } finally {
+                                setLoading(false);
+                            }
+                        },
+                        onCancel: async () => {
+                            try {
+                                await submitQuizAttempt(stuckAttemptId, { timeSpentSeconds: 0, answers: [] });
+                                message.success("Dọn dẹp bài làm cũ thành công! Bạn có thể nhấn 'Bắt đầu làm bài' một lần nữa.");
+                                setTimeout(() => window.location.reload(), 1000);
+                            } catch (e) {
+                                message.error("Lỗi khi nộp bài cũ.");
+                            }
+                        }
+                    });
+                    return;
+                }
+            }
+
+            // Generic error fallback
             message.error(serverMsg || "Không thể bắt đầu làm bài. Vui lòng thử lại.");
         }
     };
+
+    // Helper: build submit payload safely (selectedOptionId must be UUID or null, never empty string)
+    const buildSubmitPayload = (timeSpentSeconds) => ({
+        timeSpentSeconds: timeSpentSeconds > 0 ? timeSpentSeconds : 0,
+        answers: Object.entries(answers).map(([qId, oId]) => ({
+            questionId: qId,
+            selectedOptionId: (oId && oId.trim() !== '') ? oId : null,
+            answerText: null
+        }))
+    });
 
     const handleSubmitQuiz = async () => {
         if (!window.confirm('Bạn có chắc chắn muốn nộp bài?')) return;
 
         setSubmitting(true);
         try {
-            // Convert answers to the format expected by API
-            // Usually it's structure like { answers: [{ questionId, optionId }] }
             const timeSpentSeconds = (quizData.duration || quizData.timeLimit || 45) * 60 - timeLeft;
-            const payload = {
-                timeSpentSeconds: timeSpentSeconds > 0 ? timeSpentSeconds : 0,
-                answers: Object.entries(answers).map(([qId, oId]) => ({
-                    questionId: qId,
-                    selectedOptionId: oId,
-                    answerText: ""
-                }))
-            };
+            const payload = buildSubmitPayload(timeSpentSeconds);
 
             await submitQuizAttempt(attemptId, payload);
 
@@ -119,20 +176,46 @@ export default function QuizDetail() {
             const res = await getQuizAttemptResult(attemptId);
             setResultData(res.data || res);
             setMode('completed');
+            message.success("Nộp bài thành công!");
         } catch (error) {
-            console.error("Lỗi khi nộp bài:", error);
-            message.error("Gặp lỗi khi nộp bài. Vui lòng thử lại.");
+            const errMsg = error.response?.data?.message || error.response?.data?.title || "Gặp lỗi khi nộp bài. Vui lòng thử lại.";
+            message.error(errMsg);
         } finally {
             setSubmitting(false);
         }
     };
 
+    // Auto submit when time is up
     useEffect(() => {
         if (mode === 'taking') {
             const timer = setInterval(() => {
                 setTimeLeft((prev) => {
-                    if (prev <= 0) {
-                        setMode('completed');
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        message.warning("Đã hết thời gian làm bài! Hệ thống đang tự động nộp bài...");
+                        // Call submit automatically bypassing the confirm dialog
+                        const autoSubmit = async () => {
+                            setSubmitting(true);
+                            try {
+                                const payload = {
+                                    timeSpentSeconds: (quizData.duration || quizData.timeLimit || 45) * 60,
+                                    answers: Object.entries(answers).map(([qId, oId]) => ({
+                                        questionId: qId,
+                                        selectedOptionId: (oId && oId.trim() !== '') ? oId : null,
+                                        answerText: null
+                                    }))
+                                };
+                                await submitQuizAttempt(attemptId, payload);
+                                const res = await getQuizAttemptResult(attemptId);
+                                setResultData(res.data || res);
+                                setMode('completed');
+                            } catch (e) {
+                                message.error("Lỗi tự động nộp bài.");
+                            } finally {
+                                setSubmitting(false);
+                            }
+                        };
+                        autoSubmit();
                         return 0;
                     }
                     return prev - 1;
@@ -140,7 +223,48 @@ export default function QuizDetail() {
             }, 1000);
             return () => clearInterval(timer);
         }
+    }, [mode, attemptId, answers, quizData]);
+
+    // Handle Before Unload (closing tab or refreshing while taking test)
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (mode === 'taking') {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [mode]);
+
+    const handleGoBackWhileTaking = () => {
+        Modal.confirm({
+            title: 'Chưa nộp bài',
+            content: 'Bạn đang trong quá trình làm bài. Nếu thoát bây giờ, hệ thống sẽ tự động Tự Nộp Bài của bạn với kết quả hiện tại. Bạn có chắc chắn muốn thoát?',
+            okText: 'Thoát và Nộp',
+            okType: 'danger',
+            cancelText: 'Tiếp tục làm bài',
+            onOk: async () => {
+                setSubmitting(true);
+                try {
+                    const timeSpentSeconds = (quizData.duration || quizData.timeLimit || 45) * 60 - timeLeft;
+                    const payload = {
+                        timeSpentSeconds: timeSpentSeconds > 0 ? timeSpentSeconds : 0,
+                        answers: Object.entries(answers).map(([qId, oId]) => ({
+                            questionId: qId,
+                            selectedOptionId: (oId && oId.trim() !== '') ? oId : null,
+                            answerText: null
+                        }))
+                    };
+                    await submitQuizAttempt(attemptId, payload);
+                    navigate('/dashboard/student/quizzes');
+                } catch (e) {
+                    message.error("Lỗi nộp bài.");
+                    setSubmitting(false);
+                }
+            }
+        });
+    };
 
     // Scroll chat to bottom
     useEffect(() => {
@@ -242,6 +366,10 @@ export default function QuizDetail() {
     }
 
     if (mode === 'start') {
+        const _maxAttempts = quizData.maxAttempts || 0;
+        const _attemptsUsed = quizData.attemptsUsed || 0;
+        const isLimitReached = _maxAttempts > 0 && _attemptsUsed >= _maxAttempts;
+
         return (
             <div className="fixed inset-0 bg-slate-50 flex items-center justify-center p-4 z-[9999] overflow-y-auto custom-scrollbar">
                 {scrollbarStyle}
@@ -252,17 +380,18 @@ export default function QuizDetail() {
                     </div>
                     <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">{quizData.title}</h1>
                     <p className="text-slate-500 font-medium mb-10">Vui lòng đọc kỹ thông tin trước khi bắt đầu bài làm.</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
                         {[
                             { label: 'MÔN HỌC', value: quizData.subjectName || 'Bài tập', icon: LayoutGrid },
                             { label: 'THỜI GIAN', value: `${quizData.duration || quizData.timeLimit || 45} phút`, icon: Clock },
                             { label: 'SỐ CÂU', value: `${quizData.totalQuestions || (quizData.questions?.length || 0)} câu`, icon: ClipboardList },
                             { label: 'HÌNH THỨC', value: quizData.quizType === 'Summative' ? 'Tổng hợp' : 'Luyện tập', icon: BookOpen },
+                            { label: 'LƯỢT LÀM', value: _maxAttempts > 0 ? `${_attemptsUsed}/${_maxAttempts}` : 'Không giới hạn', icon: RefreshCw, warning: isLimitReached },
                         ].map((stat, i) => (
-                            <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                <stat.icon className="text-blue-600 mx-auto mb-2 opacity-80" size={20} />
-                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{stat.label}</p>
-                                <p className="text-sm font-semibold text-slate-900">{stat.value}</p>
+                            <div key={i} className={`p-4 rounded-xl border ${stat.warning ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'}`}>
+                                <stat.icon className={`mx-auto mb-2 opacity-80 ${stat.warning ? 'text-red-600' : 'text-blue-600'}`} size={20} />
+                                <p className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${stat.warning ? 'text-red-400' : 'text-slate-400'}`}>{stat.label}</p>
+                                <p className={`text-sm font-semibold ${stat.warning ? 'text-red-700' : 'text-slate-900'}`}>{stat.value}</p>
                             </div>
                         ))}
                     </div>
@@ -276,7 +405,21 @@ export default function QuizDetail() {
                     </div>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <button onClick={() => navigate(-1)} className="w-full sm:w-auto px-8 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl transition-all">Quay lại</button>
-                        <button onClick={handleStartQuiz} className="w-full sm:w-auto px-12 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-200 transition-all hover:-translate-y-1 text-lg">Bắt đầu làm bài</button>
+                        <button
+                            onClick={handleStartQuiz}
+                            disabled={isLimitReached}
+                            className={`w-full sm:w-auto px-12 py-4 font-semibold rounded-xl text-lg transition-all ${isLimitReached
+                                ? 'bg-slate-200 text-slate-400 cursor-not-allowed hidden' // hide if they reach limit, could just show 'Quay lại' or 'Xem kết quả'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200 hover:-translate-y-1'
+                                }`}
+                        >
+                            Bắt đầu làm bài
+                        </button>
+                        {isLimitReached && (
+                            <button disabled className="w-full sm:w-auto px-8 py-4 bg-red-100 text-red-600 font-semibold rounded-xl cursor-not-allowed">
+                                Đã hết lượt làm bài
+                            </button>
+                        )}
                     </div>
                     <p className="mt-6 text-slate-400 text-xs font-medium">Bằng cách nhấn bắt đầu, đồng hồ đếm ngược sẽ khởi chạy ngay lập tức.</p>
                 </div>
@@ -596,13 +739,13 @@ export default function QuizDetail() {
             <header className="h-16 bg-white border-b border-slate-200 flex-shrink-0 z-50">
                 <div className="h-full px-6 flex items-center justify-between max-w-[1600px] mx-auto w-full">
                     <div className="flex items-center gap-4 overflow-hidden">
-                        <button onClick={() => navigate('/dashboard/student/quizzes')} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors">
+                        <button onClick={handleGoBackWhileTaking} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors">
                             <ArrowLeft size={20} />
                         </button>
                         <div className="hidden sm:flex w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white flex-shrink-0">
                             <ClipboardList size={22} />
                         </div>
-                        <h2 className="text-base sm:text-lg font-bold text-slate-900 truncate">{quiz.title}</h2>
+                        <h2 className="text-base sm:text-lg font-bold text-slate-900 truncate">{quizData.title}</h2>
                     </div>
 
                     <div className="flex items-center gap-3 sm:gap-4 bg-blue-50 px-3 sm:px-4 py-2 rounded-xl border border-blue-100 shadow-sm flex-shrink-0">
