@@ -423,11 +423,9 @@ export default function CourseDetail() {
                         const secId = sec.id || sec.Id || sec.sectionId || sec.SectionId;
                         const secSortOrder = sec.sortOrder ?? sec.SortOrder ?? sec.order ?? sec.Order ?? 0;
                         const existing = prev.find(s => (s.id || s.Id) === secId);
-                        // If the backend returned new lessons, we should merge or prefer them.
-                        // But we also need to maintain isExpanded state.
+
                         const currentLessons = existing?.lessons || [];
                         const apiLessons = sec.lessons || sec.Lessons || [];
-                        // Prefer existing ONLY if API didn't return any nested, else use API
                         const lessonsToKeep = apiLessons.length > 0 ? apiLessons : currentLessons;
 
                         return {
@@ -440,6 +438,12 @@ export default function CourseDetail() {
                     });
 
                 return [...mapped].sort((a, b) => (a.sortOrder - b.sortOrder) || String(a.id).localeCompare(String(b.id)));
+            });
+
+            // Trigger Fetching lessons for all sections AFTER setting state to show accurate counts
+            structure.forEach(sec => {
+                const secId = sec.id || sec.Id || sec.sectionId || sec.SectionId;
+                if (secId) fetchSectionLessons(secId);
             });
 
             // Fallback: If structure is still empty, try to get from course object
