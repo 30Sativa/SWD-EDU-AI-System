@@ -29,8 +29,19 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 CreatedAt = logDomain.CreatedAt ?? DateTime.UtcNow
             };
 
-            await _context.Ailogs.AddAsync(entity, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.Ailogs.AddAsync(entity, cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Nếu insert log thất bại (ví dụ CHECK constraint), entity vẫn bị EF track (Added)
+                // và có thể làm các SaveChanges khác trong cùng request thất bại theo.
+                // Detach để không "poison" DbContext. Logging là phụ, không được làm fail luồng chính.
+                _context.Entry(entity).State = EntityState.Detached;
+                return;
+            }
         }
 
         public async Task<int> GetTotalCallsAsync(DateTime? from, DateTime? to, CancellationToken ct = default)
