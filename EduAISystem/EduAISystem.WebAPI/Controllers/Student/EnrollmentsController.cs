@@ -1,4 +1,4 @@
-﻿using EduAISystem.Application.Common.Models;
+using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Enrollments.Commands;
 using EduAISystem.Application.Features.Enrollments.DTOs.Response;
 using EduAISystem.Application.Features.Enrollments.Queries;
@@ -56,6 +56,27 @@ namespace EduAISystem.WebAPI.Controllers.Student
 
             return Ok(ApiResponse<PagedResult<MyEnrolledCourseResponseDto>>
                 .Ok(result, "Get enrolled courses successfully"));
+        }
+
+        // =========================
+        // GET COURSE PROGRESS DETAIL
+        // =========================
+        [HttpGet("{courseId:guid}/progress")]
+        [SwaggerOperation(
+            Summary = "HS - Tiến độ chi tiết của khóa học",
+            Description = "Lấy outline khóa học (sections, lessons) kèm trạng thái hoàn thành và thời lượng đã xem cho từng bài, cho học sinh hiện tại."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<CourseProgressDetailResponseDto>))]
+        public async Task<IActionResult> GetCourseProgress(
+            Guid courseId,
+            CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(
+                new GetCourseProgressDetailQuery(courseId),
+                cancellationToken);
+
+            return Ok(ApiResponse<CourseProgressDetailResponseDto>
+                .Ok(result, "Get course progress successfully"));
         }
     }
 }

@@ -1,4 +1,5 @@
 using EduAISystem.Application.Abstractions.Persistence;
+using EduAISystem.Application.Common.Models;
 using EduAISystem.Infrastructure.Persistence.Context;
 using EduAISystem.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -137,6 +138,27 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
 
                 await _context.SaveChangesAsync(cancellationToken);
             }
+        }
+
+        public async Task<List<LessonProgressSnapshot>> GetByStudentAndCourseAsync(
+            Guid studentId,
+            Guid courseId,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _context.LessonProgresses
+                .AsNoTracking()
+                .Where(lp => lp.StudentId == studentId &&
+                             lp.Lesson.Section.CourseId == courseId);
+
+            return await query
+                .Select(lp => new LessonProgressSnapshot
+                {
+                    LessonId = lp.LessonId,
+                    IsCompleted = lp.IsCompleted == true,
+                    WatchedDuration = lp.WatchedDuration ?? 0,
+                    LastAccessedAt = lp.LastAccessedAt
+                })
+                .ToListAsync(cancellationToken);
         }
     }
 }

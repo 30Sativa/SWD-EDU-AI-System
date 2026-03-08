@@ -1,4 +1,4 @@
-﻿using EduAISystem.Application.Abstractions.Persistence;
+using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Enrollments.DTOs.Response;
