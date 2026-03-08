@@ -95,7 +95,6 @@ export default function SubjectManagement() {
         }
     };
 
-    // ===== CATEGORY HANDLERS =====
     const handleOpenCategoryModal = (record = null) => {
         if (record) {
             categoryForm.setFieldsValue({

@@ -23,6 +23,7 @@ import {
     Eye,
     FileVideo,
     MessageSquare,
+    Image,
     HelpCircle as QuestionIcon
 } from 'lucide-react';
 import { Upload, Tag, Button, Tabs, Switch, Breadcrumb, Spin, message, Empty, Tooltip, Modal, Input, Select, InputNumber, Form } from 'antd';
@@ -52,6 +53,49 @@ const getYoutubeId = (url) => {
     return (match && match[2].length === 11) ? match[2] : null;
 };
 
+// Hàm làm sạch markdown và JSON thừa từ stream (giúp chạy chữ như ChatGPT)
+const formatAIStream = (text) => {
+    if (!text) return '';
+    let cleaned = text;
+
+    // 1. Loại bỏ các khối code kĩ thuật
+    cleaned = cleaned.replace(/```(json|markdown|)\s*/gi, '');
+    cleaned = cleaned.replace(/```/g, '');
+
+    // 2. Xử lý các ký tự escape JSON (giúp hiển thị xuống dòng thực tế)
+    cleaned = cleaned.replace(/\\n/g, '\n');
+    cleaned = cleaned.replace(/\\"/g, '"');
+    cleaned = cleaned.replace(/\\r/g, '');
+    cleaned = cleaned.replace(/\\t/g, '    ');
+
+    // 3. Nếu AI lỡ trả về định dạng JSON, lọc bỏ các cấu trúc kĩ thuật cực kì triệt để
+    // Loại bỏ các key JSON phổ biến
+    cleaned = cleaned.replace(/"(blocks|blockType|title|content|estimatedMinutes|isRequired|sortOrder|inputSourceType|inputContent|lessonTitle|saveToDB)":/gi, '');
+    // Loại bỏ các dấu ngoặc, dấu phẩy dư thừa do cấu trúc JSON
+    cleaned = cleaned.replace(/[\[\]\{\}]/g, ' ');
+    cleaned = cleaned.replace(/,\s*"/g, '"');
+    cleaned = cleaned.replace(/",\s*"/g, ' ');
+    cleaned = cleaned.replace(/":\s*"/g, ': ');
+
+    // 4. Loại bỏ các dấu ngoặc kép ở đầu và cuối nội dung nếu còn sót
+    cleaned = cleaned.replace(/^"|"$|(?<=\s)"|"(?=\s)/g, '');
+
+    // 5. Làm sạch Markdown bold/italic (theo yêu cầu user)
+    cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, '$1');
+    cleaned = cleaned.replace(/\*(.*?)\*/g, '$1');
+
+    // 6. Dọn dẹp khoảng trắng thừa do việc xóa các ký tự trên
+    cleaned = cleaned.replace(/\n\s+\n/g, '\n\n');
+    cleaned = cleaned.replace(/ +/g, ' ');
+
+    return cleaned.trim();
+};
+
+const cleanMarkdown = (text) => {
+    if (!text) return '';
+    return text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
+};
+
 export default function LessonDetail() {
     const { courseId, lessonId } = useParams();
     const navigate = useNavigate();
@@ -66,6 +110,9 @@ export default function LessonDetail() {
     const [aiInputContent, setAiInputContent] = useState('');
     const [aiPreviewBlocks, setAiPreviewBlocks] = useState(null);
     const [isAIPreviewOpen, setIsAIPreviewOpen] = useState(false);
+    const [streamingContent, setStreamingContent] = useState('');
+    const [displayedStreamingContent, setDisplayedStreamingContent] = useState('');
+    const [isStreaming, setIsStreaming] = useState(false);
 
     // Quiz States
     const [quizzes, setQuizzes] = useState([]);
@@ -127,6 +174,19 @@ export default function LessonDetail() {
         }
     }, [lessonId, fetchLessonData]);
 
+    // Hiệu ứng "nhả chữ" (typewriter) cho AI streaming
+    useEffect(() => {
+        if (isStreaming && streamingContent.length > displayedStreamingContent.length) {
+            const timer = setTimeout(() => {
+                setDisplayedStreamingContent(streamingContent.substring(0, displayedStreamingContent.length + 3)); // Nhả 3 ký tự một lần
+            }, 30);
+            return () => clearTimeout(timer);
+        } else if (!isStreaming && streamingContent && displayedStreamingContent !== streamingContent) {
+            // Đảm bảo hiển thị hết chữ khi đã xong streaming
+            setDisplayedStreamingContent(streamingContent);
+        }
+    }, [streamingContent, displayedStreamingContent, isStreaming]);
+
     const handleTogglePublish = async (checked) => {
         try {
             await updateLesson(lessonId, { ...lesson, isPublished: checked });
@@ -145,38 +205,165 @@ export default function LessonDetail() {
 
         try {
             setIsAIGenerating(true);
-            const payload = {
-                inputSourceType: aiInputType,
-                inputContent: aiInputContent,
-                lessonTitle: lesson?.title || "Bài học mới",
-                saveToDB: false
-            };
-
-            await generateAIBlocks(lessonId, payload);
-            message.loading({ content: 'Đang lấy dữ liệu xem trước...', key: 'ai_loading' });
-
-            const previewRes = await getAIPreviewBlocks(lessonId);
-            const previewData = previewRes?.data || previewRes || [];
-
-            setAiPreviewBlocks(previewData);
-            message.success({ content: 'Đã sinh nội dung thành công!', key: 'ai_loading', duration: 2 });
-
+            setAiPreviewBlocks(null);
+            setStreamingContent('');
+            setIsStreaming(true);
             setIsAIModalOpen(false);
             setIsAIPreviewOpen(true);
+
+            // BƯỚC 1: STREAMING (Dùng fetch trực tiếp vì axios không hỗ trợ streaming tốt)
+            const token = localStorage.getItem('accessToken');
+            const response = await fetch(`/api/teacher/lessons/${lessonId}/blocks/generate-ai-stream`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    inputSourceType: aiInputType,
+                    inputContent: aiInputContent + "\n\n(Lưu ý: Hãy viết nội dung bài giảng chi tiết. KHÔNG sử dụng định dạng markdown bôi đậm bằng dấu ** hoặc * trong văn bản.)",
+                    lessonTitle: lesson?.title || "Bài học mới",
+                    saveToDB: false
+                })
+            });
+
+            if (!response.ok) throw new Error("Lỗi khi kết nối với luồng AI");
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let accumulatedText = '';
+            let sseBuffer = '';
+
+            setStreamingContent('');
+            setDisplayedStreamingContent('');
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                sseBuffer += chunk;
+
+                // Xử lý SSE (data: {...})
+                const lines = sseBuffer.split('\n');
+                sseBuffer = lines.pop(); // Giữ lại dòng cuối cùng (có thể chưa hoàn chỉnh)
+
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) continue;
+
+                    if (trimmedLine.startsWith('data: ')) {
+                        const jsonStr = trimmedLine.substring(6);
+                        if (jsonStr === '[DONE]') break;
+
+                        try {
+                            const json = JSON.parse(jsonStr);
+                            const text = json.text || json.content || json.choices?.[0]?.delta?.content || "";
+                            if (text) {
+                                accumulatedText += text;
+                                setStreamingContent(formatAIStream(accumulatedText));
+                            }
+                        } catch (e) {
+                            // Bỏ qua nếu dòng JSON bị cắt ngang chưa parse được
+                        }
+                    }
+                }
+            }
+
+            setIsStreaming(false);
+
+            // BƯỚC 2: TỐI ƯU HÓA - Thử parse JSON từ luồng đã nhận để giảm tải API (tránh lỗi Quota)
+            let finalBlocks = [];
+            try {
+                // Tìm đoạn JSON trong văn bản (loại bỏ ```json và các rác văn bản xung quanh)
+                let jsonMatch = accumulatedText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    finalBlocks = parsed.blocks || parsed.generatedBlocks || (Array.isArray(parsed) ? parsed : []);
+                }
+            } catch (e) {
+                console.log("Không thể parse trực tiếp từ stream, sẽ dùng fallback API...");
+            }
+
+            // Nếu không lấy được blocks từ stream, mới gọi API fallback (vốn tốn thêm 1 lần quota AI)
+            if (finalBlocks.length === 0) {
+                message.loading({ content: 'Đang chuẩn hóa dữ liệu...', key: 'ai_loading' });
+                await generateAIBlocks(lessonId, {
+                    inputSourceType: aiInputType,
+                    inputContent: aiInputContent,
+                    lessonTitle: lesson?.title || "Bài học mới",
+                    saveToDB: false
+                });
+
+                const previewRes = await getAIPreviewBlocks(lessonId);
+                if (Array.isArray(previewRes)) {
+                    finalBlocks = previewRes;
+                } else if (previewRes?.data?.generatedBlocks && Array.isArray(previewRes.data.generatedBlocks)) {
+                    finalBlocks = previewRes.data.generatedBlocks;
+                } else if (previewRes?.data && Array.isArray(previewRes.data)) {
+                    finalBlocks = previewRes.data;
+                } else if (previewRes) {
+                    finalBlocks = previewRes.blocks || previewRes.generatedBlocks || previewRes.items || previewRes.result || [];
+                }
+            }
+
+            finalBlocks = finalBlocks.filter(b => b && (b.content || b.Content || b.blockType || b.BlockType));
+
+            // Làm sạch nội dung các block trước khi hiển thị preview
+            const cleanedBlocks = finalBlocks.map(b => ({
+                ...b,
+                title: cleanMarkdown(b.title || b.Title || ''),
+                content: cleanMarkdown(b.content || b.Content || '')
+            }));
+
+            setAiPreviewBlocks(cleanedBlocks);
+            message.success({ content: 'Đã hoàn tất sinh nội dung!', key: 'ai_loading', duration: 2 });
+
         } catch (error) {
-            const errorMessage = error.response?.data?.detail || error.response?.data?.message || "Không thể kết nối với AI. Vui lòng thử lại sau.";
+            console.error("Lỗi AI:", error);
+            setIsStreaming(false);
+            const errorMessage = error.message || "Không thể kết nối với AI. Vui lòng thử lại sau.";
             message.error({ content: errorMessage, key: 'ai_loading', duration: 5 });
+            setIsAIPreviewOpen(false);
         } finally {
             setIsAIGenerating(false);
         }
     };
 
+    const handleUpdateAIPreviewBlock = (index, field, value) => {
+        const newBlocks = [...aiPreviewBlocks];
+        // Ensure we normalize the property names if they come back from backend with different casing
+        const block = { ...newBlocks[index] };
+
+        // Handle both Title/title and Content/content
+        if (field === 'title') {
+            if ('Title' in block) block.Title = value;
+            else block.title = value;
+        } else if (field === 'content') {
+            if ('Content' in block) block.Content = value;
+            else block.content = value;
+        } else {
+            block[field] = value;
+        }
+
+        newBlocks[index] = block;
+        setAiPreviewBlocks(newBlocks);
+    };
+
     const handleConfirmAI = async () => {
-        if (!aiPreviewBlocks || aiPreviewBlocks.length === 0) return;
+        if (!Array.isArray(aiPreviewBlocks) || aiPreviewBlocks.length === 0) return;
 
         try {
             setIsAIGenerating(true);
-            await saveAIPreviewBlocks(lessonId, { blocks: aiPreviewBlocks });
+
+            // Đảm bảo dữ liệu gửi lên cũng được làm sạch
+            const cleanedBlocksBeforeSave = aiPreviewBlocks.map(b => ({
+                ...b,
+                title: cleanMarkdown(b.title || b.Title || ''),
+                content: cleanMarkdown(b.content || b.Content || '')
+            }));
+
+            await saveAIPreviewBlocks(lessonId, { blocks: cleanedBlocksBeforeSave });
             message.success("Tuyệt vời! Nội dung đã được lưu vào bài học.");
             setIsAIPreviewOpen(false);
             setAiPreviewBlocks(null);
@@ -860,9 +1047,21 @@ export default function LessonDetail() {
                                     }
 
                                     return allMaterials.map((doc, idx) => (
-                                        <div key={idx} className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all group/item">
-                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${doc.type?.toLowerCase()?.includes('pdf') ? 'bg-rose-50 text-rose-500' : 'bg-orange-50 text-orange-500'}`}>
-                                                {doc.type?.toLowerCase()?.includes('pdf') ? <FileText size={20} /> : (doc.type?.toLowerCase()?.includes('mp4') ? <FileVideo size={20} /> : <BookOpen size={20} />)}
+                                        <a
+                                            key={idx}
+                                            href={doc.url || doc.path}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            download={doc.title || doc.name || 'Tài liệu'}
+                                            className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all group/item no-underline block"
+                                        >
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${doc.type?.toLowerCase()?.includes('pdf') ? 'bg-rose-50 text-rose-500' :
+                                                (doc.type?.toLowerCase()?.match(/\.(jpg|jpeg|png|gif|webp)$/) || doc.type?.toLowerCase()?.includes('image')) ? 'bg-emerald-50 text-emerald-500' :
+                                                    'bg-orange-50 text-orange-500'
+                                                }`}>
+                                                {doc.type?.toLowerCase()?.includes('pdf') ? <FileText size={20} /> :
+                                                    (doc.type?.toLowerCase()?.includes('mp4') ? <FileVideo size={20} /> :
+                                                        ((doc.type?.toLowerCase()?.match(/\.(jpg|jpeg|png|gif|webp)$/) || doc.type?.toLowerCase()?.includes('image')) ? <Image size={20} /> : <BookOpen size={20} />))}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-bold text-[13px] text-slate-700 group-hover/item:text-[#0487e2] transition-colors truncate">
@@ -871,27 +1070,22 @@ export default function LessonDetail() {
                                                 </div>
                                                 <div className="text-[11px] font-semibold text-slate-400 mt-0.5 uppercase">{doc.type || 'FILE'}</div>
                                             </div>
-                                            <a
-                                                href={doc.url || doc.path}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="w-8 h-8 shrink-0 flex items-center justify-center text-slate-300 hover:text-[#0487e2] hover:bg-white rounded-md transition-all"
-                                            >
+                                            <div className="w-8 h-8 shrink-0 flex items-center justify-center text-slate-300 group-hover/item:text-[#0487e2] group-hover/item:bg-white rounded-md transition-all">
                                                 <Download size={16} />
-                                            </a>
-                                        </div>
+                                            </div>
+                                        </a>
                                     ));
                                 })()}
 
                                 <Upload
-                                    accept=".pdf,.pptx,.ppt,.docx,.doc,.mp4"
+                                    accept=".pdf,.pptx,.ppt,.docx,.doc,.mp4,.jpg,.jpeg,.png,.gif,.webp"
                                     beforeUpload={(file) => {
-                                        const allowedExtensions = ['.pdf', '.pptx', '.ppt', '.docx', '.doc', '.mp4'];
+                                        const allowedExtensions = ['.pdf', '.pptx', '.ppt', '.docx', '.doc', '.mp4', '.jpg', '.jpeg', '.png', '.gif', '.webp'];
                                         const fileExt = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
                                         const isAllowedType = allowedExtensions.includes(fileExt);
 
                                         if (!isAllowedType) {
-                                            message.error('Chỉ hỗ trợ file PDF, PPTX, DOCX hoặc MP4!');
+                                            message.error('Chỉ hỗ trợ file PDF, PPTX, DOCX, MP4 hoặc Hình ảnh (JPG, PNG, GIF, WEBP)!');
                                             return Upload.LIST_IGNORE;
                                         }
                                         const currentCount = lesson?.materials?.length || 0;
@@ -1103,20 +1297,76 @@ export default function LessonDetail() {
             >
                 <div className="py-4">
                     <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1 custom-scrollbar">
-                        {aiPreviewBlocks && aiPreviewBlocks.map((block, idx) => (
-                            <div key={idx} className="p-5 rounded-xl border border-blue-100 bg-blue-50/30 relative">
-                                <div className="flex items-center justify-between mb-3">
-                                    <Tag className="m-0 font-bold uppercase text-[10px] rounded px-2" color="blue">
-                                        {block.title || `Khối ${idx + 1}`}
-                                    </Tag>
-                                    <span className="text-[10px] font-bold text-slate-400 capitalize">{block.type || 'Text'}</span>
+                        {isStreaming ? (
+                            <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 animate-pulse-slow">
+                                <div className="flex items-center gap-2 mb-4 text-[#0487e2]">
+                                    <Sparkles size={16} className="animate-spin-slow" />
+                                    <span className="font-bold text-xs uppercase tracking-wider">AI đang viết...</span>
                                 </div>
-                                <h4 className="font-bold text-slate-800 text-base mb-2">{block.title}</h4>
-                                <div className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
-                                    {block.content}
+                                <div className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                                    {displayedStreamingContent || "Đang kết nối với trí tuệ nhân tạo..."}
+                                    <span className="inline-block w-2 h-4 ml-1 bg-[#0487e2] animate-pulse"></span>
                                 </div>
                             </div>
-                        ))}
+                        ) : Array.isArray(aiPreviewBlocks) && aiPreviewBlocks.length > 0 ? aiPreviewBlocks.map((block, idx) => {
+                            const bContent = block.content || block.Content || "";
+                            const bType = block.blockType || block.BlockType || block.type || block.Type || "Concept";
+                            const bTitle = block.title || block.Title || "";
+
+                            const getTitleByType = (t) => {
+                                switch (t) {
+                                    case 'Concept': return 'Lý thuyết';
+                                    case 'Example': return 'Ví dụ';
+                                    case 'Exercise': return 'Thực hành';
+                                    case 'Reflection': return 'Củng cố';
+                                    default: return 'Nội dung';
+                                }
+                            };
+
+                            const displayTitle = bTitle || getTitleByType(bType);
+
+                            return (
+                                <div key={idx} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all group">
+                                    <div className="px-5 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Tag className="m-0 font-black uppercase text-[10px] rounded px-2 border-none bg-[#0487e2] text-white">
+                                                {getTitleByType(bType)}
+                                            </Tag>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{bType}</span>
+                                        </div>
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[#0487e2] font-bold text-[10px]">
+                                            <Edit3 size={10} /> <span>BẤM ĐỂ CHỈNH SỬA</span>
+                                        </div>
+                                    </div>
+                                    <div className="p-5 space-y-4">
+                                        <div className="relative group/field">
+                                            <Input
+                                                value={displayTitle}
+                                                onChange={(e) => handleUpdateAIPreviewBlock(idx, 'title', e.target.value)}
+                                                placeholder="Tiêu đề..."
+                                                variant="borderless"
+                                                className="p-0 font-black text-slate-800 text-lg hover:bg-blue-50/50 rounded-md px-2 -mx-2 transition-all h-auto"
+                                            />
+                                        </div>
+                                        <div className="relative group/field">
+                                            <Input.TextArea
+                                                value={bContent}
+                                                onChange={(e) => handleUpdateAIPreviewBlock(idx, 'content', e.target.value)}
+                                                placeholder="Nội dung chi tiết..."
+                                                variant="borderless"
+                                                autoSize={{ minRows: 2, maxRows: 15 }}
+                                                className="p-0 text-slate-600 text-sm leading-relaxed hover:bg-blue-50/50 rounded-md px-2 -mx-2 transition-all custom-scrollbar py-1"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }) : (
+                            <div className="py-20 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                <p className="text-slate-400 font-medium">Không tìm thấy nội dung xem trước.</p>
+                                <p className="text-slate-300 text-xs mt-1">Vui lòng thử lại hoặc nhập nội dung chi tiết hơn.</p>
+                            </div>
+                        )}
                     </div>
                     <div className="flex justify-end gap-3 pt-5 mt-2 border-t border-slate-100">
                         <Button className="h-10 px-5 rounded-lg font-semibold text-slate-600" onClick={() => setIsAIPreviewOpen(false)}>Làm lại</Button>

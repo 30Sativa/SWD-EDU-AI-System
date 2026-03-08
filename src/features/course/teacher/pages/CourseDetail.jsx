@@ -22,6 +22,7 @@ import {
     ChevronRight,
     Users,
     ClipboardList,
+    Paperclip,
 } from 'lucide-react';
 import {
     DndContext,
@@ -39,7 +40,7 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Spin, message, Modal, Form, Input, Select, Button, Tag, Empty, Switch, Dropdown, Menu, DatePicker, InputNumber, Tooltip } from 'antd';
+import { Spin, message, Modal, Form, Input, Select, Button, Tag, Empty, Switch, Dropdown, Menu, DatePicker, InputNumber, Tooltip, Upload } from 'antd';
 import {
     getTeacherCourseDetail,
     publishTeacherCourse,
@@ -51,7 +52,8 @@ import {
     deleteSectionDirect
 } from '../../api/courseApi';
 import { createLesson, updateLesson, deleteLesson, getLessonsBySection, getLessonBlocks, createLessonBlock, updateLessonBlock, deleteLessonBlock } from '../../../lesson/api/lessonApi';
-import { getAssignmentsByCourse, getStudentAssignmentsByCourse, createAssignment, updateAssignment, deleteAssignment, publishAssignment, unpublishAssignment, getAssignmentSubmissions } from '../../../assignment/api/assignmentApi';
+import { getAssignmentsByCourse, getStudentAssignmentsByCourse, createAssignment, updateAssignment, deleteAssignment, publishAssignment, unpublishAssignment, getAssignmentSubmissions, getAssignmentById } from '../../../assignment/api/assignmentApi';
+import { gradeSubmission } from '../../../assignment/api/submissionApi';
 import {
     createFormativeQuiz,
     createSummativeQuiz,
@@ -115,6 +117,11 @@ export default function CourseDetail() {
     const [submissions, setSubmissions] = useState([]);
     const [loadingSubmissions, setLoadingSubmissions] = useState(false);
     const [activeAssignmentForSubmissions, setActiveAssignmentForSubmissions] = useState(null);
+    const [isPreviewSectionOpen, setIsPreviewSectionOpen] = useState(false);
+    const [assignmentFileList, setAssignmentFileList] = useState([]);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [viewingAssignment, setViewingAssignment] = useState(null);
+    const [loadingDetail, setLoadingDetail] = useState(false);
 
     // Quiz State
     const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
@@ -149,8 +156,10 @@ export default function CourseDetail() {
     const fetchAssignments = useCallback(async () => {
         if (!courseId) return;
         try {
-            const res = await getStudentAssignmentsByCourse(courseId);
-            const data = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
+            const res = await getAssignmentsByCourse(courseId);
+            const rawData = res?.data || res;
+            const data = (rawData?.items || rawData?.Items || (Array.isArray(rawData) ? rawData : rawData?.data || []));
+            console.log("Assignments for course:", courseId, data);
             setAssignments(data);
         } catch (error) {
             console.error("Không thể tải danh sách bài tập", error);
@@ -176,35 +185,47 @@ export default function CourseDetail() {
         }
     };
 
+
+
+
     const handleAssignmentSubmit = async (values) => {
         try {
             setSubmitting(true);
-            const payload = {
-                courseId: courseId,
-                title: values.title,
-                Title: values.title,
-                description: values.description || "",
-                Description: values.description || "",
-                dueDate: values.dueDate ? values.dueDate.toISOString() : null,
-                DueDate: values.dueDate ? values.dueDate.toISOString() : null,
-                maxScore: values.maxScore || 10,
-                MaxScore: values.maxScore || 10
-            };
+
+            // Create FormData to support file upload
+            const formData = new FormData();
+            formData.append('courseId', courseId);
+            formData.append('title', values.title);
+            formData.append('description', values.description || "");
+            if (values.dueDate) {
+                formData.append('dueDate', values.dueDate.toISOString());
+            }
+            formData.append('maxScore', values.maxScore || 10);
+
+            // Add file if exists
+            if (assignmentFileList.length > 0) {
+                const fileObj = assignmentFileList[0].originFileObj || assignmentFileList[0];
+                if (fileObj instanceof File || fileObj instanceof Blob) {
+                    formData.append('file', fileObj);
+                }
+            }
 
             if (editingAssignment) {
                 const aId = editingAssignment.id || editingAssignment.Id || editingAssignment.assignmentId || editingAssignment.AssignmentId || editingAssignment.courseAssignmentId;
-                await updateAssignment(aId, payload);
+                await updateAssignment(aId, formData);
                 message.success('Cập nhật bài tập thành công!');
             } else {
-                await createAssignment(payload);
+                await createAssignment(formData);
                 message.success('Thêm bài tập thành công!');
             }
 
             setIsAssignmentModalOpen(false);
             setEditingAssignment(null);
+            setAssignmentFileList([]);
             assignmentForm.resetFields();
             fetchAssignments();
         } catch (error) {
+            console.error("Assignment submit error:", error);
             message.error(error.response?.data?.message || 'Lỗi khi lưu bài tập');
         } finally {
             setSubmitting(false);
@@ -1149,10 +1170,10 @@ export default function CourseDetail() {
                         </div>
 
                         <div className="space-y-4">
-                            {assignments.length > 0 ? assignments.map((assignment, index) => {
+                            {Array.isArray(assignments) && assignments.length > 0 ? assignments.map((assignment, index) => {
                                 const assignmentId = assignment.id || assignment.Id || assignment.assignmentId || assignment.AssignmentId || assignment.courseAssignmentId;
                                 return (
-                                    <div key={assignmentId} className="bg-white border border-slate-200 rounded-xl p-4 flex justify-between items-center hover:border-blue-300 transition-all">
+                                    <div key={assignmentId || index} className="bg-white border border-slate-200 rounded-xl p-4 flex justify-between items-center hover:border-blue-300 transition-all">
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
                                                 <h4 className="font-bold text-slate-800">{assignment.title || assignment.Title}</h4>
@@ -1160,11 +1181,18 @@ export default function CourseDetail() {
                                                     const rawStatus = assignment.isPublished ?? assignment.IsPublished ?? assignment.status ?? false;
                                                     const isPublished = rawStatus === true || rawStatus === "true" || rawStatus === "Published" || rawStatus === 1;
                                                     return (
-                                                        <>
-                                                            <Tag color={isPublished ? "success" : "default"}>
-                                                                {isPublished ? "Đã công bố" : "Đang ẩn"}
+                                                        <div className="flex items-center gap-2">
+                                                            <Tag color={isPublished ? "success" : "default"} className="m-0 uppercase font-black text-[9px] rounded px-2">
+                                                                {isPublished ? "Công bố" : "Đang ẩn"}
                                                             </Tag>
-                                                        </>
+                                                            {(assignment.fileUrl || assignment.FileUrl || assignment.filePath || assignment.attachmentUrl) && (
+                                                                <Tooltip title="Có đính kèm tệp tin">
+                                                                    <div className="w-6 h-6 rounded bg-blue-50 text-[#0487e2] flex items-center justify-center">
+                                                                        <Paperclip size={12} />
+                                                                    </div>
+                                                                </Tooltip>
+                                                            )}
+                                                        </div>
                                                     );
                                                 })()}
                                             </div>
@@ -1196,9 +1224,33 @@ export default function CourseDetail() {
                                                 })()}
                                             </button>
                                             <button
+                                                onClick={async () => {
+                                                    const aId = assignment.id || assignment.Id || assignment.assignmentId || assignment.AssignmentId || assignment.courseAssignmentId;
+                                                    setViewingAssignment(assignment); // Set local data first
+                                                    setIsDetailModalOpen(true);
+
+                                                    try {
+                                                        setLoadingDetail(true);
+                                                        const res = await getAssignmentById(aId);
+                                                        const fullData = res?.data || res;
+                                                        if (fullData) {
+                                                            setViewingAssignment(fullData);
+                                                        }
+                                                    } catch (err) {
+                                                        console.error("Error fetching assignment detail:", err);
+                                                    } finally {
+                                                        setLoadingDetail(false);
+                                                    }
+                                                }}
+                                                title="Xem chi tiết"
+                                                className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 focus:bg-blue-50 rounded-lg transition-colors border border-slate-100 shadow-sm"
+                                            >
+                                                <Eye size={14} />
+                                            </button>
+                                            <button
                                                 onClick={() => openSubmissionsModal(assignment)}
                                                 title="Danh sách bài nộp"
-                                                className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 focus:bg-blue-50 rounded-lg transition-colors border border-transparent shadow-sm"
+                                                className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 focus:bg-blue-50 rounded-lg transition-colors border border-slate-100 shadow-sm"
                                             >
                                                 <Users size={14} />
                                             </button>
@@ -1214,6 +1266,20 @@ export default function CourseDetail() {
                                                         dueDate: dueDateRaw ? dayjs(dueDateRaw) : null,
                                                         maxScore: assignment.maxScore || assignment.MaxScore || assignment.score || 10
                                                     });
+
+                                                    // Handle fileUrl if edit
+                                                    const fileUrl = assignment.fileUrl || assignment.FileUrl || assignment.filePath || assignment.attachmentUrl;
+                                                    if (fileUrl) {
+                                                        setAssignmentFileList([{
+                                                            uid: '-1',
+                                                            name: 'Tài liệu bài tập',
+                                                            status: 'done',
+                                                            url: fileUrl
+                                                        }]);
+                                                    } else {
+                                                        setAssignmentFileList([]);
+                                                    }
+
                                                     setIsAssignmentModalOpen(true);
                                                 }}
                                                 title="Chỉnh sửa"
@@ -1576,7 +1642,26 @@ export default function CourseDetail() {
                         <Input className="h-11 rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white font-medium" />
                     </Form.Item>
                     <Form.Item name="description" label="Mô tả / Hướng dẫn thêm">
-                        <Input.TextArea rows={4} className="rounded-lg bg-slate-50 border-transparent hover:bg-white focus:bg-white" />
+                        <Input.TextArea rows={4} className="rounded-2xl bg-slate-50 border-transparent hover:bg-white focus:bg-white py-3 px-4 font-medium" />
+                    </Form.Item>
+
+                    <Form.Item label="Đính kèm tài liệu hỗ trợ (Tùy chọn)">
+                        <Upload
+                            fileList={assignmentFileList}
+                            onChange={({ fileList }) => setAssignmentFileList(fileList.slice(-1))}
+                            beforeUpload={() => false}
+                            className="bg-slate-50 border-2 border-dashed border-slate-100 rounded-2xl p-4 hover:border-blue-300 transition-all block"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center text-slate-400">
+                                    <Paperclip size={18} />
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-sm font-bold text-slate-700">Chọn tệp tin</div>
+                                    <div className="text-[10px] text-slate-400 font-medium">Hỗ trợ PDF, DOCX, Hình ảnh (Tối đa 25MB)</div>
+                                </div>
+                            </div>
+                        </Upload>
                     </Form.Item>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -1803,14 +1888,16 @@ export default function CourseDetail() {
                                 <div className="col-span-3 text-right">Trạng thái / Điểm</div>
                             </div>
                             {submissions.map((sub) => (
-                                <div key={sub.id} className="grid grid-cols-12 gap-4 px-4 py-4 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all items-center">
+                                <div key={sub.submissionId || sub.id} className="grid grid-cols-12 gap-4 px-4 py-4 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all items-center">
                                     <div className="col-span-5 flex items-center gap-3">
                                         <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs border border-slate-200">
-                                            {(sub.studentName || sub.StudentName || "HS")?.[0]?.toUpperCase()}
+                                            {(sub.studentName || sub.StudentName || sub.fullName || sub.fullName || sub.studentFullName || sub.student?.fullName || sub.studentId || "HS")?.[0]?.toUpperCase()}
                                         </div>
                                         <div className="min-w-0">
-                                            <div className="font-bold text-slate-800 text-sm truncate">{sub.studentName || sub.StudentName || "Học sinh ẩn danh"}</div>
-                                            <div className="text-[10px] text-slate-400 font-medium">{sub.studentEmail || sub.StudentEmail || ""}</div>
+                                            <div className="font-bold text-slate-800 text-sm truncate">
+                                                {sub.studentName || sub.StudentName || sub.fullName || sub.fullName || sub.studentFullName || sub.student?.fullName || "Học sinh " + (sub.studentId?.substring(0, 4) || "ẩn danh")}
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 font-medium">{sub.studentEmail || sub.StudentEmail || sub.email || sub.userEmail || ""}</div>
                                         </div>
                                     </div>
                                     <div className="col-span-4 text-center">
@@ -1818,16 +1905,28 @@ export default function CourseDetail() {
                                             {sub.submittedAt ? dayjs(sub.submittedAt).format('HH:mm, DD/MM/YYYY') : "Không rõ ngày nộp"}
                                         </div>
                                     </div>
-                                    <div className="col-span-3 text-right">
-                                        {sub.grade !== null && sub.grade !== undefined ? (
-                                            <Tag color="blue" className="rounded-lg font-bold px-3 py-1 m-0 border-none shadow-sm">
-                                                {sub.grade} / {activeAssignmentForSubmissions?.maxScore || 10}
+                                    <div className="col-span-3 flex flex-col items-end gap-2">
+                                        {(sub.score !== null && sub.score !== undefined) || (sub.grade !== null && sub.grade !== undefined) ? (
+                                            <Tag color="blue" className="rounded-lg font-bold px-3 py-1 m-0 border-none shadow-sm capitalize">
+                                                Đã chấm: {sub.score ?? sub.grade} / {activeAssignmentForSubmissions?.maxScore || 10}
                                             </Tag>
                                         ) : (
-                                            <Tag color="orange" className="rounded-lg font-bold px-3 py-1 m-0 border-none shadow-sm">
+                                            <Tag color="orange" className="rounded-lg font-bold px-3 py-1 m-0 border-none shadow-sm capitalize">
                                                 Chưa chấm
                                             </Tag>
                                         )}
+                                        <Button
+                                            size="small"
+                                            type="link"
+                                            className="text-[10px] font-black uppercase p-0 h-auto text-[#0487e2]"
+                                            onClick={() => {
+                                                const sId = sub.submissionId || sub.id;
+                                                const aId = activeAssignmentForSubmissions?.id || activeAssignmentForSubmissions?.Id || activeAssignmentForSubmissions?.assignmentId;
+                                                navigate(`/dashboard/teacher/courses/${courseId}/assignments/${aId}/submissions/${sId}/grade`);
+                                            }}
+                                        >
+                                            {(sub.score !== null && sub.score !== undefined) || (sub.grade !== null && sub.grade !== undefined) ? "Sửa điểm" : "Chấm điểm ngay"}
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
@@ -1851,6 +1950,110 @@ export default function CourseDetail() {
                         </Button>
                     </div>
                 </div>
+            </Modal>
+
+
+            {/* Assignment Detail Modal */}
+            <Modal
+                title={
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-blue-50 text-[#0487e2] flex items-center justify-center shadow-sm">
+                            <Eye size={20} />
+                        </div>
+                        <div>
+                            <span className="font-bold text-xl block leading-tight">{viewingAssignment?.title || viewingAssignment?.Title || "Chi tiết bài tập"}</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Nội dung bài tập</span>
+                        </div>
+                    </div>
+                }
+                open={isDetailModalOpen}
+                onCancel={() => setIsDetailModalOpen(false)}
+                footer={[
+                    <Button key="close" onClick={() => setIsDetailModalOpen(false)} className="rounded-lg font-bold h-10 px-6">
+                        Đóng
+                    </Button>
+                ]}
+                centered
+                width={650}
+                className="rounded-3xl"
+            >
+                {loadingDetail ? (
+                    <div className="py-20 flex flex-col items-center justify-center text-center">
+                        <Spin size="large" />
+                        <p className="mt-4 text-slate-500 font-medium font-sans">Đang tải thông tin chi tiết...</p>
+                    </div>
+                ) : viewingAssignment && (() => {
+                    const rawStatus = viewingAssignment.isPublished ?? viewingAssignment.IsPublished ?? viewingAssignment.status ?? false;
+                    const isPublished = rawStatus === true || rawStatus === "true" || rawStatus === "Published" || rawStatus === 1;
+                    const fileUrl = viewingAssignment.fileUrl || viewingAssignment.FileUrl || viewingAssignment.filePath || viewingAssignment.FilePath || viewingAssignment.attachmentUrl || viewingAssignment.AttachmentUrl || viewingAssignment.file || viewingAssignment.File || viewingAssignment.Url || viewingAssignment.url;
+                    const description = viewingAssignment.description || viewingAssignment.Description || viewingAssignment.content || viewingAssignment.Content || viewingAssignment.Instructions || viewingAssignment.instructions;
+
+                    return (
+                        <div className="pt-4 space-y-6 font-sans">
+                            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-wrap gap-6">
+                                <div className="flex items-center gap-2">
+                                    <Clock size={16} className="text-slate-400" />
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-none mb-1">HẠN NỘP</p>
+                                        <p className="text-xs font-bold text-slate-700">
+                                            {viewingAssignment.dueDate || viewingAssignment.DueDate
+                                                ? dayjs(viewingAssignment.dueDate || viewingAssignment.DueDate).format('HH:mm, DD/MM/YYYY')
+                                                : "Không giới hạn"}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <CheckSquare size={16} className="text-slate-400" />
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-none mb-1">ĐIỂM TỐI ĐA</p>
+                                        <p className="text-xs font-bold text-slate-700">{viewingAssignment.maxScore || viewingAssignment.MaxScore || 10} điểm</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Target size={16} className="text-slate-400" />
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-none mb-1">TRẠNG THÁI</p>
+                                        <Tag color={isPublished ? "success" : "default"} className="m-0 font-bold px-2 rounded-full border-none uppercase text-[9px] py-0.5">
+                                            {isPublished ? "ĐÃ CÔNG BỐ" : "BẢN NHÁP"}
+                                        </Tag>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 pl-1 italic">Nội dung yêu cầu:</h4>
+                                    <div className="bg-white border border-slate-100 rounded-3xl p-6 text-slate-600 text-sm leading-relaxed whitespace-pre-wrap shadow-sm min-h-[120px]">
+                                        {description || "Không có mô tả chi tiết cho bài tập này."}
+                                    </div>
+                                </div>
+
+                                {fileUrl && (
+                                    <div>
+                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 pl-1">Tài liệu đính kèm</h4>
+                                        <a
+                                            href={fileUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-4 p-4 bg-blue-50/50 border border-blue-100 rounded-3xl text-[#0487e2] hover:bg-blue-50 transition-all group"
+                                        >
+                                            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-blue-500">
+                                                <Paperclip size={24} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-bold mb-0.5">Tải tài liệu hướng dẫn</p>
+                                                <p className="text-[10px] text-slate-400 font-medium">Nhấp để xem chi tiết hoặc tải xuống</p>
+                                            </div>
+                                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                                <ChevronRight size={18} />
+                                            </div>
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })()}
             </Modal>
         </div>
     );

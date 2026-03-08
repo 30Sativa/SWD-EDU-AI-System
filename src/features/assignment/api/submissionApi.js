@@ -34,3 +34,8 @@ export const getMySubmission = (assignmentId) => {
 export const getSubmissionDetail = (submissionId) => {
     return axiosClient.get(`/api/student/submissions/${submissionId}`);
 };
+
+// Teacher: Get single submission detail
+export const getTeacherSubmissionDetail = (submissionId) => {
+    return axiosClient.get(`/api/teacher/submissions/${submissionId}`);
+};
