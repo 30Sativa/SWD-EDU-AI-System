@@ -25,8 +25,21 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
 
         public async Task UpdateAsync(AssignmentDomain assignment, CancellationToken cancellationToken = default)
         {
-            var entity = MapToEntity(assignment);
-            _context.Assignments.Update(entity);
+            var entity = await _context.Assignments
+                .FirstOrDefaultAsync(a => a.Id == assignment.Id, cancellationToken)
+                ?? throw new KeyNotFoundException($"Assignment {assignment.Id} không tồn tại.");
+
+            entity.Title = assignment.Title;
+            entity.Description = assignment.Description;
+            entity.DueDate = assignment.DueDate;
+            entity.MaxScore = assignment.MaxScore;
+            entity.IsPublished = assignment.Status == AssignmentStatusDomain.Published;
+            entity.UpdatedAt = assignment.UpdatedAt;
+            entity.AllowedFileTypes = assignment.AllowedFileTypes;
+            entity.MaxFileSizeMB = assignment.MaxFileSizeMB;
+            entity.AllowTextSubmit = assignment.AllowTextSubmit;
+            entity.AllowFileSubmit = assignment.AllowFileSubmit;
+
             await _context.SaveChangesAsync(cancellationToken);
         }
 
@@ -89,7 +102,11 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 MaxScore = d.MaxScore,
                 IsPublished = d.Status == AssignmentStatusDomain.Published,
                 CreatedAt = d.CreatedAt,
-                UpdatedAt = d.UpdatedAt
+                UpdatedAt = d.UpdatedAt,
+                AllowedFileTypes = d.AllowedFileTypes,
+                MaxFileSizeMB = d.MaxFileSizeMB,
+                AllowTextSubmit = d.AllowTextSubmit,
+                AllowFileSubmit = d.AllowFileSubmit
             };
         }
 
@@ -108,7 +125,11 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 e.MaxScore,
                 status,
                 e.CreatedAt,
-                e.UpdatedAt
+                e.UpdatedAt,
+                e.AllowedFileTypes,
+                e.MaxFileSizeMB,
+                e.AllowTextSubmit,
+                e.AllowFileSubmit
             );
         }
     }

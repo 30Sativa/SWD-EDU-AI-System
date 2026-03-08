@@ -27,7 +27,7 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         [HttpPost]
         [SwaggerOperation(
             Summary = "GV - Tạo bài tập cho khóa học",
-            Description = "Giáo viên tạo assignment gắn với một course, có thể chọn publish ngay"
+            Description = "Giáo viên tạo assignment gắn với một course, có thể chọn publish ngay. Body bao gồm: CourseId, Title, Description, DueDate, MaxScore, Publish và (mới) cấu hình nộp bài: AllowedFileTypes (VD: \"PDF,DOCX\"), MaxFileSizeMB, AllowTextSubmit, AllowFileSubmit."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
         public async Task<IActionResult> Create(
@@ -52,7 +52,7 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         [HttpPut("{assignmentId:guid}")]
         [SwaggerOperation(
             Summary = "GV - Cập nhật bài tập",
-            Description = "Giáo viên cập nhật tiêu đề, mô tả, hạn nộp, điểm tối đa của assignment"
+            Description = "Giáo viên cập nhật tiêu đề, mô tả, hạn nộp, điểm tối đa và cấu hình nộp bài (AllowedFileTypes, MaxFileSizeMB, AllowTextSubmit, AllowFileSubmit). Trường nào không gửi lên sẽ giữ nguyên giá trị cũ."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
         public async Task<IActionResult> Update(
@@ -153,7 +153,7 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
         [HttpGet("course/{courseId:guid}")]
         [SwaggerOperation(
             Summary = "GV - Danh sách bài tập theo khóa học",
-            Description = "Giáo viên xem tất cả assignment (Draft/Published) của một course"
+            Description = "Giáo viên xem tất cả assignment (Draft/Published) của một course. Mỗi item trả về kèm cấu hình nộp bài (AllowedFileTypes, MaxFileSizeMB, AllowTextSubmit, AllowFileSubmit) để FE hiển thị đúng form nộp bài."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<AssignmentSummaryResponseDto>>))]
         public async Task<IActionResult> GetByCourse(

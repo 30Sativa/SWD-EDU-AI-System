@@ -28,7 +28,7 @@ namespace EduAISystem.WebAPI.Controllers.Student
         [Consumes("multipart/form-data")]
         [SwaggerOperation(
             Summary = "HS - Nộp bài assignment",
-            Description = "Học sinh nộp bài (text và file upload) cho một assignment; nếu đã có bài trước đó thì sẽ ghi nhận lần nộp mới nhất"
+            Description = "Học sinh nộp bài (text và/hoặc file upload) cho một assignment; nếu đã có bài trước đó thì sẽ ghi nhận lần nộp mới nhất. FE nên dùng cấu hình từ API assignments (AllowedFileTypes, MaxFileSizeMB, AllowTextSubmit, AllowFileSubmit) để validate loại file, dung lượng và cho phép kiểu nộp phù hợp."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<Guid>))]
         public async Task<IActionResult> Submit(

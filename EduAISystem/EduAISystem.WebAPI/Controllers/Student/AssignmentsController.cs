@@ -24,7 +24,7 @@ namespace EduAISystem.WebAPI.Controllers.Student
         [HttpGet("course/{courseId:guid}")]
         [SwaggerOperation(
             Summary = "HS - Danh sách bài tập theo khóa học",
-            Description = "Học sinh xem danh sách assignment đã publish của một course"
+            Description = "Học sinh xem danh sách assignment đã publish của một course. Mỗi item trả về kèm cấu hình nộp bài (AllowedFileTypes, MaxFileSizeMB, AllowTextSubmit, AllowFileSubmit) để FE biết giới hạn loại file, dung lượng và hình thức nộp."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<AssignmentSummaryResponseDto>>))]
         public async Task<IActionResult> GetByCourse(

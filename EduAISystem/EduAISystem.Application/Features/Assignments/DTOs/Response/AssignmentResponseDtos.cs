@@ -8,7 +8,11 @@ namespace EduAISystem.Application.Features.Assignments.DTOs.Response
         DateTime? DueDate,
         decimal? MaxScore,
         string Status,
-        DateTime? CreatedAt
+        DateTime? CreatedAt,
+        string? AllowedFileTypes = null,
+        int? MaxFileSizeMB = null,
+        bool? AllowTextSubmit = null,
+        bool? AllowFileSubmit = null
     );
 }
 

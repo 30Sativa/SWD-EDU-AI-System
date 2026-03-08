@@ -28,6 +28,11 @@ namespace EduAISystem.Domain.Entities
 
         public DateTime? UpdatedAt { get; private set; }
 
+        public string? AllowedFileTypes { get; private set; }
+        public int? MaxFileSizeMB { get; private set; }
+        public bool? AllowTextSubmit { get; private set; }
+        public bool? AllowFileSubmit { get; private set; }
+
         protected AssignmentDomain() { }
 
         internal AssignmentDomain(
@@ -39,7 +44,11 @@ namespace EduAISystem.Domain.Entities
             decimal? maxScore,
             AssignmentStatusDomain status,
             DateTime? createdAt,
-            DateTime? updatedAt)
+            DateTime? updatedAt,
+            string? allowedFileTypes = null,
+            int? maxFileSizeMB = null,
+            bool? allowTextSubmit = null,
+            bool? allowFileSubmit = null)
         {
             Id = id;
             CourseId = courseId;
@@ -50,6 +59,10 @@ namespace EduAISystem.Domain.Entities
             Status = status;
             CreatedAt = createdAt;
             UpdatedAt = updatedAt;
+            AllowedFileTypes = allowedFileTypes;
+            MaxFileSizeMB = maxFileSizeMB;
+            AllowTextSubmit = allowTextSubmit;
+            AllowFileSubmit = allowFileSubmit;
         }
 
         public static AssignmentDomain Create(
@@ -58,7 +71,11 @@ namespace EduAISystem.Domain.Entities
             string? description,
             DateTime? dueDate,
             decimal? maxScore,
-            bool publish = false)
+            bool publish = false,
+            string? allowedFileTypes = null,
+            int? maxFileSizeMB = null,
+            bool? allowTextSubmit = null,
+            bool? allowFileSubmit = null)
         {
             if (courseId == Guid.Empty)
                 throw new ArgumentException("CourseId là bắt buộc.");
@@ -76,7 +93,11 @@ namespace EduAISystem.Domain.Entities
                 MaxScore = maxScore,
                 Status = publish ? AssignmentStatusDomain.Published : AssignmentStatusDomain.Draft,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = null
+                UpdatedAt = null,
+                AllowedFileTypes = allowedFileTypes,
+                MaxFileSizeMB = maxFileSizeMB,
+                AllowTextSubmit = allowTextSubmit,
+                AllowFileSubmit = allowFileSubmit
             };
         }
 
@@ -84,27 +105,35 @@ namespace EduAISystem.Domain.Entities
             string? title,
             string? description,
             DateTime? dueDate,
-            decimal? maxScore)
+            decimal? maxScore,
+            string? allowedFileTypes = null,
+            int? maxFileSizeMB = null,
+            bool? allowTextSubmit = null,
+            bool? allowFileSubmit = null)
         {
             if (!string.IsNullOrWhiteSpace(title))
-            {
                 Title = title.Trim();
-            }
 
             if (description is not null)
-            {
                 Description = description;
-            }
 
             if (dueDate.HasValue)
-            {
                 DueDate = dueDate;
-            }
 
             if (maxScore.HasValue)
-            {
                 MaxScore = maxScore;
-            }
+
+            if (allowedFileTypes is not null)
+                AllowedFileTypes = allowedFileTypes;
+
+            if (maxFileSizeMB.HasValue)
+                MaxFileSizeMB = maxFileSizeMB;
+
+            if (allowTextSubmit.HasValue)
+                AllowTextSubmit = allowTextSubmit;
+
+            if (allowFileSubmit.HasValue)
+                AllowFileSubmit = allowFileSubmit;
 
             UpdatedAt = DateTime.UtcNow;
         }

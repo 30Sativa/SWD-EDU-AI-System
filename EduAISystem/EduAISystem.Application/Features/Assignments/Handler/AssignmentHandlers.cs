@@ -37,7 +37,11 @@ namespace EduAISystem.Application.Features.Assignments.Handler
                 dto.Description,
                 dto.DueDate,
                 dto.MaxScore,
-                dto.Publish);
+                dto.Publish,
+                dto.AllowedFileTypes,
+                dto.MaxFileSizeMB,
+                dto.AllowTextSubmit,
+                dto.AllowFileSubmit);
 
             await _assignmentRepository.CreateAsync(assignment, cancellationToken);
             return assignment.Id;
@@ -65,7 +69,11 @@ namespace EduAISystem.Application.Features.Assignments.Handler
                 dto.Title,
                 dto.Description,
                 dto.DueDate,
-                dto.MaxScore);
+                dto.MaxScore,
+                dto.AllowedFileTypes,
+                dto.MaxFileSizeMB,
+                dto.AllowTextSubmit,
+                dto.AllowFileSubmit);
 
             await _assignmentRepository.UpdateAsync(assignment, cancellationToken);
             return assignment.Id;
@@ -157,7 +165,11 @@ namespace EduAISystem.Application.Features.Assignments.Handler
                     a.DueDate,
                     a.MaxScore ?? 0m,
                     a.Status.ToString(),
-                    a.CreatedAt))
+                    a.CreatedAt,
+                    a.AllowedFileTypes,
+                    a.MaxFileSizeMB,
+                    a.AllowTextSubmit,
+                    a.AllowFileSubmit))
                 .ToList();
         }
     }
@@ -188,7 +200,11 @@ namespace EduAISystem.Application.Features.Assignments.Handler
                     a.DueDate,
                     a.MaxScore ?? 0m,
                     a.Status.ToString(),
-                    a.CreatedAt))
+                    a.CreatedAt,
+                    a.AllowedFileTypes,
+                    a.MaxFileSizeMB,
+                    a.AllowTextSubmit,
+                    a.AllowFileSubmit))
                 .ToList();
         }
     }

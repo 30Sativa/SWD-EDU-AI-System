@@ -6,14 +6,22 @@ namespace EduAISystem.Application.Features.Assignments.DTOs.Request
         string? Description,
         DateTime? DueDate,
         decimal? MaxScore,
-        bool Publish
+        bool Publish,
+        string? AllowedFileTypes = null,
+        int? MaxFileSizeMB = null,
+        bool? AllowTextSubmit = null,
+        bool? AllowFileSubmit = null
     );
 
     public record UpdateAssignmentRequestDto(
         string? Title,
         string? Description,
         DateTime? DueDate,
-        decimal? MaxScore
+        decimal? MaxScore,
+        string? AllowedFileTypes = null,
+        int? MaxFileSizeMB = null,
+        bool? AllowTextSubmit = null,
+        bool? AllowFileSubmit = null
     );
 }
 
