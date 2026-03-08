@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace EduAISystem.Infrastructure.Services.ExternalApis
 {
@@ -21,7 +22,7 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
     /// - Streaming: endpoint streamGenerateContent → real-time response qua SSE
     /// - Token Tracking: log promptTokenCount/candidatesTokenCount từ usageMetadata
     /// - Structured Output + Chain-of-Thought (giữ từ v3)
-    /// - Model: gemini-3.1-pro-preview
+    /// - Model: gemini-2.5-flash (giống CourseAiService)
     /// </summary>
     public class LessonAiService : ILessonAiService
     {
@@ -54,65 +55,6 @@ namespace EduAISystem.Infrastructure.Services.ExternalApis
         }
 
         // =============================================================
-        // SYSTEM INSTRUCTION — Phần tĩnh, Gemini cache, không thay đổi
-        // =============================================================
-        private static object BuildSystemInstruction()
-        {
-            return new
-            {
-                parts = new[]
-                {
-                    new
-                    {
-                        text = @"Bạn là EduVN AI — hệ thống trí tuệ nhân tạo chuyên biệt cho giáo dục Việt Nam, được phát triển và huấn luyện bởi ZienK.
-
-🎓 VỀ BẠN:
-- Tên: EduVN AI
-- Nhà phát triển: ZienK
-- Chuyên môn: Thiết kế bài giảng theo chuẩn sư phạm Việt Nam
-- Đối tượng phục vụ: Giáo viên và học sinh THPT (Trung học phổ thông – lớp 10, 11, 12)
-- Nếu có ai hỏi bạn là AI nào, model nào, hãy trả lời: ""Tôi là EduVN AI, được phát triển bởi ZienK, chuyên hỗ trợ giáo dục THPT Việt Nam.""
-
-📋 NHIỆM VỤ CHÍNH:
-Phân tích nội dung bài học và tổ chức lại thành các BLOCKS theo trình tự sư phạm chuẩn:
-1. Concept (Khái niệm) → 2. Example (Ví dụ) → 3. Exercise (Bài tập) → 4. Reflection (Suy ngẫm)
-
-⚠️ QUY TẮC BẮT BUỘC:
-- TOÀN BỘ nội dung output phải bằng TIẾNG VIỆT
-- Ngôn ngữ phù hợp với học sinh THPT Việt Nam (lớp 10-12, 16-18 tuổi)
-- Mỗi block phải tự hoàn chỉnh, đầy đủ, đọc riêng vẫn hiểu được
-- Không dùng ngôn ngữ quá hàn lâm
-- Thuật ngữ chuyên ngành tiếng Anh phải kèm giải thích tiếng Việt
-- Ví dụ và bài tập phải phù hợp với bối cảnh Việt Nam
-- Phải có đúng 4 blocks theo thứ tự: Concept → Example → Exercise → Reflection
-- KHÔNG được tạo nội dung bạo lực, khiêu dâm, phân biệt đối xử, hoặc không phù hợp với lứa tuổi
-
-📝 CHI TIẾT TỪNG BLOCK:
-1️⃣ Concept (sortOrder: 1, ~5-8 phút):
-   - Lý thuyết rõ ràng, mạch lạc, dùng **in đậm** cho thuật ngữ quan trọng
-   - Kết nối kiến thức đã học, nêu rõ định nghĩa/công thức/quy tắc
-
-2️⃣ Example (sortOrder: 2, ~3-5 phút):
-   - 2-3 ví dụ step-by-step, từ dễ đến khó
-   - Ưu tiên ví dụ liên hệ đời sống, văn hoá Việt Nam
-
-3️⃣ Exercise (sortOrder: 3, ~10-15 phút):
-   - 3-5 câu hỏi/bài tập theo 3 mức:
-     • Mức 1 (Nhận biết): kiểm tra hiểu khái niệm
-     • Mức 2 (Thông hiểu): giải thích, so sánh
-     • Mức 3 (Vận dụng): áp dụng vào tình huống thực tế
-   - Gợi ý đáp án nếu phù hợp
-
-4️⃣ Reflection (sortOrder: 4, ~3-5 phút):
-   - 2-3 câu hỏi mở, tư duy phản biện
-   - Liên hệ thực tiễn đời sống Việt Nam
-   - Gợi ý hướng tìm hiểu thêm"
-                    }
-                }
-            };
-        }
-
-        // =============================================================
         // SAFETY SETTINGS — Bảo vệ học sinh THPT
         // =============================================================
         private static object[] BuildSafetySettings()
@@ -127,73 +69,40 @@ Phân tích nội dung bài học và tổ chức lại thành các BLOCKS theo 
         }
 
         // =============================================================
-        // STRUCTURED OUTPUT SCHEMA
-        // =============================================================
-        private static object BuildResponseSchema()
-        {
-            return new
-            {
-                type = "object",
-                properties = new
-                {
-                    blocks = new
-                    {
-                        type = "array",
-                        description = "Danh sách blocks sư phạm theo trình tự: Concept → Example → Exercise → Reflection",
-                        items = new
-                        {
-                            type = "object",
-                            properties = new
-                            {
-                                blockType = new
-                                {
-                                    type = "string",
-                                    description = "Loại block sư phạm",
-                                    @enum = new[] { "Concept", "Example", "Exercise", "Reflection" }
-                                },
-                                content = new
-                                {
-                                    type = "string",
-                                    description = "Nội dung chi tiết bằng tiếng Việt, phù hợp học sinh THPT Việt Nam"
-                                },
-                                sortOrder = new
-                                {
-                                    type = "integer",
-                                    description = "Thứ tự: Concept=1, Example=2, Exercise=3, Reflection=4"
-                                },
-                                estimatedMinutes = new
-                                {
-                                    type = "integer",
-                                    description = "Thời gian ước tính (phút)"
-                                }
-                            },
-                            required = new[] { "blockType", "content", "sortOrder", "estimatedMinutes" }
-                        }
-                    }
-                },
-                required = new[] { "blocks" }
-            };
-        }
-
-        // =============================================================
         // CHAIN-OF-THOUGHT PROMPT (phần động, thay đổi mỗi request)
+        // Gộp system instruction vào prompt để tương thích với mọi model Gemini
+        // (một số model/API version không hỗ trợ systemInstruction, responseMimeType, responseSchema)
         // =============================================================
-        private static string BuildUserPrompt(string lessonTitle, string inputContent)
+        private static string BuildFullPrompt(string lessonTitle, string inputContent)
         {
-            return $@"📖 TIÊU ĐỀ BÀI HỌC: ""{lessonTitle}""
+            var systemText = @"Bạn là EduVN AI — hệ thống trí tuệ nhân tạo chuyên biệt cho giáo dục Việt Nam, được phát triển bởi ZienK.
 
-🧠 BƯỚC 1: PHÂN TÍCH NỘI DUNG
-Trước khi tạo blocks, hãy tự phân tích:
-- Chủ đề chính là gì?
-- Các khái niệm cốt lõi cần truyền đạt?
-- Kiến thức tiên quyết học sinh cần biết?
-- Liên hệ thực tiễn phù hợp với THPT Việt Nam?
-- Mức độ khó phù hợp?
+📋 NHIỆM VỤ: Phân tích nội dung bài học và tổ chức thành 4 BLOCKS theo trình tự sư phạm:
+1. Concept (Khái niệm) → 2. Example (Ví dụ) → 3. Exercise (Bài tập) → 4. Reflection (Suy ngẫm)
 
-📋 BƯỚC 2: TẠO 4 BLOCKS theo chuẩn sư phạm đã được hướng dẫn.
+⚠️ QUY TẮC: TOÀN BỘ output bằng TIẾNG VIỆT, phù hợp học sinh THPT Việt Nam (lớp 10-12). Mỗi block tự hoàn chỉnh. Đúng 4 blocks theo thứ tự trên.
+
+📝 OUTPUT: Trả về ĐÚNG format JSON sau, không thêm text khác:
+{
+  ""blocks"": [
+    { ""blockType"": ""Concept"", ""content"": ""..."", ""sortOrder"": 1, ""estimatedMinutes"": 5 },
+    { ""blockType"": ""Example"", ""content"": ""..."", ""sortOrder"": 2, ""estimatedMinutes"": 3 },
+    { ""blockType"": ""Exercise"", ""content"": ""..."", ""sortOrder"": 3, ""estimatedMinutes"": 10 },
+    { ""blockType"": ""Reflection"", ""content"": ""..."", ""sortOrder"": 4, ""estimatedMinutes"": 3 }
+  ]
+}
+
+---
+";
+
+            return systemText + $@"📖 TIÊU ĐỀ BÀI HỌC: ""{lessonTitle}""
+
+🧠 PHÂN TÍCH: Chủ đề chính, khái niệm cốt lõi, kiến thức tiên quyết, liên hệ THPT Việt Nam.
 
 📥 NỘI DUNG CẦN PHÂN TÍCH:
-{inputContent}";
+{inputContent}
+
+Trả về JSON đúng format blocks như đã hướng dẫn.";
         }
 
         // =============================================================
@@ -202,47 +111,27 @@ Trước khi tạo blocks, hãy tự phân tích:
         private (string modelName, string apiVersion, int timeoutSeconds) GetConfig()
         {
             var modelName = string.IsNullOrWhiteSpace(_settings.ModelName)
-                ? "gemini-3.1-pro-preview"
+                ? "gemini-2.5-flash"
                 : _settings.ModelName;
             var apiVersion = string.IsNullOrWhiteSpace(_settings.ApiVersion)
-                ? "v1beta"
+                ? "v1"
                 : _settings.ApiVersion;
             var timeoutSeconds = _settings.TimeoutSeconds > 0 ? _settings.TimeoutSeconds : 120;
             return (modelName, apiVersion, timeoutSeconds);
         }
 
         // =============================================================
-        // Helper: Tạo request body (dùng chung cho cả streaming & non-streaming)
+        // Helper: Tạo request body (chỉ dùng contents - tương thích mọi model Gemini)
+        // Không dùng systemInstruction/generationConfig vì một số model trả lỗi "Unknown name"
         // =============================================================
-        private object BuildRequestBody(string lessonTitle, string inputContent, bool includeSchema)
+        private object BuildRequestBody(string lessonTitle, string inputContent)
         {
-            var userPrompt = BuildUserPrompt(lessonTitle, inputContent);
-
-            if (includeSchema)
-            {
-                return new
-                {
-                    systemInstruction = BuildSystemInstruction(),
-                    contents = new[]
-                    {
-                        new { parts = new[] { new { text = userPrompt } } }
-                    },
-                    safetySettings = BuildSafetySettings(),
-                    generationConfig = new
-                    {
-                        responseMimeType = "application/json",
-                        responseSchema = BuildResponseSchema()
-                    }
-                };
-            }
-
-            // Streaming: không dùng Structured Output (stream trả text thuần)
+            var fullPrompt = BuildFullPrompt(lessonTitle, inputContent);
             return new
             {
-                systemInstruction = BuildSystemInstruction(),
                 contents = new[]
                 {
-                    new { parts = new[] { new { text = userPrompt + "\n\nTrả về JSON theo format blocks đã quy định." } } }
+                    new { parts = new[] { new { text = fullPrompt } } }
                 },
                 safetySettings = BuildSafetySettings()
             };
@@ -260,7 +149,7 @@ Trước khi tạo blocks, hãy tự phân tích:
                 throw new InvalidOperationException("Gemini API key chưa được cấu hình. Kiểm tra appsettings.json.");
 
             var (modelName, apiVersion, timeoutSeconds) = GetConfig();
-            var requestBody = BuildRequestBody(lessonTitle, inputContent, includeSchema: true);
+            var requestBody = BuildRequestBody(lessonTitle, inputContent);
             var requestJson = JsonSerializer.Serialize(requestBody);
 
             var apiUrl = $"https://generativelanguage.googleapis.com/{apiVersion}/models/{modelName}:generateContent?key={_settings.ApiKey}";
@@ -386,7 +275,8 @@ Trước khi tạo blocks, hãy tự phân tích:
                 if (string.IsNullOrWhiteSpace(aiText))
                     throw new InvalidOperationException("EduVN AI trả về nội dung trống.");
 
-                var blocks = ParseStructuredBlocks(aiText);
+                var jsonText = ExtractJsonFromText(aiText);
+                var blocks = ParseStructuredBlocks(jsonText);
 
                 _logger.LogInformation(
                     "[EduVN AI] 📦 Parse thành công {Count} blocks • Types: [{Types}] • Lesson: \"{Title}\"",
@@ -416,7 +306,7 @@ Trước khi tạo blocks, hãy tự phân tích:
                 throw new InvalidOperationException("Gemini API key chưa được cấu hình.");
 
             var (modelName, apiVersion, timeoutSeconds) = GetConfig();
-            var requestBody = BuildRequestBody(lessonTitle, inputContent, includeSchema: false);
+            var requestBody = BuildRequestBody(lessonTitle, inputContent);
             var requestJson = JsonSerializer.Serialize(requestBody);
 
             // ===== streamGenerateContent — Gemini streaming endpoint =====
@@ -543,6 +433,50 @@ Trước khi tạo blocks, hãy tự phân tích:
                 stopwatch.ElapsedMilliseconds, totalChunks, lessonTitle);
         }
 
+
+        // =============================================================
+        // EXTRACT JSON từ response (có thể chứa markdown ```json ... ```)
+        // =============================================================
+        private static string ExtractJsonFromText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text ?? string.Empty;
+            var trimmed = text.Trim();
+            var jsonBlockPattern = @"```(?:json)?\s*(.*?)\s*```";
+            var match = Regex.Match(trimmed, jsonBlockPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (match.Success && match.Groups.Count > 1)
+            {
+                var codeBlockContent = match.Groups[1].Value.Trim();
+                var jsonInBlock = ExtractJsonObject(codeBlockContent);
+                if (!string.IsNullOrWhiteSpace(jsonInBlock)) return jsonInBlock;
+            }
+            var jsonObject = ExtractJsonObject(trimmed);
+            return !string.IsNullOrWhiteSpace(jsonObject) ? jsonObject : trimmed;
+        }
+
+        private static string ExtractJsonObject(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+            var startIndex = text.IndexOf('{');
+            if (startIndex < 0) return string.Empty;
+            var braceCount = 0;
+            var inString = false;
+            var escapeNext = false;
+            for (var i = startIndex; i < text.Length; i++)
+            {
+                var ch = text[i];
+                if (escapeNext) { escapeNext = false; continue; }
+                if (ch == '\\') { escapeNext = true; continue; }
+                if (ch == '"') { inString = !inString; continue; }
+                if (inString) continue;
+                if (ch == '{') braceCount++;
+                else if (ch == '}')
+                {
+                    braceCount--;
+                    if (braceCount == 0) return text.Substring(startIndex, i - startIndex + 1);
+                }
+            }
+            return string.Empty;
+        }
 
         // =============================================================
         // PARSE STRUCTURED OUTPUT
