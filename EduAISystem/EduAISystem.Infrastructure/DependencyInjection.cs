@@ -60,6 +60,8 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<ILessonAiService, LessonAiService>();
             services.AddScoped<IStudentRepository, StudentRepository>();
             services.AddScoped<ILessonProgressRepository, LessonProgressRepository>();
+            services.AddScoped<IDashboardRepository, DashboardRepository>();
+            services.AddHttpClient<IAiChatService, AiChatService>();
             // 3. Auth Token Repositories
             services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
             services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();
