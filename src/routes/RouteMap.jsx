@@ -19,6 +19,7 @@ import TeacherCourseDetail from "../features/course/teacher/pages/CourseDetail";
 
 import TeacherQuizEditor from "../features/quiz/teacher/pages/TeacherQuizEditor";
 import TeacherLessonDetail from "../features/lesson/teacher/pages/LessonDetail";
+import TeacherGradeSubmission from "../features/assignment/teacher/pages/GradeSubmission";
 import StudentDashboard from "../features/dashboard/student/pages/StudentDashboard";
 import ClassManagement from "../features/classes/teacher/pages/ClassManagement";
 import ClassStudentList from "../features/classes/teacher/pages/ClassStudentList";
@@ -82,6 +83,7 @@ export default function RouteMap() {
 
             <Route path="courses/:courseId/quizzes/:quizId" element={<TeacherQuizEditor />} />
             <Route path="courses/:courseId/lessons/:lessonId" element={<TeacherLessonDetail />} />
+            <Route path="courses/:courseId/assignments/:assignmentId/submissions/:submissionId/grade" element={<TeacherGradeSubmission />} />
             <Route path="classes/:classId/students" element={<ClassStudentList />} />
             <Route path="classes" element={<ClassManagement />} />
             <Route path="question-bank" element={<QuestionBank />} />
