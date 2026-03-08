@@ -1,9 +1,5 @@
 import axiosClient from "../../../lib/axiosClient";
 
-/**
- * Submissions APIs
- */
-
 // Teacher: Get submissions for an assignment
 export const getSubmissionsByAssignment = (assignmentId) => {
     return axiosClient.get(`/api/teacher/submissions/assignment/${assignmentId}`);

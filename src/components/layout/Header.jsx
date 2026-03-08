@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { LogIn, Menu, X } from "lucide-react";
+import { LogIn, Menu, X, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function Header() {
@@ -54,9 +54,7 @@ export default function Header() {
           onClick={() => handleNavClick("/")}
           className="flex items-center gap-2 cursor-pointer"
         >
-          <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-xs font-bold text-white shadow-md">
-            EA
-          </div>
+          <GraduationCap size={32} className="text-blue-600" />
           <div className="flex flex-col items-start leading-tight">
             <span className="text-sm md:text-base font-bold text-slate-900">
               EDU‑AI Classroom
