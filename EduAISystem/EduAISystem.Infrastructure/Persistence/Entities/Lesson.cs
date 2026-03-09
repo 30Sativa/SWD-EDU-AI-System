@@ -17,6 +17,17 @@ public partial class Lesson
 
     public string? Content { get; set; }
 
+    // === Tài liệu đính kèm ===
+    public string? MaterialUrl { get; set; }    // Link file PDF/PPTX/DOCX
+    public string? MaterialType { get; set; }   // "PDF", "PPTX", "DOCX"
+
+    // === Loại video ===
+    public string? VideoType { get; set; }      // "Link" (YouTube/external) hoặc "File" (upload lên cloud)
+
+    // === Kiểm soát AI ===
+    public bool? CanUseAI { get; set; }                  // Bật/tắt AI cho lesson này
+    public string? AIProcessingStatus { get; set; }      // "None", "Pending", "Completed"
+
     public int SortOrder { get; set; }
 
     public int? Duration { get; set; }

@@ -23,6 +23,12 @@ public partial class Assignment
 
     public DateTime? UpdatedAt { get; set; }
 
+    // === Cấu hình nộp bài ===
+    public string? AllowedFileTypes { get; set; }  // "PDF,DOCX,JPG" hoặc null = mọi loại
+    public int? MaxFileSizeMB { get; set; }          // Giới hạn dung lượng file (MB), mặc định 10
+    public bool? AllowTextSubmit { get; set; }     // Cho phép nộp bằng text
+    public bool? AllowFileSubmit { get; set; }     // Cho phép nộp bằng file upload
+
     public virtual Course Course { get; set; } = null!;
 
     public virtual ICollection<Submission> Submissions { get; set; } = new List<Submission>();

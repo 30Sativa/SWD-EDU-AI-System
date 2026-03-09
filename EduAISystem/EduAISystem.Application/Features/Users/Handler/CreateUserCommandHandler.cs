@@ -29,8 +29,8 @@ namespace EduAISystem.Application.Features.Users.Handler
             var passwordHash = _passwordHasher.Hash(request.Request.Password);
             var user = UserDomain.Create(
                 request.Request.Email,
-                request.Request.UserName,
                 passwordHash,
+                request.Request.FullName,
                 (UserRoleDomain)request.Request.Role);
 
             await _userRepository.AddAsync(user);
@@ -39,11 +39,15 @@ namespace EduAISystem.Application.Features.Users.Handler
             {
                 Id = user.Id,
                 Email = user.Email,
-                UserName = user.UserName,
                 Role = (int)user.Role,
                 IsActive = user.IsActive,
                 CreatedAt = user.CreatedAt,
-                Profile = null
+                IsDeleted = user.IsDeleted,
+                DeletedAt = user.DeletedAt,
+                Profile = new UserProfileDetailDto
+                {
+                    FullName = user.UserProfile.FullName
+                }
             };
         }
     }

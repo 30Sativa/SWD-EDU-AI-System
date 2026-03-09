@@ -21,7 +21,7 @@ public partial class Course
 
     public Guid? GradeLevelId { get; set; }
 
-    public Guid TeacherId { get; set; }
+    public Guid? TeacherId { get; set; }
 
     public Guid? CategoryId { get; set; }
 
@@ -29,19 +29,9 @@ public partial class Course
 
     public string? Language { get; set; }
 
-    public decimal? Price { get; set; }
-
-    public decimal? DiscountPrice { get; set; }
-
     public int? TotalLessons { get; set; }
 
     public int? TotalDuration { get; set; }
-
-    public int? EnrollmentCount { get; set; }
-
-    public decimal? Rating { get; set; }
-
-    public int? ReviewCount { get; set; }
 
     public string? Status { get; set; }
 
@@ -55,6 +45,11 @@ public partial class Course
 
     public DateTime? DeletedAt { get; set; }
 
+    public bool IsTemplate { get; set; }
+
+    public Guid? SourceTemplateId { get; set; }
+    public Guid CreatedByUserId { get; set; }   
+
     public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
 
     public virtual CourseCategory? Category { get; set; }
@@ -67,9 +62,14 @@ public partial class Course
 
     public virtual GradeLevel? GradeLevel { get; set; }
 
+    public virtual ICollection<Course> InverseSourceTemplate { get; set; } = new List<Course>();
+
     public virtual ICollection<Section> Sections { get; set; } = new List<Section>();
+
+    public virtual Course? SourceTemplate { get; set; }
 
     public virtual Subject Subject { get; set; } = null!;
 
-    public virtual Teacher Teacher { get; set; } = null!;
+    public virtual Teacher? Teacher { get; set; }
+    public virtual User CreatedByUser { get; set; }
 }
