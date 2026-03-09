@@ -29,6 +29,7 @@ namespace EduAISystem.Application.Features.Auth.Handler
         private readonly IPasswordHasher _passwordHasher;
         private readonly IEmailService _emailService;
         private readonly IRefreshTokenRepository _refreshTokens;
+        private readonly ILoginAttemptRepository _loginAttempts;
 
         public GoogleLoginCommandHandler(
             IGoogleTokenVerifier googleVerifier,
@@ -38,7 +39,8 @@ namespace EduAISystem.Application.Features.Auth.Handler
             IClientContext client,
             IPasswordHasher passwordHasher,
             IEmailService emailService,
-            IRefreshTokenRepository refreshTokens)
+            IRefreshTokenRepository refreshTokens,
+            ILoginAttemptRepository loginAttempts)
         {
             _googleVerifier = googleVerifier;
             _users = users;
@@ -48,6 +50,7 @@ namespace EduAISystem.Application.Features.Auth.Handler
             _passwordHasher = passwordHasher;
             _emailService = emailService;
             _refreshTokens = refreshTokens;
+            _loginAttempts = loginAttempts;
         }
 
         public async Task<LoginResponseDto> Handle(GoogleLoginCommand request, CancellationToken cancellationToken)
@@ -103,8 +106,15 @@ namespace EduAISystem.Application.Features.Auth.Handler
                 }
 
                 if (!user.IsActive)
+                {
+                    await _loginAttempts.AddAsync(new LoginAttemptDomain(payload.Email, user.Id, _client.IpAddress, false, "Account is inactive via Google"));
                     throw new ForbiddenException("Account is inactive.");
+                }
             }
+
+            // Authentication successful via Google
+            await _loginAttempts.ClearFailedAttemptsAsync(payload.Email);
+            await _loginAttempts.AddAsync(new LoginAttemptDomain(payload.Email, user.Id, _client.IpAddress, true, "Google OAuth"));
 
             // 3. Tạo session + JWT
             var session = new LoginSessionDomain(

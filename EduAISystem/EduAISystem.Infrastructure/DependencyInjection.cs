@@ -37,6 +37,7 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<IGradeLevelRepository, GradeLevelRepository>();
             services.AddScoped<ICourseCategoryRepository, CourseCategoryRepository>();
             services.AddScoped<ILoginSessionRepository, LoginSessionRepository>();
+            services.AddScoped<ILoginAttemptRepository, LoginAttemptRepository>();
             services.AddScoped<ITermRepository, TermRepository>();
             services.AddScoped<IClassRepository, ClassRepository>();
             services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
