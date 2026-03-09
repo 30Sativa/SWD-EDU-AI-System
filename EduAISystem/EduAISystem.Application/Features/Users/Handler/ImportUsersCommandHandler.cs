@@ -46,7 +46,9 @@ namespace EduAISystem.Application.Features.Users.Handler
                 if (existingUser != null)
                     continue;
 
-                var passwordHash = _passwordHasher.Hash("123456");
+                // Generate a random password for each imported user
+                var randomPassword = $"Ed@{Guid.NewGuid().ToString("N").Substring(0, 8)}!";
+                var passwordHash = _passwordHasher.Hash(randomPassword);
 
                 var user = UserDomain.CreateImported(
                     item.Email,
@@ -57,10 +59,17 @@ namespace EduAISystem.Application.Features.Users.Handler
 
                 await _userRepo.AddAsync(user);
 
-                await _emailService.SendWelcomeEmail(
-                    item.Email,
-                    "123456"
-                );
+                try
+                {
+                    await _emailService.SendWelcomeEmail(
+                        item.Email,
+                        randomPassword
+                    );
+                }
+                catch (Exception)
+                {
+                    // Ignore email sending failures so the import itself still succeeds for other users
+                }
             }
         }
     }
