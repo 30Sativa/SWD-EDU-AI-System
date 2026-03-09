@@ -299,7 +299,7 @@ export default function Login() {
                                 onSuccess={handleGoogleSuccess}
                                 onError={handleGoogleError}
                                 useOneTap
-                                width="100%"
+                                width="350"
                                 theme="outline"
                                 shape="pill"
                                 text="signin_with"
