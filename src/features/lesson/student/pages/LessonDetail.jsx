@@ -26,6 +26,16 @@ const addCompletedLesson = (courseId, lessonId) => {
 };
 // ---------------------------------------------------------------
 
+const getYoutubeId = (url) => {
+    if (!url) return null;
+    const trimmed = url.trim();
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+    const match = trimmed.match(regExp);
+    if (match && match[2].length === 11) return match[2];
+    if (trimmed.length === 11 && !trimmed.includes('/') && !trimmed.includes('.') && !trimmed.includes(':')) return trimmed;
+    return null;
+};
+
 export default function LessonDetail() {
     const { courseId, lessonId } = useParams();
     const navigate = useNavigate();
@@ -317,8 +327,10 @@ export default function LessonDetail() {
         lessonSubtitle: lessonData.sectionName || 'Chuyên đề',
         progress: lessonData.progress || 0,
         duration: lessonData.duration || '00:00',
-        videoUrl: lessonData.videoUrl || lessonData.contentUrl
+        videoUrl: lessonData.videoUrl || lessonData.contentUrl || lessonData.content
     };
+
+    const videoId = getYoutubeId(lessonData.videoUrl) || getYoutubeId(lessonData.contentUrl) || getYoutubeId(lessonData.content);
 
     const mappedCourseSections = (courseSections || []).map(s => ({
         id: s.id,
@@ -421,8 +433,8 @@ export default function LessonDetail() {
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
                             className={`flex flex-1 md:flex-none justify-center items-center gap-2 px-6 py-3.5 text-sm font-bold transition-all border-b-2 whitespace-nowrap rounded-t-lg mx-1 ${activeTab === tab.key
-                                    ? 'border-[#0487e2] text-[#0487e2] bg-blue-50/50'
-                                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                                ? 'border-[#0487e2] text-[#0487e2] bg-blue-50/50'
+                                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                                 }`}
                         >
                             <tab.icon size={16} className={activeTab === tab.key ? 'text-[#0487e2]' : 'text-slate-400'} />
@@ -440,12 +452,25 @@ export default function LessonDetail() {
                         {activeTab === '1' && (
                             <div className="space-y-6 animate-fade-in">
                                 {/* Video/Media Container */}
-                                <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)] overflow-hidden">
-                                    <div className="aspect-video bg-[#0f172a] relative flex items-center justify-center group w-full overflow-hidden">
-                                        {lessonData?.videoUrl ? (
+                                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                    <div className="aspect-video bg-slate-900 relative flex items-center justify-center group w-full overflow-hidden">
+                                        {videoId ? (
+                                            <div className="absolute inset-0 w-full h-full">
+                                                <iframe
+                                                    key={`yt-${lessonId}`}
+                                                    className="w-full h-full border-0"
+                                                    src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autohide=1&showinfo=0`}
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                    title="Video bài học"
+                                                    onLoad={() => setIsPlaying(true)}
+                                                ></iframe>
+                                            </div>
+                                        ) : lessonInfo.videoUrl ? (
                                             <video
                                                 ref={videoRef}
-                                                src={lessonData.videoUrl}
+                                                key={`vid-${lessonId}`}
+                                                src={lessonInfo.videoUrl}
                                                 className="absolute inset-0 w-full h-full object-contain"
                                                 controls
                                                 onPlay={() => setIsPlaying(true)}
@@ -456,28 +481,11 @@ export default function LessonDetail() {
                                                 }}
                                             />
                                         ) : (
-                                            <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-500">
-                                                <div className="w-20 h-20 rounded-full bg-slate-800/80 flex items-center justify-center border border-slate-700/50 shadow-inner">
-                                                    <PlayCircle size={40} className="text-slate-600" />
-                                                </div>
-                                                <p className="font-bold tracking-wide uppercase text-sm">Video bổ sung đang cập nhật</p>
-                                                <p className="text-xs text-slate-600">Bạn có thể theo dõi nội dung lý thuyết bên dưới</p>
+                                            <div className="flex flex-col items-center gap-3 text-slate-400">
+                                                <PlayCircle size={48} />
+                                                <p className="font-bold">Video bài giảng đang được cập nhật</p>
                                             </div>
                                         )}
-
-                                        {/* Subtle Progress indication at bottom of video wrapper */}
-                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
-                                            <div
-                                                className="h-full bg-[#0487e2] transition-all"
-                                                style={{ width: videoRef.current ? `${(videoRef.current.currentTime / videoRef.current.duration) * 100}%` : '0%' }}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="px-6 py-4 bg-white flex justify-between items-center text-sm font-medium text-slate-600">
-                                        <div className="flex items-center gap-2">
-                                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            <span>Thời lượng đã xem: <span className="font-bold text-slate-800">{Math.floor(watchedTime / 60)}:{(watchedTime % 60).toString().padStart(2, '0')}</span></span>
-                                        </div>
                                     </div>
                                 </div>
 
@@ -679,8 +687,8 @@ export default function LessonDetail() {
                                                                 : `/dashboard/student/courses/${courseId}/lessons/${lesson.id}`
                                                             }
                                                             className={`flex items-start gap-3 p-3 rounded-xl transition-all border ${isCurrent
-                                                                    ? 'bg-blue-50/80 border-[#0487e2]/20 shadow-sm'
-                                                                    : 'border-transparent hover:bg-white hover:border-slate-200 hover:shadow-sm'
+                                                                ? 'bg-blue-50/80 border-[#0487e2]/20 shadow-sm'
+                                                                : 'border-transparent hover:bg-white hover:border-slate-200 hover:shadow-sm'
                                                                 }`}
                                                         >
                                                             <div className="mt-0.5 flex-shrink-0">
@@ -738,8 +746,8 @@ export default function LessonDetail() {
                                             {msg.type === 'user' ? 'M' : <Bot size={16} />}
                                         </div>
                                         <div className={`max-w-[82%] px-4 py-3 text-[14px] leading-relaxed shadow-sm flex flex-col items-start font-medium ${msg.type === 'user'
-                                                ? 'bg-slate-900 text-white rounded-[20px] rounded-tr-[4px]'
-                                                : 'bg-white text-slate-800 rounded-[20px] rounded-tl-[4px] border border-slate-100'
+                                            ? 'bg-slate-900 text-white rounded-[20px] rounded-tr-[4px]'
+                                            : 'bg-white text-slate-800 rounded-[20px] rounded-tl-[4px] border border-slate-100'
                                             }`}>
                                             <span style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</span>
 
