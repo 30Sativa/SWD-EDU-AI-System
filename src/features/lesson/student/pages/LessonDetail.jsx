@@ -5,7 +5,7 @@ import {
     MessageSquare, Send, FileText, Download, CheckCircle, Circle, Lightbulb, AlertCircle, PlayCircle,
     Lock, Search, MoreVertical, Bot, Clock, ListChecks, BookOpen, Layers, Target, CheckSquare, Sparkles
 } from 'lucide-react';
-import { getLessonDetail, getStudentLessonDetail, updateLessonProgress, getLessonsBySection, getStudentLessonBlocks, getStudentLessonFaqs } from '../../api/lessonApi';
+import { getLessonDetail, getStudentLessonDetail, updateLessonProgress, getLessonsBySection, getStudentLessonBlocks, getStudentLessonFaqs, chatWithAI } from '../../api/lessonApi';
 import { getStudentCourseDetail, getCourseSections } from '../../../course/api/courseApi';
 import { getLessonQuizzes } from '../../../quiz/student/api/quizApi';
 import { Spin, message, Tooltip, Breadcrumb, Button, Tabs, Empty } from 'antd';
@@ -68,7 +68,9 @@ export default function LessonDetail() {
         }
     ]);
     const [inputMessage, setInputMessage] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
     const chatEndRef = useRef(null);
+    const chatContainerRef = useRef(null);
 
     // Track Progress Logic
     const progressIntervalRef = useRef(null);
@@ -259,8 +261,13 @@ export default function LessonDetail() {
     };
 
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [chatMessages]);
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTo({
+                top: chatContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [chatMessages, isTyping]);
 
     const toggleSection = (sectionId) => {
         if (expandedSections.includes(sectionId)) {
@@ -270,31 +277,49 @@ export default function LessonDetail() {
         }
     };
 
-    const handleSendMessage = () => {
-        if (inputMessage.trim()) {
+    const handleSendMessage = async () => {
+        if (inputMessage.trim() && !isTyping) {
             const userMsg = inputMessage.trim();
-            setChatMessages([...chatMessages, {
-                id: chatMessages.length + 1,
+            const newMessage = {
+                id: Date.now(),
                 type: 'user',
                 text: userMsg
-            }]);
+            };
+
+            setChatMessages(prev => [...prev, newMessage]);
             setInputMessage('');
-            setTimeout(() => {
-                let aiResponse = "";
-                if (userMsg.toLowerCase().includes("tóm tắt")) {
-                    aiResponse = `Dựa trên bài học "${lessonInfo.lessonTitle}", đây là những ý chính bạn cần ghi nhớ:\n\n1. Định nghĩa và khái niệm cơ sở.\n2. Các cấu trúc quan trọng được giới thiệu trong phần lý thuyết.\n3. Củng cố kiến thức bằng cách áp dụng vào bài quiz. \n\nBạn có muốn mình giải thích một điểm nào cụ thể không?`;
-                } else if (userMsg.toLowerCase().includes("giải thích") || userMsg.toLowerCase().includes("ví dụ") || userMsg.toLowerCase().includes("công thức")) {
-                    aiResponse = `Đối với nội dung này, yếu tố quan trọng là hiểu cách hoạt động theo từng bước. Mình khuyên bạn xem lại ví dụ thực hành ở mục Nội dung. Nếu vẫn chưa rõ, hãy làm Quiz để củng cố nhé!`;
-                } else {
-                    aiResponse = `Đó là một câu hỏi rất hữu ích! Trong bối cảnh của bài "${lessonInfo.lessonTitle}", việc nắm vững định nghĩa sẽ giúp bạn tư duy nhanh hơn ở các phần nâng cao. Bạn có thắc mắc chi tiết cần mình làm rõ thêm không?`;
-                }
+            setIsTyping(true);
+
+            try {
+                // Map history for API: type 'user' -> 'user', type 'ai' -> 'assistant'
+                const history = chatMessages.map(msg => ({
+                    role: msg.type === 'user' ? 'user' : 'assistant',
+                    content: msg.text
+                }));
+
+                const response = await chatWithAI(lessonId, {
+                    message: userMsg,
+                    history: history
+                });
+
+                // Correctly extract the reply from the nested structure: response.data.data.reply
+                const aiResponse = response.data?.data?.reply || response.data?.reply || response.data?.message || response.message || "Xin lỗi, mình đang gặp chút sự cố. Bạn thử hỏi lại nhé!";
+
                 setChatMessages(prev => [...prev, {
-                    id: prev.length + 1,
+                    id: Date.now() + 1,
                     type: 'ai',
-                    text: aiResponse,
-                    isTyping: false
+                    text: aiResponse
                 }]);
-            }, 1000);
+            } catch (error) {
+                console.error("AI Chat Error:", error);
+                setChatMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    type: 'ai',
+                    text: "Ồ, có vẻ kết nối với máy chủ AI đang bị gián đoạn. Hãy thử lại sau một lúc nhé!"
+                }]);
+            } finally {
+                setIsTyping(false);
+            }
         }
     };
 
@@ -738,7 +763,10 @@ export default function LessonDetail() {
                                 </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50/50 custom-scrollbar relative">
+                            <div
+                                ref={chatContainerRef}
+                                className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50/50 custom-scrollbar relative"
+                            >
                                 {chatMessages.map((msg) => (
                                     <div key={msg.id} className={`flex gap-3 animate-fade-in ${msg.type === 'user' ? 'flex-row-reverse' : ''}`}>
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-sm ${msg.type === 'user' ? 'bg-indigo-100 text-indigo-700 text-xs font-bold ring-2 ring-white' : 'bg-gradient-to-br from-[#0487e2] to-indigo-600 text-white ring-2 ring-white'
@@ -767,6 +795,20 @@ export default function LessonDetail() {
                                         </div>
                                     </div>
                                 ))}
+                                {isTyping && (
+                                    <div className="flex gap-3 animate-fade-in">
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-sm bg-gradient-to-br from-[#0487e2] to-indigo-600 text-white ring-2 ring-white">
+                                            <Bot size={16} />
+                                        </div>
+                                        <div className="bg-white text-slate-800 rounded-[20px] rounded-tl-[4px] border border-slate-100 px-4 py-3 shadow-sm">
+                                            <div className="flex gap-1">
+                                                <span className="w-1.5 h-1.5 bg-[#0487e2]/60 rounded-full animate-bounce"></span>
+                                                <span className="w-1.5 h-1.5 bg-[#0487e2]/60 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                                                <span className="w-1.5 h-1.5 bg-[#0487e2]/60 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div ref={chatEndRef} />
                             </div>
 
@@ -776,15 +818,18 @@ export default function LessonDetail() {
                                         type="text"
                                         value={inputMessage}
                                         onChange={(e) => setInputMessage(e.target.value)}
-                                        onKeyPress={(e) => {
-                                            if (e.key === 'Enter') handleSendMessage();
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleSendMessage();
+                                            }
                                         }}
                                         placeholder="Nhập câu hỏi..."
                                         className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#0487e2] focus:ring-4 focus:ring-blue-500/10 focus:bg-white transition-all placeholder:text-slate-400 group-hover:border-slate-300"
                                     />
                                     <button
                                         onClick={handleSendMessage}
-                                        disabled={!inputMessage.trim()}
+                                        disabled={!inputMessage.trim() || isTyping}
                                         className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-[#0487e2] disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-lg hover:bg-[#0374c4] transition-all disabled:opacity-50 active:scale-95 shadow-sm"
                                     >
                                         <Send size={14} className="ml-0.5" />

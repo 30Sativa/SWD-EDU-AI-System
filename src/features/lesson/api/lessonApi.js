@@ -131,6 +131,11 @@ export const uploadLessonMaterial = (id, file) => {
         },
     });
 };
+export const chatWithAI = (lessonId, data) => {
+    // data: { message: string, history: Array<{role: string, content: string}> }
+    return axiosClient.post(`/api/student/lessons/${lessonId}/chat`, data);
+};
+
 export const updateLessonProgress = (lessonId, data) => {
     // data: { watchedDuration: number, isCompleted: boolean }
     return axiosClient.post(`/api/student/lessons/${lessonId}/progress`, data);
