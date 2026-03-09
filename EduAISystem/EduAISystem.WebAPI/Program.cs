@@ -27,7 +27,7 @@ Console.WriteLine("ApiKey   : " + apiKey);
 Console.WriteLine("Emaill Setting password:   " + emailPassword);
 Console.WriteLine("Cloud Storage Connection String: " + cloudStorageConnectionString);
 Console.WriteLine("Cloud Storage ApiKey: " + cloudStorageApiKey);
-Console.WriteLine("Cloud Storage ApiSecret: " + cloudStorageApiSecret);
+Console.WriteLine("Cloud Storage ApiSecret:  " + cloudStorageApiSecret);
 Console.WriteLine("============================");
 
 //  nếu thiếu thì cho chết sớm
