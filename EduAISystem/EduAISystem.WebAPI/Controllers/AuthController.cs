@@ -151,5 +151,22 @@ Link có hiệu lực trong **30 phút**."
             await _meditor.Send(new ResetPasswordCommand(dto));
             return Ok(ApiResponse<object>.Ok(null, "Đặt lại mật khẩu thành công! Vui lòng đăng nhập."));
         }
+
+        // =============================================
+        // LÀM MỚI ACCESS TOKEN
+        // =============================================
+        [HttpPost("refresh-token")]
+        [SwaggerOperation(
+            Summary = "Làm mới Access Token",
+            Description = "Dùng Refresh Token hợp lệ (chưa hết hạn, chưa bị thu hồi) để lấy JWT/Access Token mới và Refresh Token mới."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<LoginResponseDto>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(ApiResponse<object>))]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto dto)
+        {
+            var result = await _meditor.Send(new RefreshTokenCommand(dto));
+            return Ok(ApiResponse<LoginResponseDto>.Ok(result, "Token refreshed successfully."));
+        }
     }
 }

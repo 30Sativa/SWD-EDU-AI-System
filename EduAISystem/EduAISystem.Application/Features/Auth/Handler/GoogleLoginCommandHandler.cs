@@ -7,6 +7,7 @@ using EduAISystem.Application.Features.Auth.DTOs.Response;
 using EduAISystem.Domain.Entities;
 using EduAISystem.Domain.Enums;
 using MediatR;
+using System.Security.Cryptography;
 
 namespace EduAISystem.Application.Features.Auth.Handler
 {
@@ -27,6 +28,7 @@ namespace EduAISystem.Application.Features.Auth.Handler
         private readonly IClientContext _client;
         private readonly IPasswordHasher _passwordHasher;
         private readonly IEmailService _emailService;
+        private readonly IRefreshTokenRepository _refreshTokens;
 
         public GoogleLoginCommandHandler(
             IGoogleTokenVerifier googleVerifier,
@@ -35,7 +37,8 @@ namespace EduAISystem.Application.Features.Auth.Handler
             IJwtTokenGenerator jwt,
             IClientContext client,
             IPasswordHasher passwordHasher,
-            IEmailService emailService)
+            IEmailService emailService,
+            IRefreshTokenRepository refreshTokens)
         {
             _googleVerifier = googleVerifier;
             _users = users;
@@ -44,6 +47,7 @@ namespace EduAISystem.Application.Features.Auth.Handler
             _client = client;
             _passwordHasher = passwordHasher;
             _emailService = emailService;
+            _refreshTokens = refreshTokens;
         }
 
         public async Task<LoginResponseDto> Handle(GoogleLoginCommand request, CancellationToken cancellationToken)
@@ -111,10 +115,21 @@ namespace EduAISystem.Application.Features.Auth.Handler
 
             await _sessions.AddAsync(session);
 
+            // Generate Refresh Token
+            var refreshTokenString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            var refreshTokenDomain = new RefreshTokenDomain(
+                user.Id,
+                refreshTokenString,
+                DateTime.UtcNow.AddDays(7), // Expiry time (7 days)
+                DateTime.UtcNow
+            );
+            await _refreshTokens.AddAsync(refreshTokenDomain);
+
             return new LoginResponseDto
             {
                 SessionId = session.Id,
                 AccessToken = _jwt.GenerateToken(user, session.Id),
+                RefreshToken = refreshTokenString,
                 ExpiredAt = _jwt.GetExpiredAt()
             };
         }

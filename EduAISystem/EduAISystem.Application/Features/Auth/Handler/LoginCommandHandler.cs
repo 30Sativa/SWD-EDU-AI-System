@@ -7,9 +7,8 @@ using EduAISystem.Application.Features.Auth.DTOs.Response;
 using EduAISystem.Domain.Entities;
 using MediatR;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Security.Cryptography;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EduAISystem.Application.Features.Auth.Handler
@@ -18,6 +17,7 @@ namespace EduAISystem.Application.Features.Auth.Handler
     {
         private readonly IUserRepository _users;
         private readonly ILoginSessionRepository _sessions;
+        private readonly IRefreshTokenRepository _refreshTokens;
         private readonly IPasswordHasher _hasher;
         private readonly IJwtTokenGenerator _jwt;
         private readonly IClientContext _client;
@@ -25,12 +25,14 @@ namespace EduAISystem.Application.Features.Auth.Handler
         public LoginCommandHandler(
             IUserRepository users,
             ILoginSessionRepository sessions,
+            IRefreshTokenRepository refreshTokens,
             IPasswordHasher hasher,
             IJwtTokenGenerator jwt,
             IClientContext client)
         {
             _users = users;
             _sessions = sessions;
+            _refreshTokens = refreshTokens;
             _hasher = hasher;
             _jwt = jwt;
             _client = client;
@@ -55,10 +57,21 @@ namespace EduAISystem.Application.Features.Auth.Handler
                 _client.UserAgent);
             await _sessions.AddAsync(session);
 
+            // Generate Refresh Token
+            var refreshTokenString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            var refreshTokenDomain = new RefreshTokenDomain(
+                user.Id,
+                refreshTokenString,
+                DateTime.UtcNow.AddDays(7), // Expiry time (7 days)
+                DateTime.UtcNow
+            );
+            await _refreshTokens.AddAsync(refreshTokenDomain);
+
             return new LoginResponseDto
             {
                 SessionId = session.Id,
                 AccessToken = _jwt.GenerateToken(user, session.Id),
+                RefreshToken = refreshTokenString,
                 ExpiredAt = _jwt.GetExpiredAt()
             };
         }

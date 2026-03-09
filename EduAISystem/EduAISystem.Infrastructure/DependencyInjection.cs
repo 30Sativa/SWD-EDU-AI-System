@@ -65,6 +65,7 @@ namespace EduAISystem.Infrastructure
             // 3. Auth Token Repositories
             services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
             services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();
+            services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             // 4. Google OAuth
             services.AddScoped<IGoogleTokenVerifier, GoogleTokenVerifier>();
             // 5. Services khác (nếu có)
