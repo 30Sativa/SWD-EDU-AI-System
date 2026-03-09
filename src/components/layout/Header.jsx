@@ -1,9 +1,11 @@
 import React from "react";
 import { LogIn } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function Header() {
+  const navigate = useNavigate();
   const navItems = [
-    { label: "Trang chủ", href: "#" },
+    { label: "Trang chủ", href: "/" },
     { label: "Về chúng tôi", href: "#" },
     { label: "Liên hệ", href: "#" },
     { label: "Chính sách", href: "#" },
@@ -29,7 +31,8 @@ export default function Header() {
         {/* Right Section: Login Button */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <button
-            className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium text-sm rounded-lg hover:shadow-lg hover:shadow-blue-600/30 hover:scale-105 transition-all duration-200 shadow-md"
+            onClick={() => navigate('/login')}
+            className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium text-sm rounded-lg hover:shadow-lg hover:shadow-blue-600/30 hover:scale-105 transition-all duration-200 shadow-md cursor-pointer"
           >
             <LogIn className="w-4 h-4" />
             <span>Đăng nhập</span>
