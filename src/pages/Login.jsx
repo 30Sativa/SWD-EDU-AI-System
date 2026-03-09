@@ -176,7 +176,15 @@ export default function Login() {
             }
         } catch (err) {
             console.error("Google Login failed:", err);
-            const errorMsg = err.response?.data?.message || 'Đăng nhập bằng Google thất bại.';
+            let errorMsg = 'Đăng nhập bằng Google thất bại.';
+
+            // If the user does not exist in the system, backend usually returns 404 or 401
+            if (err.response?.status === 404 || err.response?.status === 401) {
+                errorMsg = 'Tài khoản không tồn tại trong hệ thống. Vui lòng liên hệ quản lý.';
+            } else if (err.response?.data?.message) {
+                errorMsg = err.response.data.message;
+            }
+
             setError(errorMsg);
             message.error(errorMsg);
         } finally {
