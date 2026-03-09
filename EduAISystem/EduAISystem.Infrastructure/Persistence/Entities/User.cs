@@ -13,8 +13,6 @@ public partial class User
 
     public int Role { get; set; }
 
-    public string? UserName { get; set; }
-
     public bool? IsEmailVerified { get; set; }
 
     public bool? IsActive { get; set; }
@@ -26,6 +24,11 @@ public partial class User
     public DateTime? UpdatedAt { get; set; }
 
     public DateTime? DeletedAt { get; set; }
+
+    public bool IsFirstLogin { get; set; }
+
+    /// <summary>Google OAuth Subject ID (sub claim). Null nếu user chưa link Google.</summary>
+    public string? GoogleId { get; set; }
 
     public virtual ICollection<Ailog> Ailogs { get; set; } = new List<Ailog>();
 
@@ -41,9 +44,12 @@ public partial class User
 
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 
+    public virtual ICollection<EmailVerificationToken> EmailVerificationTokens { get; set; } = new List<EmailVerificationToken>();
+
     public virtual Student? Student { get; set; }
 
     public virtual Teacher? Teacher { get; set; }
 
     public virtual UserProfile? UserProfile { get; set; }
+
 }

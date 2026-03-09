@@ -11,6 +11,9 @@ public partial class QuizAttempt
 
     public Guid QuizId { get; set; }
 
+    /// <summary>IN_PROGRESS | GRADED</summary>
+    public string Status { get; set; } = "IN_PROGRESS";
+
     public decimal? Score { get; set; }
 
     public decimal? MaxScore { get; set; }

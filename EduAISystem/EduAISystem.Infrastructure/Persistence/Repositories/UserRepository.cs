@@ -16,20 +16,45 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             _context = context;
         }
 
-        public Task AddAsync(UserDomain? user)
+        public async Task AddAsync(UserDomain? user)
         {
             var entity = new Infrastructure.Persistence.Entities.User
             {
                 Id = user!.Id,
                 Email = user.Email,
-                UserName = user.UserName,
                 PasswordHash = user.PasswordHash,
                 IsActive = user.IsActive,
+                IsEmailVerified = user.IsEmailVerified,
+                GoogleId = user.GoogleId,
                 Role = (int)user.Role,
-                CreatedAt = user.CreatedAt
+                CreatedAt = user.CreatedAt,
+                UserProfile = new Entities.UserProfile
+                {
+                    FullName = user.UserProfile?.FullName ?? string.Empty,
+                    AvatarUrl = user.UserProfile?.AvatarUrl
+                }
             };
             _context.Users.Add(entity);
-            return _context.SaveChangesAsync();
+
+            if (user.Role == UserRoleDomain.Student)
+            {
+                var studentCode = "STU" + Guid.NewGuid().ToString("N")[..17];
+                _context.Students.Add(new Infrastructure.Persistence.Entities.Student
+                {
+                    UserId = user.Id,
+                    StudentCode = studentCode,
+                    EnrollmentDate = DateTime.UtcNow
+                });
+            }
+            else if (user.Role == UserRoleDomain.Teacher)
+            {
+                _context.Teachers.Add(new Infrastructure.Persistence.Entities.Teacher
+                {
+                    UserId = user.Id
+                });
+            }
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateProfileAsync(Guid userId, UserProfileDomain profile, CancellationToken cancellationToken = default)
@@ -57,13 +82,27 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             }
             else
             {
-                user.UserProfile.FullName = profile.FullName;
-                user.UserProfile.AvatarUrl = profile.AvatarUrl;
-                user.UserProfile.PhoneNumber = profile.PhoneNumber;
-                user.UserProfile.DateOfBirth = profile.DateOfBirth;
-                user.UserProfile.Gender = profile.Gender;
-                user.UserProfile.Address = profile.Address;
-                user.UserProfile.Bio = profile.Bio;
+                // null hoặc "" đều bỏ qua → giữ nguyên giá trị DB cũ
+                if (!string.IsNullOrWhiteSpace(profile.FullName))
+                    user.UserProfile.FullName = profile.FullName;
+
+                if (!string.IsNullOrWhiteSpace(profile.AvatarUrl))
+                    user.UserProfile.AvatarUrl = profile.AvatarUrl;
+
+                if (!string.IsNullOrWhiteSpace(profile.PhoneNumber))
+                    user.UserProfile.PhoneNumber = profile.PhoneNumber;
+
+                if (profile.DateOfBirth.HasValue)
+                    user.UserProfile.DateOfBirth = profile.DateOfBirth;
+
+                if (!string.IsNullOrWhiteSpace(profile.Gender))
+                    user.UserProfile.Gender = profile.Gender;
+
+                if (!string.IsNullOrWhiteSpace(profile.Address))
+                    user.UserProfile.Address = profile.Address;
+
+                if (!string.IsNullOrWhiteSpace(profile.Bio))
+                    user.UserProfile.Bio = profile.Bio;
             }
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -76,6 +115,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             if (entity == null)
                 return false;
             entity.DeletedAt = DateTime.UtcNow;
+            entity.IsActive = false; // Deactivate when soft deleted
             await _context.SaveChangesAsync(cancellationToken);
             return true;
         }
@@ -92,11 +132,13 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             var domain = new UserDomain(
                 entity.Id,
                 entity.Email,
-                entity.UserName,
                 entity.PasswordHash,
                 entity.IsActive ?? false,
+                entity.IsEmailVerified ?? false,
+                entity.GoogleId,
                 (UserRoleDomain)entity.Role,
-                entity.CreatedAt ?? DateTime.MinValue);
+                entity.CreatedAt ?? DateTime.MinValue,
+                entity.DeletedAt);
             if (entity.UserProfile != null)
                 domain.UserProfile = UserProfileDomain.Load(
                     entity.UserProfile.UserId,
@@ -110,6 +152,17 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             return domain;
         }
 
+        public async Task<string?> GetFullNameByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            var fullName = await _context.UserProfiles
+                .AsNoTracking()
+                .Where(p => p.UserId == id)
+                .Select(p => p.FullName)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return string.IsNullOrWhiteSpace(fullName) ? null : fullName;
+        }
+
         public async Task<UserDomain?> GetByEmailAsync(string email)
         {
             var entity = await _context.Users
@@ -118,9 +171,10 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             return entity == null ? null : new UserDomain(
                 entity.Id,
                 entity.Email,
-                entity.UserName,
                 entity.PasswordHash,
                 entity.IsActive ?? false,
+                entity.IsEmailVerified ?? false,
+                entity.GoogleId,
                 (UserRoleDomain)entity.Role,
                 entity.CreatedAt ?? DateTime.MinValue
             );
@@ -131,20 +185,26 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             int pageSize, 
             string? searchTerm, 
             int? roleFilter, 
-            bool? isActiveFilter, 
+            bool? isActiveFilter,
+            bool? includeDeleted = false,
             CancellationToken cancellationToken = default)
         {
             var query = _context.Users
             .AsNoTracking()
             .Include(u => u.UserProfile)
-            .Where(u => u.DeletedAt == null);
+            .AsQueryable();
+
+            // Filter deleted users unless includeDeleted is true
+            if (!includeDeleted.HasValue || !includeDeleted.Value)
+            {
+                query = query.Where(u => u.DeletedAt == null);
+            }
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var term = searchTerm.Trim();
                 query = query.Where(u =>
                     u.Email.Contains(term) ||
-                    (u.UserName != null && u.UserName.Contains(term)) ||
                     (u.UserProfile != null && u.UserProfile.FullName.Contains(term)));
             }
 
@@ -168,11 +228,13 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 var domain = new UserDomain(
                     u.Id,
                     u.Email,
-                    u.UserName,
                     u.PasswordHash,
                     u.IsActive ?? false,
+                    u.IsEmailVerified ?? false,
+                    u.GoogleId,
                     (UserRoleDomain)u.Role,
-                    u.CreatedAt ?? DateTime.MinValue);
+                    u.CreatedAt ?? DateTime.MinValue,
+                    u.DeletedAt);
                 if (u.UserProfile != null)
                     domain.UserProfile = UserProfileDomain.Load(
                         u.UserProfile.UserId,
@@ -193,6 +255,42 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 Page = page,
                 PageSize = pageSize
             };
+        }
+
+        public async Task<UserDomain?> GetByGoogleIdAsync(string googleId, CancellationToken cancellationToken = default)
+        {
+            var entity = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.GoogleId == googleId && u.DeletedAt == null, cancellationToken);
+
+            if (entity == null) return null;
+
+            return new UserDomain(
+                entity.Id,
+                entity.Email,
+                entity.PasswordHash,
+                entity.IsActive ?? false,
+                entity.IsEmailVerified ?? false,
+                entity.GoogleId,
+                (UserRoleDomain)entity.Role,
+                entity.CreatedAt ?? DateTime.MinValue);
+        }
+
+        public async Task UpdateAsync(UserDomain user, CancellationToken cancellationToken = default)
+        {
+            var entity = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == user.Id, cancellationToken);
+
+            if (entity == null) return;
+
+            entity.PasswordHash = user.PasswordHash;
+            entity.IsEmailVerified = user.IsEmailVerified;
+            entity.IsActive = user.IsActive;
+            entity.IsFirstLogin = user.IsFirstLogin;
+            entity.GoogleId = user.GoogleId;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
         }
     }
 }

@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using EduAISystem.Domain.Entities;
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace EduAISystem.Application.Abstractions.Persistence
 {
-    public class IRefreshTokenRepository
+    public interface IRefreshTokenRepository
     {
-
+        Task AddAsync(RefreshTokenDomain token);
+        Task<RefreshTokenDomain?> GetByTokenAsync(string token, CancellationToken cancellationToken = default);
+        Task UpdateAsync(RefreshTokenDomain token);
     }
 }

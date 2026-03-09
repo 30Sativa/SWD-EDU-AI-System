@@ -11,6 +11,12 @@ public partial class StudentQuestion
 
     public Guid LessonId { get; set; }
 
+    /// <summary>
+    /// Optional: nếu Student hỏi AI sau khi làm quiz,
+    /// AttemptId giúp AI biết context bài làm cụ thể.
+    /// </summary>
+    public Guid? AttemptId { get; set; }
+
     public string QuestionText { get; set; } = null!;
 
     public string? Airesponse { get; set; }
@@ -40,4 +46,6 @@ public partial class StudentQuestion
     public virtual Lesson Lesson { get; set; } = null!;
 
     public virtual Student Student { get; set; } = null!;
+
+    public virtual QuizAttempt? Attempt { get; set; }
 }

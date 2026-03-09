@@ -37,13 +37,13 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            sudo docker pull 307sativa/eduai-api:latest
+            cd ~/eduai
 
-            sudo docker stop eduai-api || true
-            sudo docker rm eduai-api || true
+            # Pull image mới cho eduai-api
+            sudo docker-compose pull eduai-api
 
-            sudo docker run -d \
-              --name eduai-api \
-              -p 80:8080 \
-              -e ASPNETCORE_ENVIRONMENT=Production \
-              307sativa/eduai-api:latest
+            # Recreate mỗi eduai-api, KHÔNG đụng DB
+            sudo docker-compose up -d --force-recreate --no-deps eduai-api
+
+            # Dọn image cũ cho gọn ổ đĩa
+            sudo docker image prune -f

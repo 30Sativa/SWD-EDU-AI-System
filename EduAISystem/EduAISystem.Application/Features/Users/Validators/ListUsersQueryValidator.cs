@@ -8,9 +8,10 @@ namespace EduAISystem.Application.Features.Users.Validators
     {
         private static readonly int[] ValidRoles =
         {
-            (int)UserRoleDomain.User,
             (int)UserRoleDomain.Admin,
-            (int)UserRoleDomain.Manager
+            (int)UserRoleDomain.Manager,
+            (int)UserRoleDomain.Student,
+            (int)UserRoleDomain.Teacher
         };
 
         public ListUsersQueryValidator()

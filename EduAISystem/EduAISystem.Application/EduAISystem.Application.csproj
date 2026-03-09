@@ -10,12 +10,21 @@
     <Folder Include="Common\Mappings\" />
     <Folder Include="Features\Auth\Mappings\" />
     <Folder Include="Features\Auth\Queries\" />
+    <Folder Include="Features\Courses\Queries\" />
+    <Folder Include="Features\Quiz\DTOs\Response\" />
+    <Folder Include="Features\Quiz\Validators\" />
+    <Folder Include="Features\Quiz\Queries\" />
+    <Folder Include="Features\Sections\Validators\" />
+    <Folder Include="Features\Subjects\DTOs\" />
+    <Folder Include="Features\Subjects\Handler\" />
+    <Folder Include="Features\Subjects\Validators\" />
   </ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="FluentValidation" Version="12.1.1" />
 		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
 		<PackageReference Include="MediatR" Version="13.0.0" />
 		<PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
 	</ItemGroup>
 
