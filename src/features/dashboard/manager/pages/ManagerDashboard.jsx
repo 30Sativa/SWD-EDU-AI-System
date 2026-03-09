@@ -248,10 +248,6 @@ export default function ManagerDashboard() {
           <p className="text-slate-500 text-sm mt-1">Tổng quan hệ thống và tài nguyên giảng dạy.</p>
         </div>
 
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-[#0487e2] text-white font-semibold rounded-lg hover:bg-[#0463ca] transition-all shadow-md shadow-[#0487e2]/20">
-          <Plus size={18} />
-          <span>Tạo Môn học</span>
-        </button>
       </header>
 
       {/* Stats Grid */}

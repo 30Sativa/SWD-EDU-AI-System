@@ -141,36 +141,6 @@ export default function TeacherDashboard() {
           <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Bảng điều khiển</h1>
           <p className="text-slate-500 text-sm mt-1">Chào mừng trở lại, đây là tổng quan lớp học của bạn.</p>
         </div>
-
-        <div className="flex items-center gap-4 w-full md:w-auto relative">
-          <div className="relative">
-            <button
-              onClick={() => setIsCreateOpen(!isCreateOpen)}
-              className="flex items-center gap-2 bg-[#0487e2] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0463ca] shadow-lg shadow-[#0487e2]/20 transition-all"
-            >
-              <Plus size={16} />
-              <span>Tạo mới</span>
-              <ChevronDown size={16} className={`transition-transform duration-200 ${isCreateOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {isCreateOpen && (
-              <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-
-                <button
-                  onClick={() => navigate('/dashboard/teacher/courses')}
-                  className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 text-sm text-gray-700 transition-colors"
-                >
-                  <BookOpen size={16} className="text-[#0487e2]" />
-                  <span>Tạo khóa học mới</span>
-                </button>
-                <button className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
-                  <HelpCircle size={16} className="text-[#0487e2]" />
-                  <span>Tạo bài kiểm tra</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
       </header>
 
       {/* Stats Grid with Charts */}
