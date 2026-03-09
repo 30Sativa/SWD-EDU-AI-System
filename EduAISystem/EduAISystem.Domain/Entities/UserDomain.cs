@@ -87,6 +87,7 @@ namespace EduAISystem.Domain.Entities
             string googleId,
             string fullName,
             string? avatarUrl,
+            string passwordHash,
             UserRoleDomain role)
         {
             var userId = Guid.NewGuid();
@@ -95,7 +96,7 @@ namespace EduAISystem.Domain.Entities
             {
                 Id = userId,
                 Email = email,
-                PasswordHash = string.Empty, // không cần password khi dùng Google
+                PasswordHash = passwordHash, // Generate later when registering Google via handler
                 GoogleId = googleId,
                 UserProfile = profile,
                 Role = role,

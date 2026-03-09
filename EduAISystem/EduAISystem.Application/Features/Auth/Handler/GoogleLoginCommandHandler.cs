@@ -25,19 +25,25 @@ namespace EduAISystem.Application.Features.Auth.Handler
         private readonly ILoginSessionRepository _sessions;
         private readonly IJwtTokenGenerator _jwt;
         private readonly IClientContext _client;
+        private readonly IPasswordHasher _passwordHasher;
+        private readonly IEmailService _emailService;
 
         public GoogleLoginCommandHandler(
             IGoogleTokenVerifier googleVerifier,
             IUserRepository users,
             ILoginSessionRepository sessions,
             IJwtTokenGenerator jwt,
-            IClientContext client)
+            IClientContext client,
+            IPasswordHasher passwordHasher,
+            IEmailService emailService)
         {
             _googleVerifier = googleVerifier;
             _users = users;
             _sessions = sessions;
             _jwt = jwt;
             _client = client;
+            _passwordHasher = passwordHasher;
+            _emailService = emailService;
         }
 
         public async Task<LoginResponseDto> Handle(GoogleLoginCommand request, CancellationToken cancellationToken)
@@ -59,14 +65,29 @@ namespace EduAISystem.Application.Features.Auth.Handler
                     ? (UserRoleDomain)request.Request.DefaultRole.Value
                     : UserRoleDomain.Student;
 
+                // Generate a random password for regular login
+                var randomPassword = $"Gg@{Guid.NewGuid().ToString("N").Substring(0, 8)}!";
+                var passwordHash = _passwordHasher.Hash(randomPassword);
+
                 user = UserDomain.CreateViaGoogle(
                     payload.Email,
                     payload.GoogleId,
                     payload.FullName,
                     payload.AvatarUrl,
+                    passwordHash,
                     defaultRole);
 
                 await _users.AddAsync(user);
+
+                // Send welcome email with the generated password
+                try
+                {
+                    await _emailService.SendWelcomeEmail(payload.Email, randomPassword);
+                }
+                catch (Exception)
+                {
+                    // Ignore email sending failures so the login itself still succeeds
+                }
             }
             else
             {
