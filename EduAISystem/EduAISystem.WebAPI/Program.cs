@@ -20,7 +20,7 @@ var cloudStorageConnectionString = builder.Configuration["Cloudinary:CloudName"]
 var cloudStorageApiKey = builder.Configuration["Cloudinary:ApiKey"];
 var cloudStorageApiSecret = builder.Configuration["Cloudinary:ApiSecret"];
 Console.WriteLine("===== JWT CONFIG CHECK =====");
-Console.WriteLine("Issuer   : " + jwtSection["Issuer"]);
+Console.WriteLine("Issuer   : " +  jwtSection["Issuer"]);
 Console.WriteLine("Audience : " + jwtSection["Audience"]);
 Console.WriteLine("Secret   : " + jwtSection["Secret"]);
 Console.WriteLine("ApiKey   : " + apiKey);
