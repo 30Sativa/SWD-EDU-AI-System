@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Bell,
   Search,
   Settings,
   User,
@@ -10,6 +9,7 @@ import {
 } from 'lucide-react';
 import { message } from 'antd';
 import { getCurrentUser } from '../../user/api/userApi';
+import NotificationDropdown from './NotificationDropdown';
 
 export default function Header({ userRole, basePath }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -71,10 +71,7 @@ export default function Header({ userRole, basePath }) {
           />
         </form>
 
-        <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 relative transition-colors" title="Thông báo">
-          <Bell size={20} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-        </button>
+        <NotificationDropdown basePath={basePath} />
 
         <div className="h-6 w-[1px] bg-gray-200 hidden sm:block"></div>
 

@@ -42,6 +42,7 @@ import QuizList from "../features/quiz/student/pages/QuizList";
 import QuizDetail from "../features/quiz/student/pages/QuizDetail";
 import StudentProgress from "../features/progress/student/pages/StudentProgress";
 import Profile from "../features/user/pages/Profile";
+import MyNotifications from "../features/notification/pages/MyNotifications";
 
 // Admin routes (using features/)
 import AdminDashboard from "../features/dashboard/admin/pages/AdminDashboard";
@@ -88,6 +89,7 @@ export default function RouteMap() {
             <Route path="classes" element={<ClassManagement />} />
             <Route path="question-bank" element={<QuestionBank />} />
             <Route path="question-bank/:folderId" element={<QuestionList />} />
+            <Route path="my-notifications" element={<MyNotifications />} />
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<GeneralSettings />} />
           </Route>
@@ -103,6 +105,7 @@ export default function RouteMap() {
             <Route path="quizzes" element={<QuizList />} />
             <Route path="quizzes/:quizId" element={<QuizDetail />} />
             <Route path="progress" element={<StudentProgress />} />
+            <Route path="my-notifications" element={<MyNotifications />} />
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<GeneralSettings />} />
           </Route>
@@ -122,6 +125,7 @@ export default function RouteMap() {
             <Route path="terms" element={<TermManagement />} />
             <Route path="terms" element={<TermManagement />} />
             <Route path="question-bank" element={<ManagerQuestionBank />} />
+            <Route path="my-notifications" element={<MyNotifications />} />
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<GeneralSettings />} />
           </Route>
@@ -135,6 +139,7 @@ export default function RouteMap() {
             <Route path="users" element={<UserManagement />} />
             <Route path="notifications" element={<NotificationManagement />} />
             <Route path="audit-logs" element={<AuditLogManagement />} />
+            <Route path="my-notifications" element={<MyNotifications />} />
             <Route path="settings" element={<SystemSettings />} />
             <Route path="profile" element={<Profile />} />
           </Route>

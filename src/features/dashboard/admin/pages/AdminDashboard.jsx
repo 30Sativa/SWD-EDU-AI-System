@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Shield,
@@ -7,7 +8,18 @@ import {
   Download,
   ExternalLink,
   ArrowUpRight,
-  Minus
+  Minus,
+  Cpu,
+  HardDrive,
+  MemoryStick,
+  Clock,
+  Monitor,
+  Server,
+  Activity,
+  Layers,
+  ChevronRight,
+  Zap,
+  Database
 } from 'lucide-react';
 import {
   AreaChart,
@@ -16,24 +28,116 @@ import {
   PieChart,
   Pie,
   Cell,
-  Tooltip as RechartsTooltip
+  Tooltip as RechartsTooltip,
+  RadialBarChart,
+  RadialBar
 } from 'recharts';
-import { Spin } from 'antd';
+import { Spin, Modal } from 'antd';
 
-import { getUsers, ROLE_ENUM, getRoleName } from '../../../../features/user/api/userApi';
-import { getSubjects } from '../../../../features/subject/api/subjectApi';
-import { getCourseTemplates } from '../../../../features/course/api/courseApi';
-import { getAdminDashboard } from '../../api/dashboardApi';
+import { getAdminDashboard, getInfrastructureMetrics } from '../../api/dashboardApi';
+import { getRecentAuditLogs } from '../../../audit-log/api/auditLogApi';
 import * as XLSX from 'xlsx';
 
-// Giả lập dữ liệu chart cho các chỉ số hệ thống để đồng bộ UI
 const chartData = [
   { v: 30 }, { v: 45 }, { v: 35 }, { v: 55 }, { v: 40 }, { v: 65 }, { v: 50 }
 ];
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+// Progress bar with color based on usage percentage
+function UsageBar({ percentage, color = '#0487e2' }) {
+  const pct = Math.min(100, Math.max(0, percentage));
+  const barColor =
+    pct >= 90 ? '#ef4444' :
+      pct >= 75 ? '#f59e0b' :
+        color;
+  return (
+    <div className="flex items-center gap-2 flex-1">
+      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${pct}%`, backgroundColor: barColor }}
+        />
+      </div>
+      <span className="text-xs font-bold w-10 text-right" style={{ color: barColor }}>
+        {pct.toFixed(1)}%
+      </span>
+    </div>
+  );
+}
+
+// Metric row in the infra panel
+function InfraRow({ icon: Icon, label, value, extra }) {
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+        <Icon size={14} className="text-[#0487e2]" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-slate-500 font-medium">{label}</p>
+        <p className="text-sm font-bold text-slate-800 truncate">{value}</p>
+      </div>
+      {extra && <div className="flex-shrink-0">{extra}</div>}
+    </div>
+  );
+}
+
+// Modal detail card
+function DetailCard({ title, icon: Icon, color = '#0487e2', children }) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100"
+        style={{ background: `linear-gradient(135deg, ${color}10 0%, #fff 100%)` }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: `${color}18` }}>
+          <Icon size={18} style={{ color }} />
+        </div>
+        <h3 className="text-base font-bold text-slate-800">{title}</h3>
+      </div>
+      <div className="p-5 space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function DetailRow({ label, value, badge, progress, progressColor }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-sm text-slate-500 min-w-0 flex-shrink-0">{label}</span>
+      <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+        {progress !== undefined ? (
+          <UsageBar percentage={progress} color={progressColor} />
+        ) : (
+          <span className="text-sm font-bold text-slate-800 text-right">{value}</span>
+        )}
+        {badge && (
+          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide flex-shrink-0 ${badge.cls}`}>
+            {badge.text}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Helper: format ISO date to readable Vietnamese
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('vi-VN', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+// Badge color by action string
+function actionBadgeCls(action = '') {
+  const a = action.toLowerCase();
+  if (a.includes('delete') || a.includes('xóa')) return 'bg-rose-50 text-rose-700 ring-1 ring-rose-100';
+  if (a.includes('create') || a.includes('add') || a.includes('tạo')) return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100';
+  if (a.includes('update') || a.includes('edit') || a.includes('cập nhật')) return 'bg-blue-50 text-blue-700 ring-1 ring-blue-100';
+  if (a.includes('login') || a.includes('logout')) return 'bg-amber-50 text-amber-700 ring-1 ring-amber-100';
+  return 'bg-slate-100 text-slate-600';
+}
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -42,127 +146,94 @@ export default function AdminDashboard() {
     totalCourses: 0,
     roleDistribution: []
   });
+  const [infrastructure, setInfrastructure] = useState(null);
+  const [infraModalOpen, setInfraModalOpen] = useState(false);
+  const [recentLogs, setRecentLogs] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // call consolidated dashboard endpoint
+        // axiosClient interceptor đã unwrap response.data → resp = { success, message, data }
         const resp = await getAdminDashboard();
-        const payload = resp.data?.data || resp.data || {};
+        const payload = resp.data || {};
 
         const totalUsers = payload.totalUsers ?? 0;
         const totalStudents = payload.totalStudents ?? 0;
         const totalTeachers = payload.totalTeachers ?? 0;
         const totalCourses = payload.totalCourses ?? 0;
         const totalClasses = payload.totalClasses ?? 0;
-        const totalEnrollments = payload.totalEnrollments ?? 0;
 
-        // compute activeUsers crudely as students+teachers for now
         const activeUsers = totalStudents + totalTeachers;
-
-        // build role distribution using available breakdown
         const roleDistribution = [];
         if (totalStudents) roleDistribution.push({ name: 'Học sinh', value: totalStudents, color: '#3b82f6' });
         if (totalTeachers) roleDistribution.push({ name: 'Giáo viên', value: totalTeachers, color: '#10b981' });
         const otherUsers = totalUsers - totalStudents - totalTeachers;
-        if (otherUsers > 0) {
-          roleDistribution.push({ name: 'Khác', value: otherUsers, color: '#6366f1' });
-        }
+        if (otherUsers > 0) roleDistribution.push({ name: 'Khác', value: otherUsers, color: '#6366f1' });
 
-        setStats({
-          totalUsers,
-          activeUsers,
-          totalSubjects: totalClasses, // reuse class count as subjects placeholder if needed
-          totalCourses,
-          roleDistribution
-        });
+        setStats({ totalUsers, activeUsers, totalSubjects: totalClasses, totalCourses, roleDistribution });
+
+        // axiosClient interceptor đã unwrap → infraResp = { success, message, data }
+        const infraResp = await getInfrastructureMetrics();
+        const infraData = infraResp.data || null;
+        setInfrastructure(infraData);
+
+        // Recent audit logs widget
+        const logsResp = await getRecentAuditLogs(8);
+        setRecentLogs(Array.isArray(logsResp.data) ? logsResp.data : []);
       } catch (error) {
-        console.error("Error loading dashboard stats:", error);
+        console.error('Error loading dashboard stats:', error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
   const systemMetrics = [
-    {
-      label: 'Tổng Người dùng',
-      value: stats.totalUsers.toLocaleString(),
-      change: '+12%',
-      trend: 'up',
-      positive: true,
-      icon: Users,
-      color: '#3b82f6',
-      bgBadge: 'bg-green-50 text-green-600'
-    },
-    {
-      label: 'Tài khoản Hoạt động',
-      value: stats.activeUsers.toLocaleString(),
-      change: '+5.2%',
-      trend: 'up',
-      positive: true,
-      icon: Shield,
-      color: '#10b981',
-      bgBadge: 'bg-green-50 text-green-600'
-    },
-    {
-      label: 'Tổng Môn học',
-      value: stats.totalSubjects.toLocaleString(),
-      change: '0%',
-      trend: 'neutral',
-      positive: null,
-      icon: BookOpen,
-      color: '#6366f1',
-      bgBadge: 'bg-gray-100 text-gray-500'
-    },
-    {
-      label: 'Tổng Khung Khóa học',
-      value: stats.totalCourses.toLocaleString(),
-      change: '+8%',
-      trend: 'up',
-      positive: true,
-      icon: Gem,
-      color: '#f59e0b',
-      bgBadge: 'bg-green-50 text-green-600'
-    },
+    { label: 'Tổng Người dùng', value: stats.totalUsers.toLocaleString(), change: '+12%', trend: 'up', icon: Users, color: '#3b82f6', bgBadge: 'bg-green-50 text-green-600' },
+    { label: 'Tài khoản Hoạt động', value: stats.activeUsers.toLocaleString(), change: '+5.2%', trend: 'up', icon: Shield, color: '#10b981', bgBadge: 'bg-green-50 text-green-600' },
+    { label: 'Tổng Môn học', value: stats.totalSubjects.toLocaleString(), change: '0%', trend: 'neutral', icon: BookOpen, color: '#6366f1', bgBadge: 'bg-gray-100 text-gray-500' },
+    { label: 'Tổng Khung Khóa học', value: stats.totalCourses.toLocaleString(), change: '+8%', trend: 'up', icon: Gem, color: '#f59e0b', bgBadge: 'bg-green-50 text-green-600' },
   ];
 
-  const systemInfo = [
-    { label: 'Phiên bản Nền tảng', value: 'v1.0.2-stable' },
-    { label: 'Môi trường', value: 'Sản xuất', link: true },
-    { label: 'Thời gian Hoạt động Máy chủ', value: '16d 2h 12m' },
-    { label: 'Khu vực', value: 'Asia-Southeast (VN)' },
-    { label: 'Tải Cơ sở dữ liệu', value: '24%', progress: true },
-    { label: 'Bộ nhớ Sử dụng', value: '68%', progress: true },
-  ];
+  const infra = infrastructure;
+  const memUsedPct = infra?.memory?.serverUsedPercentage ?? 0;
+  const cpuPct = infra?.cpu?.appUsedPercentage ?? 0;
+  const diskPct = infra?.disk?.rootUsedPercentage ?? 0;
 
-  const recentLogs = [
+  // Quick panel items
+  const infraQuickRows = infra ? [
     {
-      timestamp: 'Hôm nay, 10:42 SA',
-      event: 'Khóa học Mới được Tạo',
-      user: 'Nguyễn Văn A (Giáo viên)',
-      status: 'THÀNH CÔNG',
-      statusColor: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100',
+      icon: Monitor,
+      label: 'Hệ điều hành',
+      value: infra.os?.platform || 'N/A',
+      extra: infra.os?.isLinux
+        ? <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">Linux</span>
+        : null
+    },
+    // { icon: Layers, label: 'CPU Cores (Logic)', value: `${infra.hardware?.logicalCores ?? 'N/A'} cores` },
+    // { icon: Clock, label: 'Uptime App', value: infra.uptime?.app || 'N/A' },
+    // { icon: Server, label: 'Uptime Server', value: infra.uptime?.server || 'N/A' },
+    {
+      icon: Cpu,
+      label: 'CPU App',
+      extra: <UsageBar percentage={cpuPct} color="#6366f1" />
     },
     {
-      timestamp: 'Hôm nay, 09:15 SA',
-      event: 'Cập nhật thông tin người dùng',
-      user: 'Admin System',
-      status: 'THÀNH CÔNG',
-      statusColor: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100',
+      icon: MemoryStick,
+      label: 'RAM Server',
+      extra: <UsageBar percentage={memUsedPct} color="#0487e2" />
     },
     {
-      timestamp: 'Hôm qua, 11:58 CH',
-      event: 'Sao lưu Hệ thống Hoàn tất',
-      user: 'System Bot',
-      status: 'THÔNG TIN',
-      statusColor: 'bg-blue-50 text-blue-700 ring-1 ring-blue-100',
+      icon: HardDrive,
+      label: 'Disk sử dụng',
+      extra: <UsageBar percentage={diskPct} color="#f59e0b" />
     },
-  ];
+  ] : [];
+
+  // recentLogs is now state, populated from API
 
   return (
     <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-800">
@@ -239,7 +310,6 @@ export default function AdminDashboard() {
                           { Metric: 'Tổng Môn học', Value: stats.totalSubjects },
                           { Metric: 'Tổng Khung Khóa học', Value: stats.totalCourses }
                         ];
-                        // include role distribution breakdown if present
                         stats.roleDistribution.forEach(r => {
                           exportArr.push({ Metric: `Vai trò - ${r.name}`, Value: r.value });
                         });
@@ -260,15 +330,7 @@ export default function AdminDashboard() {
                   <div className="w-[220px] h-[220px] relative">
                     <ResponsiveContainer width={220} height={220} minWidth={0} minHeight={0}>
                       <PieChart>
-                        <Pie
-                          data={stats.roleDistribution}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
+                        <Pie data={stats.roleDistribution} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                           {stats.roleDistribution.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
@@ -288,7 +350,7 @@ export default function AdminDashboard() {
                     {stats.roleDistribution.map((role, index) => (
                       <div key={index} className="flex items-center justify-between group">
                         <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: role.color }}></div>
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: role.color }} />
                           <div>
                             <p className="text-sm font-bold text-slate-800">{role.name}</p>
                             <p className="text-xs text-slate-500">{role.value.toLocaleString()} tài khoản</p>
@@ -303,76 +365,200 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* System Information - Sidebar style */}
+              {/* Infrastructure Quick Panel */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-                <div className="px-6 py-5 border-b border-slate-100">
-                  <h2 className="text-lg font-bold text-[#0463ca]">Thông tin Hạ tầng</h2>
-                  <p className="text-xs text-slate-500 mt-1">Trạng thái tài nguyên máy chủ</p>
+                <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
+                  <div>
+                    <h2 className="text-lg font-bold text-[#0463ca]">Thông tin Hạ tầng</h2>
+                    <p className="text-xs text-slate-500 mt-1">Trạng thái tài nguyên máy chủ thời gian thực</p>
+                  </div>
+                  {infra && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                      LIVE
+                    </span>
+                  )}
                 </div>
-                <div className="p-6 space-y-5 flex-1">
-                  {systemInfo.map((info, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-slate-500">{info.label}</span>
-                      <div className="flex items-center gap-3">
-                        {info.progress ? (
-                          <div className="flex items-center gap-3">
-                            <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-[#0487e2] rounded-full" style={{ width: info.value }}></div>
-                            </div>
-                            <span className="text-xs font-bold text-slate-900">{info.value}</span>
-                          </div>
-                        ) : (
-                          <span className="text-sm font-bold text-slate-900 flex items-center gap-1">
-                            {info.value}
-                            {info.link && <ExternalLink size={12} className="text-[#0487e2]" />}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  <button className="w-full mt-auto py-2.5 text-sm font-bold text-[#0487e2] bg-[#f0f6fa] rounded-lg hover:bg-[#e0f2fe] transition-colors">
-                    Xem Chi tiết Logs Hạ tầng
+
+                <div className="p-5 flex-1 flex flex-col gap-1 divide-y divide-slate-50">
+                  {infra ? (
+                    infraQuickRows.map((row, i) => (
+                      <InfraRow key={i} {...row} />
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-400 text-center py-8">Không thể tải dữ liệu hạ tầng.</p>
+                  )}
+                </div>
+
+                <div className="px-5 pb-5">
+                  <button
+                    onClick={() => setInfraModalOpen(true)}
+                    className="w-full py-2.5 text-sm font-bold text-[#0487e2] bg-[#f0f6fa] rounded-xl hover:bg-[#e0f2fe] transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Activity size={15} />
+                    Xem Chi tiết Hạ tầng
+                    <ChevronRight size={15} />
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Recent Logs - Table Style */}
+            {/* Recent Audit Logs Widget – dữ liệu thật từ /api/admin/audit-logs/recent */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
-                <h2 className="text-lg font-bold text-[#0463ca]">Nhật ký Hệ thống</h2>
-                <button className="text-sm font-semibold text-[#0487e2] hover:text-[#0463ca]">Xem tất cả</button>
+                <div>
+                  <h2 className="text-lg font-bold text-[#0463ca]">Nhật ký Hệ thống</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Các hoạt động gần đây nhất</p>
+                </div>
+                <button
+                  className="text-sm font-semibold text-[#0487e2] hover:text-[#0463ca] flex items-center gap-1"
+                  onClick={() => navigate('/dashboard/admin/audit-logs')}
+                >
+                  Xem tất cả <ChevronRight size={14} />
+                </button>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-semibold">
-                    <tr>
-                      <th className="px-6 py-4">Thời gian</th>
-                      <th className="px-6 py-4">Sự kiện</th>
-                      <th className="px-6 py-4">Người dùng</th>
-                      <th className="px-6 py-4 text-right">Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
-                    {recentLogs.map((log, index) => (
-                      <tr key={index} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-slate-500">{log.timestamp}</td>
-                        <td className="px-6 py-4 font-bold text-slate-900">{log.event}</td>
-                        <td className="px-6 py-4 text-slate-600">{log.user}</td>
-                        <td className="px-6 py-4 text-right">
-                          <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${log.statusColor}`}>
-                            {log.status}
-                          </span>
-                        </td>
+              {recentLogs.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-sm">Không có nhật ký nào.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-semibold">
+                      <tr>
+                        <th className="px-6 py-3">Thời gian</th>
+                        <th className="px-6 py-3">Hành động</th>
+                        <th className="px-6 py-3">Entity</th>
+                        <th className="px-6 py-3">Người thực hiện</th>
+                        <th className="px-6 py-3">IP</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm">
+                      {recentLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-3 text-xs font-medium text-slate-500 whitespace-nowrap">
+                            {fmtDate(log.createdAt)}
+                          </td>
+                          <td className="px-6 py-3">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide ${actionBadgeCls(log.action)}`}>
+                              {log.action || '—'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-3 text-sm font-semibold text-slate-700">{log.entity || '—'}</td>
+                          <td className="px-6 py-3">
+                            <p className="text-sm font-bold text-slate-800 max-w-[160px] truncate">{log.userEmail || '—'}</p>
+                          </td>
+                          <td className="px-6 py-3">
+                            <span className="font-mono text-xs text-slate-500">{log.ipAddress || '—'}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </>
         )}
       </div>
+
+      {/* ====== Infrastructure Detail Modal ====== */}
+      <Modal
+        open={infraModalOpen}
+        onCancel={() => setInfraModalOpen(false)}
+        footer={null}
+        width={900}
+        centered
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+              <Server size={18} className="text-[#0487e2]" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-slate-800">Chi tiết Hạ tầng Máy chủ</p>
+              <p className="text-xs text-slate-500 font-normal">Thông tin kỹ thuật đầy đủ – chỉ dành cho Admin</p>
+            </div>
+          </div>
+        }
+        styles={{ body: { background: '#f8fafc', padding: '24px' } }}
+      >
+        {infra ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+            {/* OS & Hardware */}
+            <DetailCard title="Hệ điều hành & Phần cứng" icon={Monitor} color="#6366f1">
+              <DetailRow label="Nền tảng" value={infra.os?.platform || 'N/A'}
+                badge={infra.os?.isLinux ? { text: 'Linux ✓', cls: 'bg-emerald-50 text-emerald-700' } : { text: 'Non-Linux', cls: 'bg-slate-100 text-slate-600' }}
+              />
+              <DetailRow label="CPU Logical Cores" value={`${infra.hardware?.logicalCores ?? 'N/A'} nhân`} />
+            </DetailCard>
+
+            {/* Uptime */}
+            <DetailCard title="Thời gian Hoạt động" icon={Clock} color="#0487e2">
+              <DetailRow label="App Uptime" value={infra.uptime?.app || 'N/A'} />
+              <DetailRow label="Server Uptime" value={infra.uptime?.server || 'N/A'} />
+            </DetailCard>
+
+            {/* CPU */}
+            <DetailCard title="CPU" icon={Cpu} color="#8b5cf6">
+              <DetailRow label="App CPU Usage" progress={infra.cpu?.appUsedPercentage ?? 0} progressColor="#8b5cf6" />
+              <DetailRow label="Server Load Avg" value={infra.cpu?.serverLoadAvg || 'N/A'}
+                badge={{ text: parseFloat(infra.cpu?.serverLoadAvg || 0) < 1 ? 'THẤP' : 'CAO', cls: parseFloat(infra.cpu?.serverLoadAvg || 0) < 1 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}
+              />
+            </DetailCard>
+
+            {/* Memory */}
+            <DetailCard title="Bộ nhớ RAM" icon={MemoryStick} color="#0487e2">
+              <DetailRow label="Tổng RAM" value={`${(infra.memory?.totalMb ?? 0).toFixed(0)} MB`} />
+              <DetailRow label="App đang dùng" value={`${(infra.memory?.appUsedMb ?? 0).toFixed(1)} MB`} />
+              <DetailRow label="Server đang dùng" value={`${(infra.memory?.serverUsedMb ?? 0).toFixed(1)} MB`} />
+              <div className="pt-1">
+                <p className="text-xs text-slate-500 mb-1">Server RAM Usage</p>
+                <UsageBar percentage={infra.memory?.serverUsedPercentage ?? 0} color="#0487e2" />
+              </div>
+            </DetailCard>
+
+            {/* Disk */}
+            <DetailCard title="Ổ đĩa (Root)" icon={HardDrive} color="#f59e0b">
+              <DetailRow label="Tổng dung lượng" value={`${(infra.disk?.rootTotalGb ?? 0).toFixed(2)} GB`} />
+              <DetailRow label="Đã sử dụng" value={`${(infra.disk?.rootUsedGb ?? 0).toFixed(2)} GB`} />
+              <DetailRow label="Còn trống" value={`${((infra.disk?.rootTotalGb ?? 0) - (infra.disk?.rootUsedGb ?? 0)).toFixed(2)} GB`} />
+              <div className="pt-1">
+                <p className="text-xs text-slate-500 mb-1">Disk Usage</p>
+                <UsageBar percentage={infra.disk?.rootUsedPercentage ?? 0} color="#f59e0b" />
+              </div>
+            </DetailCard>
+
+            {/* Quick Summary */}
+            <DetailCard title="Tóm tắt Sức khỏe Hệ thống" icon={Activity} color="#10b981">
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'CPU App', val: infra.cpu?.appUsedPercentage ?? 0, color: '#8b5cf6' },
+                  { label: 'RAM Server', val: infra.memory?.serverUsedPercentage ?? 0, color: '#0487e2' },
+                  { label: 'Disk', val: infra.disk?.rootUsedPercentage ?? 0, color: '#f59e0b' },
+                ].map(({ label, val, color }) => {
+                  const status = val >= 90 ? 'NGUY HIỂM' : val >= 75 ? 'CẢNH BÁO' : 'BÌNH THƯỜNG';
+                  const statusCls = val >= 90 ? 'text-red-600 bg-red-50' : val >= 75 ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50';
+                  return (
+                    <div key={label} className="flex flex-col items-center bg-slate-50 rounded-xl p-3 gap-2">
+                      <RadialBarChart width={80} height={80} innerRadius={25} outerRadius={38}
+                        data={[{ value: val, fill: color }]} startAngle={90} endAngle={-270}>
+                        <RadialBar dataKey="value" cornerRadius={4} background={{ fill: '#e2e8f0' }} />
+                      </RadialBarChart>
+                      <p className="text-xs font-bold text-slate-600">{label}</p>
+                      <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${statusCls}`}>{status}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </DetailCard>
+
+          </div>
+        ) : (
+          <div className="text-center py-16 text-slate-400">
+            <Server size={40} className="mx-auto mb-3 opacity-30" />
+            <p>Không có dữ liệu hạ tầng.</p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
