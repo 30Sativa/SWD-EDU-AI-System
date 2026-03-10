@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Application.Common.Exceptions;
@@ -5,6 +6,7 @@ using EduAISystem.Application.Features.Submissions.Commands;
 using EduAISystem.Application.Features.Submissions.DTOs.Response;
 using EduAISystem.Application.Features.Submissions.Queries;
 using EduAISystem.Domain.Entities;
+using EduAISystem.Domain.Enums;
 using MediatR;
 
 namespace EduAISystem.Application.Features.Submissions.Handler
@@ -16,17 +18,23 @@ namespace EduAISystem.Application.Features.Submissions.Handler
         private readonly ISubmissionRepository _submissionRepository;
         private readonly ICurrentUserService _currentUser;
         private readonly ILessonProgressRepository _lessonProgressRepository;
+        private readonly INotificationService _notificationService;
+        private readonly ICourseRepository _courseRepository;
 
         public SubmitAssignmentCommandHandler(
             IAssignmentRepository assignmentRepository,
             ISubmissionRepository submissionRepository,
             ICurrentUserService currentUser,
-            ILessonProgressRepository lessonProgressRepository)
+            ILessonProgressRepository lessonProgressRepository,
+            INotificationService notificationService,
+            ICourseRepository courseRepository)
         {
             _assignmentRepository = assignmentRepository;
             _submissionRepository = submissionRepository;
             _currentUser = currentUser;
             _lessonProgressRepository = lessonProgressRepository;
+            _notificationService = notificationService;
+            _courseRepository = courseRepository;
         }
 
         public async Task<Guid> Handle(SubmitAssignmentCommand request, CancellationToken cancellationToken)
@@ -45,13 +53,11 @@ namespace EduAISystem.Application.Features.Submissions.Handler
                 throw new BusinessException("Assignment chưa được publish, không thể nộp bài.");
             }
 
-            // TODO: có thể enforce deadline, late-submission rule sau (THPT: cho phép nộp trễ, flag riêng)
-
             var dto = request.Request;
-
             var existing = await _submissionRepository
                 .GetLatestByStudentAsync(request.AssignmentId, studentId, cancellationToken);
 
+            Guid submissionId;
             if (existing is null)
             {
                 var submission = SubmissionDomain.CreateDraft(
@@ -64,16 +70,31 @@ namespace EduAISystem.Application.Features.Submissions.Handler
                     dto.FileType);
 
                 await _submissionRepository.CreateAsync(submission, cancellationToken);
-                await _lessonProgressRepository.UpdateCourseProgressAsync(studentId, assignment.CourseId, cancellationToken);
-                return submission.Id;
+                submissionId = submission.Id;
             }
             else
             {
                 existing.Resubmit(dto.Content, dto.FileUrl, dto.FileName, dto.FileSize, dto.FileType);
                 await _submissionRepository.UpdateAsync(existing, cancellationToken);
-                await _lessonProgressRepository.UpdateCourseProgressAsync(studentId, assignment.CourseId, cancellationToken);
-                return existing.Id;
+                submissionId = existing.Id;
             }
+
+            await _lessonProgressRepository.UpdateCourseProgressAsync(studentId, assignment.CourseId, cancellationToken);
+
+            // Gửi thông báo cho giáo viên
+            var course = await _courseRepository.GetByIdAsync(assignment.CourseId, cancellationToken);
+            if (course != null && course.TeacherId.HasValue)
+            {
+                await _notificationService.SendNotificationAsync(
+                    course.TeacherId.Value,
+                    NotificationTypeDomain.System,
+                    "Nộp bài tập mới",
+                    $"Học sinh đã nộp bài cho bài tập: '{assignment.Title}' trong khóa học '{course.Title}'.",
+                    $"/teacher/submissions/{submissionId}",
+                    cancellationToken);
+            }
+
+            return submissionId;
         }
     }
 
@@ -81,10 +102,14 @@ namespace EduAISystem.Application.Features.Submissions.Handler
         : IRequestHandler<GradeSubmissionCommand, Guid>
     {
         private readonly ISubmissionRepository _submissionRepository;
+        private readonly INotificationService _notificationService;
 
-        public GradeSubmissionCommandHandler(ISubmissionRepository submissionRepository)
+        public GradeSubmissionCommandHandler(
+            ISubmissionRepository submissionRepository,
+            INotificationService notificationService)
         {
             _submissionRepository = submissionRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<Guid> Handle(GradeSubmissionCommand request, CancellationToken cancellationToken)
@@ -96,6 +121,15 @@ namespace EduAISystem.Application.Features.Submissions.Handler
 
             submission.Grade(dto.Score, dto.Feedback);
             await _submissionRepository.UpdateAsync(submission, cancellationToken);
+
+            // Gửi thông báo cho học sinh
+            await _notificationService.SendNotificationAsync(
+                submission.StudentId,
+                NotificationTypeDomain.AssignmentGraded,
+                "Bài tập đã có phản hồi",
+                $"Giáo viên đã phản hồi/chấm điểm bài tập của bạn: {(dto.Score.HasValue ? $"{dto.Score} điểm." : "Đã có bình luận mới.")}",
+                $"/student/assignments/{submission.AssignmentId}",
+                cancellationToken);
 
             return submission.Id;
         }

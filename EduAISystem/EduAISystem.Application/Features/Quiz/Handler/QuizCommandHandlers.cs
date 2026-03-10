@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Application.Common.Exceptions;
@@ -7,6 +8,7 @@ using EduAISystem.Application.Features.Quiz.DTOs.Request;
 using EduAISystem.Application.Features.Quiz.DTOs.Response;
 using EduAISystem.Application.Features.Quiz;
 using EduAISystem.Domain.Entities;
+using EduAISystem.Domain.Enums;
 using MediatR;
 
 namespace EduAISystem.Application.Features.Quiz.Handler
@@ -88,15 +90,18 @@ namespace EduAISystem.Application.Features.Quiz.Handler
         private readonly IQuizRepository _quizRepository;
         private readonly IQuizAttemptRepository _attemptRepository;
         private readonly ICurrentUserService _currentUser;
+        private readonly INotificationService _notificationService;
 
         public SubmitQuizAttemptCommandHandler(
             IQuizRepository quizRepository,
             IQuizAttemptRepository attemptRepository,
-            ICurrentUserService currentUser)
+            ICurrentUserService currentUser,
+            INotificationService notificationService)
         {
             _quizRepository = quizRepository;
             _attemptRepository = attemptRepository;
             _currentUser = currentUser;
+            _notificationService = notificationService;
         }
 
         public async Task<SubmitAttemptResponseDto> Handle(
@@ -155,6 +160,18 @@ namespace EduAISystem.Application.Features.Quiz.Handler
             attempt.Submit(totalScore, maxScore, passingScore, request.Request.TimeSpentSeconds ?? 0);
             await _attemptRepository.UpdateAsync(attempt, cancellationToken);
 
+            // Gửi thông báo cho giáo viên
+            if (quizDetail.TeacherId.HasValue)
+            {
+                await _notificationService.SendNotificationAsync(
+                    quizDetail.TeacherId.Value,
+                    NotificationTypeDomain.System,
+                    "Học sinh nộp bài Quiz",
+                    $"Học sinh đã hoàn thành bài Quiz: {quiz.Title}",
+                    $"/teacher/quizzes/{quiz.Id}/attempts/{attempt.Id}",
+                    cancellationToken);
+            }
+
             return new SubmitAttemptResponseDto(
                 AttemptId: attempt.Id,
                 Status: attempt.Status,
@@ -207,10 +224,17 @@ namespace EduAISystem.Application.Features.Quiz.Handler
         : IRequestHandler<CreateSummativeQuizCommand, Guid>
     {
         private readonly IQuizRepository _quizRepository;
+        private readonly ICourseRepository _courseRepository;
+        private readonly INotificationService _notificationService;
 
-        public CreateSummativeQuizCommandHandler(IQuizRepository quizRepository)
+        public CreateSummativeQuizCommandHandler(
+            IQuizRepository quizRepository,
+            ICourseRepository courseRepository,
+            INotificationService notificationService)
         {
             _quizRepository = quizRepository;
+            _courseRepository = courseRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<Guid> Handle(CreateSummativeQuizCommand request, CancellationToken cancellationToken)
@@ -230,6 +254,23 @@ namespace EduAISystem.Application.Features.Quiz.Handler
             );
 
             await _quizRepository.CreateAsync(quiz, cancellationToken);
+
+            if (dto.IsPublished == true)
+            {
+                var course = await _courseRepository.GetByIdAsync(dto.CourseId, cancellationToken);
+                var studentIds = await _courseRepository.GetStudentIdsByCourseClassesAsync(dto.CourseId, cancellationToken);
+                if (studentIds.Any() && course != null)
+                {
+                    await _notificationService.SendBatchNotificationAsync(
+                        studentIds,
+                        NotificationTypeDomain.System,
+                        "Bài kiểm tra mới",
+                        $"Giáo viên đã thêm bài kiểm tra mới: '{quiz.Title}' trong khóa học '{course.Title}'.",
+                        $"/student/quizzes/{quiz.Id}",
+                        cancellationToken);
+                }
+            }
+
             return quiz.Id;
         }
     }

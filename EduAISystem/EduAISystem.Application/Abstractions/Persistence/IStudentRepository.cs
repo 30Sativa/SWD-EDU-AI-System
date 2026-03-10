@@ -14,5 +14,8 @@ namespace EduAISystem.Application.Abstractions.Persistence
             Guid? classId,
             bool? isActiveFilter,
             CancellationToken cancellationToken = default);
+
+        Task<List<Guid>> GetStudentIdsByGradeLevelAsync(Guid gradeLevelId, CancellationToken cancellationToken = default);
+        Task<List<Guid>> GetStudentIdsByClassIdAsync(Guid classId, CancellationToken cancellationToken = default);
     }
 }

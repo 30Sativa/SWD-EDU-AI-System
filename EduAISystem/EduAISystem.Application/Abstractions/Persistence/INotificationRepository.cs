@@ -15,6 +15,14 @@ namespace EduAISystem.Application.Abstractions.Persistence
             int pageSize, 
             bool? isRead = null, 
             CancellationToken cancellationToken = default);
+        Task<PagedResult<AdminBroadcastSummaryModel>> GetAdminBroadcastSummariesPagedAsync(
+            int page, 
+            int pageSize,
+            string? titleFilter = null,
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            CancellationToken cancellationToken = default);
+
         Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken = default);
         Task MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken = default);
     }

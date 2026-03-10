@@ -14,5 +14,6 @@ namespace EduAISystem.Application.Abstractions.Persistence
         Task AddAsync(EnrollmentDomain enrollment, CancellationToken cancellationToken = default);
         Task<EnrollmentDomain?> GetAsync(Guid studentId, Guid courseId, CancellationToken cancellationToken = default);
         Task<PagedResult<EnrollmentDomain>> GetPagedByStudentAsync(Guid studentId, int page, int pageSize, CancellationToken cancellationToken = default);
+        Task<List<Guid>> GetStudentIdsByCourseIdAsync(Guid courseId, CancellationToken cancellationToken = default);
     }
 }

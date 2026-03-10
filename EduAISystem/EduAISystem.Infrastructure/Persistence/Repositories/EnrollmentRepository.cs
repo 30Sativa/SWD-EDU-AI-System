@@ -130,5 +130,14 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 PageSize = pageSize
             };
         }
+
+        public async Task<List<Guid>> GetStudentIdsByCourseIdAsync(Guid courseId, CancellationToken cancellationToken = default)
+        {
+            return await _context.Enrollments
+                .AsNoTracking()
+                .Where(e => e.CourseId == courseId && e.Status == "Active")
+                .Select(e => e.StudentId)
+                .ToListAsync(cancellationToken);
+        }
     }
 }

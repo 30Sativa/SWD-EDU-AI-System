@@ -109,6 +109,100 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         }
 
         // =========================
+        // GET ADMIN BROADCAST SUMMARIES (with role info + filters)
+        // =========================
+        public async Task<PagedResult<AdminBroadcastSummaryModel>> GetAdminBroadcastSummariesPagedAsync(
+            int page, 
+            int pageSize,
+            string? titleFilter = null,
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            CancellationToken cancellationToken = default)
+        {
+            // Step 1: Join Notifications với Users để lấy Role
+            var baseQuery = _context.Notifications
+                .AsNoTracking()
+                .Where(n => n.Type == "System")
+                .Join(_context.Users,
+                    n => n.UserId,
+                    u => u.Id,
+                    (n, u) => new 
+                    { 
+                        n.Title, 
+                        n.Message, 
+                        n.Link, 
+                        n.CreatedAt,
+                        UserRole = u.Role
+                    });
+
+            if (!string.IsNullOrWhiteSpace(titleFilter))
+                baseQuery = baseQuery.Where(x => x.Title.Contains(titleFilter));
+
+            if (fromDate.HasValue)
+                baseQuery = baseQuery.Where(x => x.CreatedAt >= fromDate.Value);
+
+            if (toDate.HasValue)
+                baseQuery = baseQuery.Where(x => x.CreatedAt <= toDate.Value.AddDays(1));
+
+            // Step 2: Group theo (Title + Message + Link + theo phút) để gộp 1 đợt broadcast
+            var grouped = baseQuery.GroupBy(x => new
+            {
+                x.Title,
+                x.Message,
+                x.Link,
+                Year  = x.CreatedAt.HasValue ? x.CreatedAt.Value.Year  : 2000,
+                Month = x.CreatedAt.HasValue ? x.CreatedAt.Value.Month : 1,
+                Day   = x.CreatedAt.HasValue ? x.CreatedAt.Value.Day   : 1,
+                Hour  = x.CreatedAt.HasValue ? x.CreatedAt.Value.Hour  : 0,
+                Minute = x.CreatedAt.HasValue ? x.CreatedAt.Value.Minute : 0
+            });
+
+            var totalCount = await grouped.CountAsync(cancellationToken);
+
+            // Step 3: Materialize với roles
+            var rawItems = await grouped
+                .OrderByDescending(g => g.Max(x => x.CreatedAt))
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(g => new
+                {
+                    g.Key.Title,
+                    g.Key.Message,
+                    g.Key.Link,
+                    CreatedAt = g.Max(x => x.CreatedAt),
+                    ReceiverCount = g.Count(),
+                    Roles = g.Select(x => x.UserRole).Distinct().ToList()
+                })
+                .ToListAsync(cancellationToken);
+
+            // Step 4: Map role int → tên
+            var items = rawItems.Select(r => new AdminBroadcastSummaryModel
+            {
+                Title = r.Title,
+                Message = r.Message,
+                Link = r.Link,
+                CreatedAt = r.CreatedAt,
+                ReceiverCount = r.ReceiverCount,
+                TargetRoles = r.Roles.Select(role => role switch
+                {
+                    1 => "Admin",
+                    2 => "Manager",
+                    3 => "Teacher",
+                    4 => "Student",
+                    _ => $"Role_{role}"
+                }).Distinct().OrderBy(x => x).ToList()
+            }).ToList();
+
+            return new PagedResult<AdminBroadcastSummaryModel>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
+        // =========================
         // GET UNREAD COUNT
         // =========================
         public async Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -183,7 +277,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 NotificationTypeDomain.CourseCompleted => "CourseCompleted",
                 NotificationTypeDomain.LessonCompleted => "LessonCompleted",
                 NotificationTypeDomain.GradePosted => "GradePosted",
-                NotificationTypeDomain.Announcement => "Announcement",
+                NotificationTypeDomain.Announcement => "System",
                 NotificationTypeDomain.System => "System",
                 _ => "System"
             };
