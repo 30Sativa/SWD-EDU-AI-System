@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Users.Commands;
 using EduAISystem.Application.Features.Users.DTOs.Request;
@@ -15,10 +16,12 @@ namespace EduAISystem.WebAPI.Controllers.Admin
     public class UsersController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IAuditService _auditService;
 
-        public UsersController(IMediator mediator)
+        public UsersController(IMediator mediator, IAuditService auditService)
         {
             _mediator = mediator;
+            _auditService = auditService;
         }
 
         [HttpGet]
@@ -58,6 +61,7 @@ namespace EduAISystem.WebAPI.Controllers.Admin
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequestDto dto, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(new CreateUserCommand { Request = dto }, cancellationToken);
+            _auditService.LogAction("CREATE_USER", "User", result.Id, null, dto);
             return Ok(ApiResponse<UserDetailResponseDto>.Ok(result, "Tạo người dùng thành công"));
         }
 
@@ -73,6 +77,8 @@ namespace EduAISystem.WebAPI.Controllers.Admin
             var result = await _mediator.Send(new UpdateUserProfileCommand { UserId = id, Request = dto }, cancellationToken);
             if (result == null)
                 return NotFound(ApiResponse<UserDetailResponseDto?>.Fail("Không tìm thấy người dùng"));
+            
+            _auditService.LogAction("UPDATE_USER_PROFILE", "User", id, null, dto);
             return Ok(ApiResponse<UserDetailResponseDto>.Ok(result, "Cập nhật hồ sơ thành công"));
         }
 
@@ -88,6 +94,8 @@ namespace EduAISystem.WebAPI.Controllers.Admin
             var deleted = await _mediator.Send(new SoftDeleteUserCommand { Id = id }, cancellationToken);
             if (!deleted)
                 return NotFound(ApiResponse<object>.Fail("Không tìm thấy người dùng"));
+            
+            _auditService.LogAction("SOFT_DELETE_USER", "User", id);
             return Ok(ApiResponse<object>.Ok(null, "Đã đánh dấu xóa người dùng"));
         }
         [HttpPost("import")]
@@ -124,6 +132,8 @@ Import hàng loạt người dùng (giáo viên/học sinh) từ file Excel (.xl
             );
 
             await _mediator.Send(command);
+
+            _auditService.LogAction("IMPORT_USERS", "Excel", null, null, new { FileName = file.FileName });
 
             return Ok(ApiResponse<object>.Ok(null, "Import thành công"));
         }

@@ -6,11 +6,71 @@ using EduAISystem.Infrastructure.Persistence.Seed;
 using EduAISystem.WebAPI.Middlewares;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
+using Serilog.Sinks.MSSqlServer;
+using System.Data;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+Serilog.Debugging.SelfLog.Enable(Console.Error);
+
+var configuration = builder.Configuration;
+var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+// Thiết lập cột cho AuditLogs (Chỉ dùng cho SQL Sink)
+var colOptions = new ColumnOptions();
+colOptions.Store.Remove(StandardColumn.Id);
+colOptions.Store.Remove(StandardColumn.Message);
+colOptions.Store.Remove(StandardColumn.MessageTemplate);
+colOptions.Store.Remove(StandardColumn.Level);
+colOptions.Store.Remove(StandardColumn.Exception);
+colOptions.Store.Remove(StandardColumn.Properties);
+colOptions.TimeStamp.ColumnName = "CreatedAt";
+
+// Thêm các cột tùy chỉnh
+colOptions.AdditionalColumns = new List<SqlColumn>
+{
+    new SqlColumn { ColumnName = "UserId", DataType = SqlDbType.UniqueIdentifier, AllowNull = true },
+    new SqlColumn { ColumnName = "Action", DataType = SqlDbType.NVarChar, DataLength = 100, AllowNull = true },
+    new SqlColumn { ColumnName = "Entity", DataType = SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
+    new SqlColumn { ColumnName = "EntityId", DataType = SqlDbType.UniqueIdentifier, AllowNull = true },
+    new SqlColumn { ColumnName = "OldValues", DataType = SqlDbType.NVarChar, DataLength = -1 },
+    new SqlColumn { ColumnName = "NewValues", DataType = SqlDbType.NVarChar, DataLength = -1 },
+    new SqlColumn { ColumnName = "IpAddress", DataType = SqlDbType.NVarChar, DataLength = 50 },
+    new SqlColumn { ColumnName = "UserAgent", DataType = SqlDbType.NVarChar, DataLength = 255 }
+};
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(configuration) // Đọc Console và Level từ appsettings
+    .Enrich.FromLogContext()
+    .WriteTo.Logger(subLogger => subLogger
+        .Filter.ByIncludingOnly(evt => evt.Properties.ContainsKey("Action"))
+        .WriteTo.MSSqlServer(
+            connectionString: connectionString,
+            sinkOptions: new MSSqlServerSinkOptions
+            {
+                TableName = "AuditLogs",
+                AutoCreateSqlTable = false,
+                BatchPostingLimit = 1
+            },
+            columnOptions: colOptions
+        ))
+    .CreateLogger();
+
+Log.Information("=== SERILOG INITIALIZED ===");
+// Test log ngay khi startup
+using (Serilog.Context.LogContext.PushProperty("Action", "SYSTEM_STARTUP"))
+using (Serilog.Context.LogContext.PushProperty("Entity", "System"))
+{
+    Log.Information("Hệ thống đang khởi động và kiểm tra Audit Log...");
+}
+
+builder.Host.UseSerilog();
+
 builder.Configuration.AddEnvironmentVariables();
 //  CHECK CONFIG NGAY SAU KHI BUILD CONFIG
 var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -173,6 +233,9 @@ app.UseSwaggerUI(c =>
 
 // Enable CORS before authentication
 app.UseCors("AllowFrontend");
+
+// Add Serilog Request Logging
+app.UseSerilogRequestLogging();
 
 // Authentication & Authorization
 app.UseAuthentication();

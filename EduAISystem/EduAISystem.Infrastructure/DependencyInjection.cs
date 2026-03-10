@@ -10,6 +10,7 @@ using EduAISystem.Infrastructure.Services.Email;
 using EduAISystem.Infrastructure.Services.Excel;
 using EduAISystem.Infrastructure.Services.ExternalApis;
 using EduAISystem.Infrastructure.Services.Identity;
+using EduAISystem.Infrastructure.Services.Logging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,6 +59,8 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<ILessonBlockRepository, LessonBlockRepository>();
             services.AddScoped<ILessonFaqRepository, LessonFaqRepository>();
             services.AddScoped<IAilogRepository, AilogRepository>();
+            services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+            services.AddScoped<IAuditService, AuditService>();
             services.AddScoped<ILessonAiService, LessonAiService>();
             services.AddScoped<IStudentRepository, StudentRepository>();
             services.AddScoped<ILessonProgressRepository, LessonProgressRepository>();
