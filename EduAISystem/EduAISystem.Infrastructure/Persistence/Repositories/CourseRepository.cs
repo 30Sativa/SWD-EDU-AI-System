@@ -527,5 +527,24 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 PageSize = pageSize
             };
         }
+
+        public async Task<List<Guid>> GetStudentIdsByCourseClassesAsync(Guid courseId, CancellationToken cancellationToken = default)
+        {
+            var classIds = await _context.CourseClasses
+                .AsNoTracking()
+                .Where(cc => cc.CourseId == courseId)
+                .Select(cc => cc.ClassId)
+                .ToListAsync(cancellationToken);
+
+            if (!classIds.Any())
+                return new List<Guid>();
+
+            return await _context.StudentClasses
+                .AsNoTracking()
+                .Where(sc => classIds.Contains(sc.ClassId) && sc.Student.User.DeletedAt == null && sc.Student.User.IsActive == true)
+                .Select(sc => sc.StudentId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+        }
     }
 }

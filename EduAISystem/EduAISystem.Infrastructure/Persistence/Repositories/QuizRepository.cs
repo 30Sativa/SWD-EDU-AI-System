@@ -182,6 +182,10 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         {
             var entity = await _context.Quizzes
                 .AsNoTracking()
+                .Include(q => q.Course) // Flow 2
+                .Include(q => q.Lesson) // Flow 1
+                    .ThenInclude(l => l!.Section)
+                        .ThenInclude(s => s.Course)
                 .Include(q => q.Questions.OrderBy(x => x.SortOrder))
                     .ThenInclude(q => q.QuestionOptions.OrderBy(o => o.SortOrder))
                 .FirstOrDefaultAsync(q => q.Id == quizId && q.IsActive == true, cancellationToken);
@@ -190,10 +194,14 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
 
             var questions = entity.Questions.Select(MapQuestionToDomain).ToList();
 
+            // Lấy TeacherId dựa trên Flow (Course hoặc Lesson -> Section -> Course)
+            Guid? teacherId = entity.Course?.TeacherId ?? entity.Lesson?.Section?.Course?.TeacherId;
+
             return new QuizWithQuestionsDomain
             {
                 Quiz = MapToDomain(entity),
-                Questions = questions
+                Questions = questions,
+                TeacherId = teacherId
             };
         }
 

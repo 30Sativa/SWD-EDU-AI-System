@@ -254,6 +254,7 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 // Map controllers & SignalR Hubs
 app.MapControllers();
 app.MapHub<ImportHub>("/hubs/import");
+app.MapHub<EduAISystem.Infrastructure.Hubs.NotificationHub>("/hubs/notification");
 
 #endregion
 

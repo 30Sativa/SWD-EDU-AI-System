@@ -55,5 +55,6 @@ namespace EduAISystem.Application.Abstractions.Persistence
     {
         public QuizDomain Quiz { get; init; } = null!;
         public List<QuestionDomain> Questions { get; init; } = [];
+        public Guid? TeacherId { get; init; }
     }
 }

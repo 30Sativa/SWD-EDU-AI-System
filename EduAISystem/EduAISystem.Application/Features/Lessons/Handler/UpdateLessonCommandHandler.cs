@@ -1,6 +1,8 @@
-﻿using EduAISystem.Application.Abstractions.Persistence;
+﻿using EduAISystem.Application.Abstractions.Common;
+using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Common.Exceptions;
 using EduAISystem.Application.Features.Lessons.Commands;
+using EduAISystem.Domain.Enums;
 using MediatR;
 using System;
 using System.Collections.Generic;
@@ -13,14 +15,33 @@ namespace EduAISystem.Application.Features.Lessons.Handler
     public class UpdateLessonCommandHandler : IRequestHandler<UpdateLessonCommand>
     {
         private readonly ILessonRepository _lessonRepository;
-        public UpdateLessonCommandHandler(ILessonRepository lessonRepository)
+        private readonly ISectionRepository _sectionRepository;
+        private readonly ICourseRepository _courseRepository;
+        private readonly INotificationService _notificationService;
+
+        public UpdateLessonCommandHandler(
+            ILessonRepository lessonRepository,
+            ISectionRepository sectionRepository,
+            ICourseRepository courseRepository,
+            INotificationService notificationService)
         {
             _lessonRepository = lessonRepository;
+            _sectionRepository = sectionRepository;
+            _courseRepository = courseRepository;
+            _notificationService = notificationService;
         }
+
         public async Task Handle(UpdateLessonCommand request, CancellationToken cancellationToken)
         {
             var lesson = await _lessonRepository.GetByIdAsync(request.LessonId)
-            ?? throw new NotFoundException("Lesson không tồn tại");
+                ?? throw new NotFoundException("Lesson không tồn tại");
+
+            bool isContentUpdated = false;
+            if (lesson.VideoUrl != request.Request.VideoUrl ||
+                lesson.MaterialUrl != request.Request.MaterialUrl)
+            {
+                isContentUpdated = true;
+            }
 
             lesson.Title = request.Request.Title.Trim();
             lesson.Slug = request.Request.Slug.Trim();
@@ -40,6 +61,28 @@ namespace EduAISystem.Application.Features.Lessons.Handler
 
             await _lessonRepository.UpdateAsync(lesson);
             
+            if (isContentUpdated)
+            {
+                var section = await _sectionRepository.GetByIdAsync(lesson.SectionId);
+                if (section != null)
+                {
+                    var course = await _courseRepository.GetByIdAsync(section.CourseId, cancellationToken);
+                    if (course != null && course.Status == CourseStatusDomain.Published)
+                    {
+                        var studentIds = await _courseRepository.GetStudentIdsByCourseClassesAsync(course.Id, cancellationToken);
+                        if (studentIds.Any())
+                        {
+                            await _notificationService.SendBatchNotificationAsync(
+                                studentIds,
+                                NotificationTypeDomain.System,
+                                "Cập nhật bài học",
+                                $"Giáo viên đã cập nhật tài liệu hoặc video mới cho bài học '{lesson.Title}' trong khóa học '{course.Title}'.",
+                                $"/student/lessons/{lesson.Id}",
+                                cancellationToken);
+                        }
+                    }
+                }
+            }
         }
     }
 }

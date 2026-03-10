@@ -1,6 +1,8 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Common.Exceptions;
 using EduAISystem.Application.Features.Courses.Commands;
+using EduAISystem.Domain.Enums;
 using MediatR;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,13 +13,19 @@ namespace EduAISystem.Application.Features.Courses.Handler
     {
         private readonly ICourseRepository _courseRepo;
         private readonly ITeacherAssignmentRepository _assignmentRepo;
+        private readonly IStudentRepository _studentRepository;
+        private readonly INotificationService _notificationService;
 
         public AssignClassToCourseHandler(
             ICourseRepository courseRepo, 
-            ITeacherAssignmentRepository assignmentRepo)
+            ITeacherAssignmentRepository assignmentRepo,
+            IStudentRepository studentRepository,
+            INotificationService notificationService)
         {
             _courseRepo = courseRepo;
             _assignmentRepo = assignmentRepo;
+            _studentRepository = studentRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<bool> Handle(AssignClassToCourseCommand request, CancellationToken cancellationToken)
@@ -45,6 +53,22 @@ namespace EduAISystem.Application.Features.Courses.Handler
 
             // 4. Gọi repository để gán (CourseClass)
             await _courseRepo.AssignClassToCourseAsync(request.CourseId, request.ClassId, cancellationToken);
+
+            // Gửi thông báo cho học sinh trong lớp (chỉ nếu khóa học đã Published)
+            if (course.Status == CourseStatusDomain.Published)
+            {
+                var studentIds = await _studentRepository.GetStudentIdsByClassIdAsync(request.ClassId, cancellationToken);
+                if (studentIds.Any())
+                {
+                    await _notificationService.SendBatchNotificationAsync(
+                        studentIds,
+                        NotificationTypeDomain.System,
+                        "Khóa học mới xuất bản",
+                        $"Lớp của bạn đã được thêm vào khóa học '{course.Title}'.",
+                        $"/student/courses/{course.Id}",
+                        cancellationToken);
+                }
+            }
 
             return true;
         }

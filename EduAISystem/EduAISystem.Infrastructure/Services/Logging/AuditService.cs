@@ -31,6 +31,9 @@ namespace EduAISystem.Infrastructure.Services.Logging
 
         public void LogAction(string action, string entityName, Guid? entityId = null, object? oldValues = null, object? newValues = null)
         {
+            if (!EduAISystem.Application.Common.Helpers.SystemFeaturesConfig.IsAuditLogEnabled)
+                return;
+
             var userId = _currentUserService.UserId;
             
             // Nếu là hành động guest (như Login failed) thì UserId có thể là null
