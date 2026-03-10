@@ -17,6 +17,7 @@ import { getSubjects } from '../../../subject/api/subjectApi';
 import { getClasses } from '../../../classes/api/classApi';
 import { getUsers } from '../../../user/api/userApi';
 import { getGradeLevels } from '../../../grade/api/gradeApi';
+import { getAdminDashboard } from '../../api/dashboardApi';
 
 // --- DATA ---
 const subjectGrowthData = [{ v: 40 }, { v: 55 }, { v: 45 }, { v: 60 }, { v: 75 }, { v: 65 }, { v: 85 }];
@@ -122,62 +123,15 @@ export default function ManagerDashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Execute calls in parallel
-        // Note: Role 3 is 'Teacher' / 'Giáo viên'
-        const [subjectsRes, classesRes, teachersRes, gradesRes] = await Promise.all([
-          getSubjects(),
-          getClasses(),
-          getUsers({ RoleFilter: 3, PageSize: 100 }),
-          getGradeLevels()
-        ]);
+        // fetch consolidated stats rather than multiple endpoints
+        const resp = await getAdminDashboard();
+        const payload = resp.data?.data || resp.data || {};
 
-        console.log('Dashboard Data Loaded:', { subjectsRes, classesRes, teachersRes, gradesRes });
-
-        // Helpers to normalize data structure
-        // Many APIs wrap arrays in { data: items } or { items: [] } or just return the array
-        const extractList = (res) => {
-          if (!res) return [];
-          if (Array.isArray(res)) return res;
-          if (Array.isArray(res.items)) return res.items;
-          if (res.data && Array.isArray(res.data.items)) return res.data.items;
-          if (res.data && Array.isArray(res.data)) return res.data;
-          // Fallback checks
-          if (res.result && Array.isArray(res.result)) return res.result;
-          return [];
-        };
-
-        const rawSubjects = extractList(subjectsRes);
-        const rawClasses = extractList(classesRes);
-        const rawTeachers = extractList(teachersRes);
-        const rawGrades = extractList(gradesRes);
-
-        console.log('Extracted Arrays:', { rawSubjects, rawClasses, rawTeachers, rawGrades });
-
-        // Grade Map: ID -> Name
-        const gradeMap = {};
-        rawGrades.forEach(g => {
-          gradeMap[g.id] = g.name;
-        });
-        setGrades(gradeMap);
-
-        // Calculate Stats
-        const totalSubjects = rawSubjects.length;
-
-        // Count active classes
-        const activeCourses = rawClasses.filter(c => c.isActive !== false).length;
-
-        // Approximate lessons/modules count
-        // Check for common property names: modules, chaptersCount, lessonCount
-        const publishedLessons = rawSubjects.reduce((acc, sub) => {
-          const count = sub.modules || sub.chaptersCount || sub.lessonCount || 0;
-          return acc + count;
-        }, 0);
-
-        // Teacher count
-        // For getUsers, sometimes total is in the meta object, otherwise use array length
-        let teacherCount = rawTeachers.length;
-        if (teachersRes?.data?.total !== undefined) teacherCount = teachersRes.data.total;
-        else if (teachersRes?.total !== undefined) teacherCount = teachersRes.total;
+        // derive some manager-specific values if needed
+        const totalSubjects = payload.totalCourses || 0;
+        const activeCourses = payload.totalClasses || 0;
+        const publishedLessons = payload.totalEnrollments || 0;
+        const teacherCount = payload.totalTeachers || 0;
 
         setStatsData({
           totalSubjects,
@@ -186,8 +140,8 @@ export default function ManagerDashboard() {
           teachers: teacherCount
         });
 
-        // Update Subjects List (take top 5-10 for dashboard if needed, or all)
-        setSubjects(rawSubjects.slice(0, 10));
+        // keep subjects list as empty (no longer used) or fetch separately if desired
+        setSubjects([]);
 
       } catch (error) {
         console.error("Error loading dashboard data:", error);

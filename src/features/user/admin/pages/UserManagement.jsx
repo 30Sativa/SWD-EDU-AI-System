@@ -632,7 +632,7 @@ export default function UserManagement() {
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             <Select
               value={filterRole}
-              onChange={setFilterRole}
+              onChange={val => { setFilterRole(val); setCurrentPage(1); }}
               className="w-40 h-11 [&>.ant-select-selector]:!rounded-lg"
               options={[
                 { value: 'Tất cả', label: 'Tất cả Vai trò' },
@@ -644,7 +644,7 @@ export default function UserManagement() {
             />
             <Select
               value={filterStatus}
-              onChange={setFilterStatus}
+              onChange={val => { setFilterStatus(val); setCurrentPage(1); }}
               className="w-40 h-11 [&>.ant-select-selector]:!rounded-lg"
               options={[
                 { value: 'Tất cả', label: 'Tất cả Trạng thái' },
@@ -752,7 +752,12 @@ export default function UserManagement() {
               pageSize={pageSize}
               total={totalUsers}
               onChange={(page, pSize) => {
-                setCurrentPage(page);
+                // if pageSize changed reset to first page
+                if (pSize !== pageSize) {
+                  setCurrentPage(1);
+                } else {
+                  setCurrentPage(page);
+                }
                 setPageSize(pSize);
               }}
               showSizeChanger

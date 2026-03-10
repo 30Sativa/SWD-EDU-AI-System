@@ -23,6 +23,8 @@ import { Spin } from 'antd';
 import { getUsers, ROLE_ENUM, getRoleName } from '../../../../features/user/api/userApi';
 import { getSubjects } from '../../../../features/subject/api/subjectApi';
 import { getCourseTemplates } from '../../../../features/course/api/courseApi';
+import { getAdminDashboard } from '../../api/dashboardApi';
+import * as XLSX from 'xlsx';
 
 // Giả lập dữ liệu chart cho các chỉ số hệ thống để đồng bộ UI
 const chartData = [
@@ -46,103 +48,36 @@ export default function AdminDashboard() {
       try {
         setLoading(true);
 
-        // Helper to safely extract total count
-        const getCount = (res) => {
-          if (!res) return 0;
-          const payload = res.data || res; // Axios response .data or direct payload
+        // call consolidated dashboard endpoint
+        const resp = await getAdminDashboard();
+        const payload = resp.data?.data || resp.data || {};
 
-          // Try common paths for total count
-          if (typeof payload.totalCount === 'number') return payload.totalCount;
-          if (typeof payload.total === 'number') return payload.total;
-          if (payload.data && typeof payload.data.totalCount === 'number') return payload.data.totalCount; // Nested data.data
+        const totalUsers = payload.totalUsers ?? 0;
+        const totalStudents = payload.totalStudents ?? 0;
+        const totalTeachers = payload.totalTeachers ?? 0;
+        const totalCourses = payload.totalCourses ?? 0;
+        const totalClasses = payload.totalClasses ?? 0;
+        const totalEnrollments = payload.totalEnrollments ?? 0;
 
-          // Fallback to array length
-          if (Array.isArray(payload?.items)) return payload.items.length;
-          if (Array.isArray(payload)) return payload.length;
+        // compute activeUsers crudely as students+teachers for now
+        const activeUsers = totalStudents + totalTeachers;
 
-          return 0;
-        };
-
-        const getItems = (res) => {
-          if (!res) return [];
-          const payload = res.data || res;
-          if (Array.isArray(payload?.items)) return payload.items;
-          if (payload.data && Array.isArray(payload.data.items)) return payload.data.items;
-          if (Array.isArray(payload)) return payload;
-          return [];
-        };
-
-        const [usersResult, subjectsResult, coursesResult] = await Promise.allSettled([
-          getUsers({ Page: 1, PageSize: 100 }), // Changed from 9999 to 100 to avoid 400 error
-          getSubjects(),
-          getCourseTemplates()
-        ]);
-
-        // Process Users
-        let totalUsers = 0;
-        let activeUsers = 0;
-        let roleCounts = {
-          [ROLE_ENUM.STUDENT]: 0,
-          [ROLE_ENUM.TEACHER]: 0,
-          [ROLE_ENUM.MANAGER]: 0,
-          [ROLE_ENUM.ADMIN]: 0
-        };
-
-        if (usersResult.status === 'fulfilled') {
-          const usersData = getItems(usersResult.value);
-          totalUsers = getCount(usersResult.value);
-
-          // If totalUsers is 0 but we have items, recount
-          if (totalUsers === 0 && usersData.length > 0) totalUsers = usersData.length;
-
-          activeUsers = usersData.filter(u => u.isActive !== false).length;
-          if (activeUsers === 0 && totalUsers > 0) activeUsers = Math.floor(totalUsers * 0.9); // Fallback estimate
-
-          usersData.forEach(u => {
-            if (roleCounts[u.role] !== undefined) {
-              roleCounts[u.role]++;
-            }
-          });
-        }
-
-        // Process Subjects
-        let totalSubjects = 0;
-        if (subjectsResult.status === 'fulfilled') {
-          totalSubjects = getCount(subjectsResult.value);
-        }
-
-        // Process Courses
-        let totalCourses = 0;
-        if (coursesResult.status === 'fulfilled') {
-          totalCourses = getCount(coursesResult.value);
-        }
-
-        // Build Role Distribution Data
-        const roleDistribution = [
-          { name: 'Học sinh', value: roleCounts[ROLE_ENUM.STUDENT], color: '#3b82f6' },
-          { name: 'Giáo viên', value: roleCounts[ROLE_ENUM.TEACHER], color: '#10b981' },
-          { name: 'Quản lý', value: roleCounts[ROLE_ENUM.MANAGER], color: '#f59e0b' },
-          { name: 'Admin', value: roleCounts[ROLE_ENUM.ADMIN], color: '#6366f1' }
-        ].filter(item => item.value > 0);
-
-        // If no role data found (e.g. users API failed or empty), use mock for visuals
-        if (roleDistribution.length === 0) {
-          roleDistribution.push(
-            { name: 'Học sinh', value: 120, color: '#3b82f6' },
-            { name: 'Giáo viên', value: 45, color: '#10b981' },
-            { name: 'Quản lý', value: 10, color: '#f59e0b' }
-          );
-          if (totalUsers === 0) totalUsers = 175;
+        // build role distribution using available breakdown
+        const roleDistribution = [];
+        if (totalStudents) roleDistribution.push({ name: 'Học sinh', value: totalStudents, color: '#3b82f6' });
+        if (totalTeachers) roleDistribution.push({ name: 'Giáo viên', value: totalTeachers, color: '#10b981' });
+        const otherUsers = totalUsers - totalStudents - totalTeachers;
+        if (otherUsers > 0) {
+          roleDistribution.push({ name: 'Khác', value: otherUsers, color: '#6366f1' });
         }
 
         setStats({
           totalUsers,
           activeUsers,
-          totalSubjects,
+          totalSubjects: totalClasses, // reuse class count as subjects placeholder if needed
           totalCourses,
           roleDistribution
         });
-
       } catch (error) {
         console.error("Error loading dashboard stats:", error);
       } finally {
@@ -294,8 +229,30 @@ export default function AdminDashboard() {
                     <h2 className="text-lg font-bold text-[#0463ca]">Phân bổ Vai trò</h2>
                     <p className="text-xs text-slate-500 mt-1">Tỷ lệ người dùng theo phân quyền</p>
                   </div>
-                  <button className="text-sm font-semibold text-[#0487e2] hover:text-[#0463ca] inline-flex items-center gap-1">
-                    Xuất CSV <Download size={14} />
+                  <button
+                    className="text-sm font-semibold text-[#0487e2] hover:text-[#0463ca] inline-flex items-center gap-1"
+                    onClick={() => {
+                      try {
+                        const exportArr = [
+                          { Metric: 'Tổng Người dùng', Value: stats.totalUsers },
+                          { Metric: 'Tài khoản Hoạt động', Value: stats.activeUsers },
+                          { Metric: 'Tổng Môn học', Value: stats.totalSubjects },
+                          { Metric: 'Tổng Khung Khóa học', Value: stats.totalCourses }
+                        ];
+                        // include role distribution breakdown if present
+                        stats.roleDistribution.forEach(r => {
+                          exportArr.push({ Metric: `Vai trò - ${r.name}`, Value: r.value });
+                        });
+                        const worksheet = XLSX.utils.json_to_sheet(exportArr);
+                        const workbook = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(workbook, worksheet, 'Dashboard');
+                        XLSX.writeFile(workbook, `dashboard_stats.xlsx`);
+                      } catch (err) {
+                        console.error('Export failed', err);
+                      }
+                    }}
+                  >
+                    Xuất Excel <Download size={14} />
                   </button>
                 </div>
 
