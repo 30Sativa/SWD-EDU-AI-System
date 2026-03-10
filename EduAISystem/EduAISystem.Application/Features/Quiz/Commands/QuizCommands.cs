@@ -80,4 +80,22 @@ namespace EduAISystem.Application.Features.Quiz.Commands
         Guid QuestionId,
         Guid OptionId
     ) : IRequest<Unit>;
+
+    // =============================================
+    // Flow 1: Import câu hỏi từ file (Excel, Word, PDF) bằng AI
+    // =============================================
+    public record ImportQuestionsFromFileCommand(
+        Guid QuizId, 
+        byte[] FileBytes,
+        string FileName,
+        string ContentType
+    ) : IRequest<Guid>; // Trả về Tracking/Job Id
+
+    // =============================================
+    // Flow 2: Tái sử dụng câu hỏi từ Ngân hàng (Clone)
+    // =============================================
+    public record CloneQuestionsFromBankCommand(
+        Guid TargetQuizId, 
+        List<Guid> SourceQuestionIds
+    ) : IRequest<List<Guid>>; // Trả về Danh sách Question Id mới
 }

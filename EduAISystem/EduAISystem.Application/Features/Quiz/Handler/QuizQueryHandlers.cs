@@ -333,4 +333,43 @@ namespace EduAISystem.Application.Features.Quiz.Handler
             );
         }
     }
+
+    // =============================================
+    // Teacher — Lấy ngân hàng câu hỏi
+    // =============================================
+    public class GetTeacherQuestionBankQueryHandler
+        : IRequestHandler<GetTeacherQuestionBankQuery, List<TeacherQuestionDetailResponseDto>>
+    {
+        private readonly IQuizRepository _quizRepository;
+
+        public GetTeacherQuestionBankQueryHandler(IQuizRepository quizRepository)
+        {
+            _quizRepository = quizRepository;
+        }
+
+        public async Task<List<TeacherQuestionDetailResponseDto>> Handle(
+            GetTeacherQuestionBankQuery request, CancellationToken cancellationToken)
+        {
+            var questions = await _quizRepository.GetQuestionBankAsync(cancellationToken);
+
+            return questions.Select(q => new TeacherQuestionDetailResponseDto(
+                QuestionId: q.Id,
+                QuizId: q.QuizId,
+                QuestionText: q.QuestionText,
+                QuestionType: q.QuestionType,
+                Points: q.Points,
+                SortOrder: q.SortOrder,
+                Explanation: q.Explanation,
+                CorrectAnswer: q.CorrectAnswer,
+                Options: q.Options
+                    .Select(o => new OptionDetailResponseDto(
+                        OptionId: o.Id,
+                        OptionText: o.OptionText,
+                        IsCorrect: o.IsCorrect,
+                        SortOrder: o.SortOrder
+                    ))
+                    .ToList()
+            )).ToList();
+        }
+    }
 }
