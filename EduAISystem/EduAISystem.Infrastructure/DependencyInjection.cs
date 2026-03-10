@@ -62,6 +62,7 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<IAuditLogRepository, AuditLogRepository>();
             services.AddScoped<IAuditService, AuditService>();
             services.AddScoped<ILessonAiService, LessonAiService>();
+            services.AddScoped<IQuestionAiService, QuestionAiService>();
             services.AddScoped<IStudentRepository, StudentRepository>();
             services.AddScoped<ILessonProgressRepository, LessonProgressRepository>();
             services.AddScoped<IDashboardRepository, DashboardRepository>();
@@ -83,6 +84,7 @@ namespace EduAISystem.Infrastructure
 
             // 7. HttpClient + Polly Resilience cho AI Services
             services.AddHttpClient<ICourseAiService, CourseAiService>();
+            services.AddHttpClient<IQuestionAiService, QuestionAiService>();
 
             // ===== LessonAiService: Retry 3 lần + Circuit Breaker =====
             services.AddHttpClient<ILessonAiService, LessonAiService>()

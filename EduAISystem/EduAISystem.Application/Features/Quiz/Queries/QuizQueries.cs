@@ -39,4 +39,9 @@ namespace EduAISystem.Application.Features.Quiz.Queries
     // =============================================
     public record GetTeacherQuestionDetailQuery(Guid QuizId, Guid QuestionId)
         : IRequest<TeacherQuestionDetailResponseDto>;
+
+    // =============================================
+    // API Ngân hàng câu hỏi
+    // =============================================
+    public record GetTeacherQuestionBankQuery() : IRequest<List<TeacherQuestionDetailResponseDto>>;
 }

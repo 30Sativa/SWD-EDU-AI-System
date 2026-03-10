@@ -201,6 +201,17 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         // READ — Theo context
         // =============================================
 
+        public async Task<List<QuestionDomain>> GetQuestionsByIdsAsync(IEnumerable<Guid> questionIds, CancellationToken cancellationToken)
+        {
+            var entities = await _context.Questions
+                .AsNoTracking()
+                .Include(q => q.QuestionOptions.OrderBy(o => o.SortOrder))
+                .Where(q => questionIds.Contains(q.Id))
+                .ToListAsync(cancellationToken);
+
+            return entities.Select(MapQuestionToDomain).ToList();
+        }
+
         public async Task<List<QuestionOptionDomain>> GetQuestionOptionsAsync(Guid questionId, CancellationToken cancellationToken)
         {
             var options = await _context.QuestionOptions
@@ -241,6 +252,19 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 .OrderBy(q => q.CreatedAt)
                 .Select(q => MapToDomain(q))
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<QuestionDomain>> GetQuestionBankAsync(CancellationToken cancellationToken)
+        {
+            // Trong hệ thống thực tế cần map theo UserId, ở scope nhỏ ta trả về 100 câu hỏi gần nhất
+            var entities = await _context.Questions
+                .AsNoTracking()
+                .Include(q => q.QuestionOptions.OrderBy(o => o.SortOrder))
+                .OrderByDescending(q => q.Id)
+                .Take(100)
+                .ToListAsync(cancellationToken);
+
+            return entities.Select(MapQuestionToDomain).ToList();
         }
 
         // =============================================

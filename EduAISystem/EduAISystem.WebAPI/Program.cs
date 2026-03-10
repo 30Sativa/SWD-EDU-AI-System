@@ -1,6 +1,9 @@
 using EduAISystem.Application;
 using EduAISystem.Application.Common.Models;
 using EduAISystem.WebAPI.Converters;
+using EduAISystem.WebAPI.Services;
+using EduAISystem.WebAPI.Hubs;
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Infrastructure;
 using EduAISystem.Infrastructure.Persistence.Seed;
 using EduAISystem.WebAPI.Middlewares;
@@ -80,7 +83,7 @@ var cloudStorageConnectionString = builder.Configuration["Cloudinary:CloudName"]
 var cloudStorageApiKey = builder.Configuration["Cloudinary:ApiKey"];
 var cloudStorageApiSecret = builder.Configuration["Cloudinary:ApiSecret"];
 Console.WriteLine("===== JWT CONFIG CHECK =====");
-Console.WriteLine("Issuer   : " + jwtSection["Issuer"]);
+Console.WriteLine("Issuer   : " +  jwtSection["Issuer"]);
 Console.WriteLine("Audience : " + jwtSection["Audience"]);
 Console.WriteLine("Secret   : " + jwtSection["Secret"]);
 Console.WriteLine("ApiKey   : " + apiKey);
@@ -203,6 +206,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Add SignalR & Notification Service
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IImportNotificationService, ImportNotificationService>();
+
 
 
 #endregion
@@ -244,8 +251,9 @@ app.UseAuthorization();
 // Global exception handling
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-// Map controllers
+// Map controllers & SignalR Hubs
 app.MapControllers();
+app.MapHub<ImportHub>("/hubs/import");
 
 #endregion
 
