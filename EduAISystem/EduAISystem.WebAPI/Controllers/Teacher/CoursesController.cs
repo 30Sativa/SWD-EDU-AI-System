@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Courses.Commands;
 using EduAISystem.Application.Features.Courses.DTOs.Request;
@@ -18,10 +19,12 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
     public class CoursesController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IAuditService _auditService;
 
-        public CoursesController(IMediator mediator)
+        public CoursesController(IMediator mediator, IAuditService auditService)
         {
             _mediator = mediator;
+            _auditService = auditService;
         }
 
         [HttpGet("{id:guid}")]
@@ -113,6 +116,8 @@ Giáo viên tạo một khóa học mới từ đầu (không clone từ templat
                 Request = dto
             }, cancellationToken);
 
+            _auditService.LogAction("CREATE_COURSE", "Course", result.Id, null, dto);
+
             return Ok(ApiResponse<CourseDetailResponseDto>
                 .Ok(result, "Tạo khóa học thành công"));
         }
@@ -178,6 +183,8 @@ Chuyển khóa học từ trạng thái `Draft` sang `Published`.
                 CourseId = id,
                 TeacherId = teacherId.Value
             }, cancellationToken);
+
+            _auditService.LogAction("PUBLISH_COURSE", "Course", id);
 
             return Ok(ApiResponse<object>.Ok(null, "Publish thành công"));
         }

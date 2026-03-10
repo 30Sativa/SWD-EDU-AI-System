@@ -22,6 +22,7 @@ namespace EduAISystem.Application.Features.Auth.Handler
         private readonly IPasswordHasher _hasher;
         private readonly IJwtTokenGenerator _jwt;
         private readonly IClientContext _client;
+        private readonly IAuditService _auditService;
 
         public LoginCommandHandler(
             IUserRepository users,
@@ -30,7 +31,8 @@ namespace EduAISystem.Application.Features.Auth.Handler
             ILoginAttemptRepository loginAttempts,
             IPasswordHasher hasher,
             IJwtTokenGenerator jwt,
-            IClientContext client)
+            IClientContext client,
+            IAuditService auditService)
         {
             _users = users;
             _sessions = sessions;
@@ -39,6 +41,7 @@ namespace EduAISystem.Application.Features.Auth.Handler
             _hasher = hasher;
             _jwt = jwt;
             _client = client;
+            _auditService = auditService;
         }
 
         public async Task<LoginResponseDto> Handle(LoginCommand request, CancellationToken cancellationToken)
@@ -58,23 +61,27 @@ namespace EduAISystem.Application.Features.Auth.Handler
             var user = await _users.GetByEmailAsync(email);
             if (user == null)
             {
+                _auditService.LogAction("LOGIN_FAILED", "User", null, new { Email = email, Reason = "User not found" });
                 await _loginAttempts.AddAsync(new LoginAttemptDomain(email, null, _client.IpAddress, false, "User not found"));
                 throw new NotFoundException("User not found.");
             }
 
             if (!user.CanLogin())
             {
+                _auditService.LogAction("LOGIN_FAILED", "User", user.Id, new { Email = email, Reason = "User is inactive" });
                 await _loginAttempts.AddAsync(new LoginAttemptDomain(email, user.Id, _client.IpAddress, false, "User is inactive"));
                 throw new ForbiddenException("User is inactive.");
             }
 
             if (!_hasher.Verify(request.Request.Password, user.PasswordHash))
             {
+                _auditService.LogAction("LOGIN_FAILED", "User", user.Id, new { Email = email, Reason = "Invalid credentials" });
                 await _loginAttempts.AddAsync(new LoginAttemptDomain(email, user.Id, _client.IpAddress, false, "Invalid credentials"));
                 throw new ForbiddenException("Invalid credentials");
             }
 
             // Authentication successful -> clear failed attempts and record success
+            _auditService.LogAction("LOGIN_SUCCESS", "User", user.Id);
             await _loginAttempts.ClearFailedAttemptsAsync(email);
             await _loginAttempts.AddAsync(new LoginAttemptDomain(email, user.Id, _client.IpAddress, true, null));
 

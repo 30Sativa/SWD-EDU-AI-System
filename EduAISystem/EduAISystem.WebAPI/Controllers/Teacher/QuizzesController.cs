@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Quiz.Commands;
 using EduAISystem.Application.Features.Quiz.DTOs.Request;
@@ -17,11 +18,13 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
     {
         private readonly IMediator _mediator;
         private readonly ILogger<QuizzesController> _logger;
+        private readonly IAuditService _auditService;
 
-        public QuizzesController(IMediator mediator, ILogger<QuizzesController> logger)
+        public QuizzesController(IMediator mediator, ILogger<QuizzesController> logger, IAuditService auditService)
         {
             _mediator = mediator;
             _logger = logger;
+            _auditService = auditService;
         }
 
         [HttpPost("formative")]
@@ -47,6 +50,7 @@ Giáo viên tạo quiz đánh giá quá trình (formative) gắn với một bà
             try
             {
                 var quizId = await _mediator.Send(new CreateFormativeQuizCommand(dto), cancellationToken);
+                _auditService.LogAction("CREATE_QUIZ", "Quiz", quizId, null, new { Type = "Formative", LessonId = dto.LessonId });
                 return Ok(ApiResponse<Guid>.Ok(quizId, "Tạo formative quiz thành công!"));
             }
             catch (Exception ex)
@@ -82,6 +86,7 @@ Giáo viên tạo quiz đánh giá tổng kết (summative) gắn với một kh
             try
             {
                 var quizId = await _mediator.Send(new CreateSummativeQuizCommand(dto), cancellationToken);
+                _auditService.LogAction("CREATE_QUIZ", "Quiz", quizId, null, new { Type = "Summative", CourseId = dto.CourseId });
                 return Ok(ApiResponse<Guid>.Ok(quizId, "Tạo summative quiz thành công!"));
             }
             catch (Exception ex)
