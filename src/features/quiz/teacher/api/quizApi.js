@@ -71,9 +71,9 @@ export const getQuizDetail = (quizId) => {
     return axiosClient.get(`/api/student/quizzes/${quizId}`);
 };
 
-// Get Quiz Detail (Teacher) - Includes isCorrect for options
-export const getTeacherQuizDetail = (quizId) => {
-    return axiosClient.get(`/api/teacher/quizzes/${quizId}`);
+// Get Quiz Questions (Teacher) - Includes isCorrect for options
+export const getTeacherQuizQuestions = (quizId) => {
+    return axiosClient.get(`/api/teacher/quizzes/${quizId}/questions`);
 };
 
 // Get Course Quizzes
@@ -105,4 +105,36 @@ export const submitQuizAttempt = (attemptId, data) => {
 // Get Attempt Result
 export const getQuizAttemptResult = (attemptId) => {
     return axiosClient.get(`/api/student/quizzes/attempts/${attemptId}/result`);
+};
+
+/**
+ * GV - Quiz Import & Question Bank APIs
+ */
+
+// Import many questions from file (Excel, Word, PDF) via AI
+export const importQuestionsFromFile = (quizId, file, onProgress) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axiosClient.post(`/api/teacher/quizzes/${quizId}/import-file`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+            if (onProgress && progressEvent.total) {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                onProgress(percentCompleted);
+            }
+        }
+    });
+};
+
+// Get list of existing questions from the platform (Question Bank)
+export const getQuestionsBank = () => {
+    return axiosClient.get('/api/teacher/quizzes/questions-bank');
+};
+
+// Clone/Import questions from Bank into a specific Quiz
+export const importQuestionsFromBank = (quizId, questionIds) => {
+    // questionIds is an array of question UUIDs
+    return axiosClient.post(`/api/teacher/quizzes/${quizId}/import-questions`, questionIds);
 };

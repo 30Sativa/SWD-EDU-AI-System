@@ -1,22 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-    ArrowLeft,
-    Plus,
+    TrendingUp,
+    FileSearch,
+    Database,
+    UploadCloud,
+    Loader2,
+    CheckCircle,
+    X,
+    Zap,
+    Search,
+    BookOpen,
     Trash2,
     Edit3,
+    ArrowLeft,
+    Plus,
     Check,
     FileText,
     Target,
     BrainCircuit,
     Layout,
     FileUp,
-    Zap,
-    BookOpen,
-    ChevronRight,
     Settings,
     Clock,
-    TrendingUp
+    ChevronRight
 } from 'lucide-react';
 import {
     Spin,
@@ -33,15 +40,23 @@ import {
     Tag,
     Space,
     Breadcrumb,
-    Select
+    Select,
+    Upload,
+    Progress,
+    Table,
+    Dropdown
 } from 'antd';
+import { HubConnectionBuilder, LogLevel, HubConnectionState } from '@microsoft/signalr';
 import {
     getQuizDetail,
-    getTeacherQuizDetail,
+    getTeacherQuizQuestions,
     getQuestionOptions,
     addQuestionToQuiz,
     updateQuestionInQuiz,
-    deleteQuestionInQuiz
+    deleteQuestionInQuiz,
+    importQuestionsFromFile,
+    getQuestionsBank,
+    importQuestionsFromBank
 } from '../api/quizApi';
 
 export default function TeacherQuizEditor() {
@@ -59,76 +74,106 @@ export default function TeacherQuizEditor() {
     const [form] = Form.useForm();
     const [questionType, setQuestionType] = useState('MCQ');
 
-    // Bulk Modal state
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [bulkText, setBulkText] = useState('');
     const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
-    const fetchQuizDetail = useCallback(async () => {
+    // AI Import State
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+    const [importFile, setImportFile] = useState(null);
+    const [importState, setImportState] = useState({
+        status: 'idle', // idle, uploading, processing, completed, error
+        progress: 0,
+        jobId: null,
+        error: null,
+        message: ''
+    });
+
+    const [processingTip, setProcessingTip] = useState(0);
+    const tips = [
+        "AI đang đọc nội dung file...",
+        "Đang phân tích cấu trúc câu hỏi...",
+        "AI đang nhận diện các đáp án đúng...",
+        "Hệ thống đang định dạng lại dữ liệu...",
+        "Sắp xong rồi, vui lòng đợi trong giây lát...",
+        "Đang kiểm tra tính hợp lệ của câu hỏi..."
+    ];
+
+    // Pseudo-progress timer to make it feel "alive"
+    useEffect(() => {
+        let interval;
+        if (importState.status === 'processing' && importState.progress < 95) {
+            interval = setInterval(() => {
+                setImportState(prev => ({
+                    ...prev,
+                    progress: Math.min(prev.progress + 0.5, 95) // Max 95% until real completion
+                }));
+                // Rotate tips
+                setProcessingTip(curr => (curr + 1) % tips.length);
+            }, 3000);
+        }
+        return () => clearInterval(interval);
+    }, [importState.status, importState.progress]);
+
+    // Question Bank State
+    const [isBankModalOpen, setIsBankModalOpen] = useState(false);
+    const [bankQuestions, setBankQuestions] = useState([]);
+    const [selectedBankIds, setSelectedBankIds] = useState([]);
+    const [isBankLoading, setIsBankLoading] = useState(false);
+    const [isBankImporting, setIsBankImporting] = useState(false);
+    const [hubConnection, setHubConnection] = useState(null);
+
+    const fetchQuizDetail = useCallback(async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
 
-            // Try Teacher API first (Ideally returns everything)
-            let data;
+            // 1. Get Quiz Metadata
+            const quizRes = await getQuizDetail(quizId);
+            const quizData = quizRes.data || quizRes;
+            setQuiz(quizData);
+
+            // 2. Get Full Questions via Teacher API
             try {
-                const teacherRes = await getTeacherQuizDetail(quizId);
-                data = teacherRes.data || teacherRes;
+                const questionsRes = await getTeacherQuizQuestions(quizId);
+                const qData = questionsRes.data || questionsRes;
+                setQuestions(Array.isArray(qData) ? qData : (qData.items || []));
             } catch (err) {
-                console.warn("Teacher Quiz Detail API not available, falling back to Student API");
-                const res = await getQuizDetail(quizId);
-                data = res.data || res;
-            }
-
-            setQuiz(data);
-
-            const rawQuestions = data.questions || [];
-
-            // If the API already returned options with isCorrect, we don't need DEEP FETCH
-            const hasOptions = rawQuestions.length > 0 &&
-                (rawQuestions[0].options || rawQuestions[0].Options) &&
-                (rawQuestions[0].options?.[0]?.isCorrect !== undefined || rawQuestions[0].Options?.[0]?.IsCorrect !== undefined);
-
-            if (hasOptions) {
-                setQuestions(rawQuestions);
-            } else {
-                // DEEP FETCH: For each question, get options via Teacher API to see isCorrect
-                const fullQuestions = await Promise.all(
-                    rawQuestions.map(async (q) => {
-                        try {
-                            const qId = q.id || q.Id || q.questionId || q.QuestionId;
-                            const optRes = await getQuestionOptions(qId);
-                            const optData = optRes.data || optRes;
-
-                            // Map properly based on the provided schema: data might be [ { options: [...] } ]
-                            let options = [];
-                            if (Array.isArray(optData)) {
-                                // If it's the schema: [ { questionId: ..., options: [...] } ]
-                                if (optData[0]?.options) {
-                                    options = optData[0].options;
-                                } else {
-                                    options = optData;
-                                }
-                            } else if (optData?.options) {
-                                options = optData.options;
-                            } else {
-                                options = optData;
-                            }
-
-                            return { ...q, options };
-                        } catch (err) {
-                            return q;
-                        }
-                    })
-                );
-                setQuestions(fullQuestions);
+                setQuestions(quizData.questions || []);
             }
         } catch (error) {
             console.error("Lỗi khi tải thông tin Quiz:", error);
-            message.error("Không thể tải thông tin bài kiểm tra");
+            if (!silent) message.error("Không thể tải thông tin bài kiểm tra");
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [quizId]);
+
+    const initSignalR = useCallback(async () => {
+        if (hubConnection && hubConnection.state === HubConnectionState.Connected) return hubConnection;
+
+        const connection = new HubConnectionBuilder()
+            .withUrl(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5129'}/hubs/import`)
+            .withAutomaticReconnect()
+            .configureLogging(LogLevel.Information)
+            .build();
+
+        try {
+            await connection.start();
+            console.log('SignalR Hub Connected');
+            setHubConnection(connection);
+            return connection;
+        } catch (err) {
+            console.error('SignalR Hub Connection Error:', err);
+            return null;
+        }
+    }, [hubConnection]);
+
+    // Pre-connect when modal is about to open or component mounts
+    useEffect(() => {
+        if (isAIModalOpen && (!hubConnection || hubConnection.state !== HubConnectionState.Connected)) {
+            initSignalR();
+        }
+    }, [isAIModalOpen, hubConnection, initSignalR]);
 
     useEffect(() => {
         if (quizId) fetchQuizDetail();
@@ -268,10 +313,27 @@ export default function TeacherQuizEditor() {
             message.loading({ content: `Đang xử lý ${newQuestions.length} câu hỏi...`, key: 'bulk_import' });
 
             for (const q of newQuestions) {
-                // Ensure at least one correct answer if not marked
-                if (!q.options.some(o => o.isCorrect) && q.options.length > 0) {
-                    q.options[0].isCorrect = true;
+                // Determine question type dynamically
+                const correctCount = q.options.filter(o => o.isCorrect).length;
+                const isTF = q.options.length === 2 &&
+                    (q.options.some(o => o.optionText.toLowerCase() === 'đúng' || o.optionText.toLowerCase() === 'true') ||
+                        q.options.some(o => o.optionText.toLowerCase() === 'sai' || o.optionText.toLowerCase() === 'false'));
+
+                if (isTF) {
+                    q.questionType = 'TrueFalse';
+                } else if (q.options.length === 1) {
+                    q.questionType = 'ShortAnswer';
+                    q.options[0].isCorrect = true; // For ShortAnswer, the only answer is the correct one
+                } else if (correctCount > 1) {
+                    q.questionType = 'MultipleChoice';
+                } else {
+                    q.questionType = 'MCQ';
+                    // Ensure at least one correct answer if not marked
+                    if (correctCount === 0 && q.options.length > 0) {
+                        q.options[0].isCorrect = true;
+                    }
                 }
+
                 await addQuestionToQuiz(quizId, q);
             }
 
@@ -307,6 +369,121 @@ export default function TeacherQuizEditor() {
     };
 
     const totalPoints = questions.reduce((sum, q) => sum + (parseFloat(q.points || q.point || q.Point || q.Points) || 0), 0);
+
+    // AI Import Logic (SignalR)
+    const startProgressTracking = useCallback((jobId) => {
+        if (!hubConnection) {
+            console.error('SignalR hubConnection is not established.');
+            return;
+        }
+
+        hubConnection.on('ReceiveProgress', (res) => {
+            // res contains: jobId, percent, message, status
+            if (res.jobId === jobId) {
+                setImportState(prev => ({ ...prev, progress: res.percent, status: 'processing' }));
+                if (res.message) message.loading({ content: res.message, key: 'ai_import_progress' });
+            }
+        });
+
+        hubConnection.on('ReceiveCompleted', (res) => {
+            if (res.jobId === jobId) {
+                setImportState(prev => ({ ...prev, status: 'completed', progress: 100 }));
+                message.success({ content: `Import hoàn tất! Đã thêm ${res.importedCount || 0} câu hỏi.`, key: 'ai_import_progress' });
+                fetchQuizDetail(true); // Silent refresh
+                setTimeout(() => {
+                    setIsAIModalOpen(false);
+                    setImportState({ status: 'idle', progress: 0, jobId: null, error: null });
+                }, 1500);
+                hubConnection.invoke('LeaveJobGroup', jobId);
+                hubConnection.off('ReceiveProgress');
+                hubConnection.off('ReceiveCompleted');
+                hubConnection.off('ReceiveError');
+            }
+        });
+
+        hubConnection.on('ReceiveError', (res) => {
+            if (res.jobId === jobId) {
+                setImportState(prev => ({ ...prev, status: 'error', error: res.message }));
+                message.error({ content: `Lỗi: ${res.message}`, key: 'ai_import_progress' });
+                hubConnection.invoke('LeaveJobGroup', jobId);
+                hubConnection.off('ReceiveProgress');
+                hubConnection.off('ReceiveCompleted');
+                hubConnection.off('ReceiveError');
+            }
+        });
+
+        hubConnection.invoke('JoinJobGroup', jobId)
+            .then(() => console.log('Joined job group:', jobId))
+            .catch(err => console.error('Error joining job group:', err));
+    }, [hubConnection, fetchQuizDetail]);
+
+    const handleAIImportSubmit = async () => {
+        if (!importFile) {
+            message.warning('Vui lòng chọn file!');
+            return;
+        }
+
+        let currentConn = hubConnection;
+        if (!currentConn || currentConn.state !== HubConnectionState.Connected) {
+            message.loading({ content: 'Đang thiết lập kết nối an toàn...', key: 'ai_import_progress' });
+            currentConn = await initSignalR();
+        }
+
+        if (!currentConn) {
+            message.error({ content: 'Không thể kết nối tới máy chủ SignalR. Vui lòng thử lại.', key: 'ai_import_progress' });
+            return;
+        }
+
+        setImportState({ status: 'uploading', progress: 0, jobId: null, error: null });
+        try {
+            // Use onUploadProgress to show real upload speed
+            const resp = await importQuestionsFromFile(quizId, importFile, (percent) => {
+                setImportState(prev => ({ ...prev, progress: Math.round(percent * 0.4) })); // Upload occupies first 40%
+            });
+
+            const jobId = resp.data?.data || resp.data || resp;
+            setImportState(prev => ({ ...prev, status: 'processing', jobId, progress: 40 }));
+
+            startProgressTracking(jobId);
+        } catch (error) {
+            setImportState({ status: 'error', progress: 0, jobId: null, error: error.response?.data?.message || 'Lỗi server' });
+            message.error({ content: 'Không thể bắt đầu tiến trình Import AI', key: 'ai_import_progress' });
+        }
+    };
+
+    // Question Bank Logic
+    const handleOpenBank = async () => {
+        setIsBankModalOpen(true);
+        setIsBankLoading(true);
+        try {
+            const resp = await getQuestionsBank();
+            setBankQuestions(resp.data || []);
+        } catch (err) {
+            message.error('Không thể tải ngân hàng câu hỏi');
+        } finally {
+            setIsBankLoading(false);
+        }
+    };
+
+    const handleBankImport = async () => {
+        if (selectedBankIds.length === 0) {
+            message.warning('Chọn ít nhất một câu hỏi!');
+            return;
+        }
+
+        setIsBankImporting(true);
+        try {
+            await importQuestionsFromBank(quizId, selectedBankIds);
+            message.success(`Đã copy thành công ${selectedBankIds.length} câu hỏi!`);
+            setIsBankModalOpen(false);
+            setSelectedBankIds([]);
+            fetchQuizDetail();
+        } catch (err) {
+            message.error('Lỗi khi copy câu hỏi');
+        } finally {
+            setIsBankImporting(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -353,13 +530,39 @@ export default function TeacherQuizEditor() {
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Button
-                                    onClick={() => setIsBulkModalOpen(true)}
-                                    icon={<FileUp size={18} />}
-                                    className="h-10 px-4 rounded-lg font-bold border-slate-200 text-slate-600 hover:text-[#0487e2] hover:border-blue-200 flex items-center"
+                                <Dropdown
+                                    menu={{
+                                        items: [
+                                            {
+                                                key: 'manual',
+                                                label: 'Nhập tay hàng loạt (Text)',
+                                                icon: <Plus size={14} />,
+                                                onClick: () => setIsBulkModalOpen(true)
+                                            },
+                                            {
+                                                key: 'ai',
+                                                label: 'Import từ File (AI hỗ trợ)',
+                                                icon: <Zap size={14} className="text-amber-500" />,
+                                                onClick: () => setIsAIModalOpen(true)
+                                            },
+                                            {
+                                                key: 'bank',
+                                                label: 'Chọn từ Ngân hàng',
+                                                icon: <Database size={14} className="text-blue-500" />,
+                                                onClick: () => handleOpenBank()
+                                            }
+                                        ]
+                                    }}
+                                    placement="bottomRight"
                                 >
-                                    Nhập hàng loạt
-                                </Button>
+                                    <Button
+                                        icon={<FileUp size={18} />}
+                                        className="h-10 px-4 rounded-lg font-bold border-slate-200 text-slate-600 hover:text-[#0487e2] hover:border-blue-200 flex items-center"
+                                    >
+                                        Nhập nâng cao
+                                    </Button>
+                                </Dropdown>
+
                                 <Button
                                     type="primary"
                                     icon={<Plus size={18} />}
@@ -745,28 +948,54 @@ export default function TeacherQuizEditor() {
             </Modal >
 
             {/* Bulk Import Modal */}
-            < Modal
+            <Modal
                 title={
-                    < div className="flex items-center gap-2" >
+                    <div className="flex items-center gap-2">
                         <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
                             <Zap size={18} />
                         </div>
                         <span className="text-lg font-bold text-slate-800">Nhập câu hỏi nhanh (Bulk Import)</span>
-                    </div >
+                    </div>
                 }
                 open={isBulkModalOpen}
                 onCancel={() => !isBulkProcessing && setIsBulkModalOpen(false)}
                 footer={null}
-                width={700}
+                width={800}
                 centered
                 className="rounded-2xl"
             >
                 <div className="space-y-4">
-                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 mb-4">
-                        <div className="text-xs font-bold text-amber-700 uppercase mb-2">Hướng dẫn định dạng:</div>
-                        <pre className="text-[10px] text-amber-600 font-medium leading-relaxed m-0">
-                            {`1. Câu hỏi của bạn là gì?\nA. Đáp án sai\nB. Đáp án đúng (*)\n\nQ: Một câu hỏi khác?\n- Lựa chọn 1\n* Lựa chọn 2 (đúng)\n- Lựa chọn 3`}
-                        </pre>
+                    <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 mb-2">
+                        <div className="text-xs font-black text-amber-700 uppercase mb-3 flex items-center gap-2">
+                            <BookOpen size={14} /> Hướng dẫn định dạng (4 loại):
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold text-amber-800 mb-1">1. Một đáp án (MCQ):</p>
+                                <pre className="text-[9px] text-amber-600 bg-white/50 p-2 rounded-lg m-0 border border-amber-50">
+                                    {`1. Hà Nội là thủ đô của VN?\nA. Đúng (*)\nB. Sai`}
+                                </pre>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold text-amber-800 mb-1">2. Nhiều đáp án:</p>
+                                <pre className="text-[9px] text-amber-600 bg-white/50 p-2 rounded-lg m-0 border border-amber-50">
+                                    {`2. Số nào là số nguyên tố?\n* 2\n* 3\n- 4`}
+                                </pre>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold text-amber-800 mb-1">3. Đúng / Sai:</p>
+                                <pre className="text-[9px] text-amber-600 bg-white/50 p-2 rounded-lg m-0 border border-amber-50">
+                                    {`Q: Trái đất hình vuông?\n* Sai\n- Đúng`}
+                                </pre>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold text-amber-800 mb-1">4. Trả lời ngắn:</p>
+                                <pre className="text-[9px] text-amber-600 bg-white/50 p-2 rounded-lg m-0 border border-amber-50">
+                                    {`4. Thủ phủ của Mỹ là gì?\n* Washington D.C`}
+                                </pre>
+                            </div>
+                        </div>
+                        <p className="mt-3 text-[9px] text-amber-500 font-medium italic">* Phân tách các câu bằng một dòng trống. Dùng dấu (*) hoặc bắt đầu bằng * để chọn đáp án đúng.</p>
                     </div>
 
                     <Input.TextArea
@@ -774,7 +1003,7 @@ export default function TeacherQuizEditor() {
                         onChange={e => setBulkText(e.target.value)}
                         placeholder="Dán nội dung câu hỏi vào đây..."
                         rows={12}
-                        className="rounded-xl border-slate-200 bg-slate-50 p-4 font-medium"
+                        className="rounded-2xl border-slate-200 bg-slate-50 p-4 font-medium"
                         disabled={isBulkProcessing}
                     />
 
@@ -797,6 +1026,218 @@ export default function TeacherQuizEditor() {
                     </div>
                 </div>
             </Modal >
+
+            {/* AI Import Modal */}
+            <Modal
+                title={
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center shadow-sm">
+                            <Zap size={22} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-slate-800 m-0">Import bằng AI 4.0</h3>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Tự động đọc đề từ file Excel, PDF, Word</p>
+                        </div>
+                    </div>
+                }
+                open={isAIModalOpen}
+                onCancel={() => (importState.status === 'idle' || importState.status === 'completed' || importState.status === 'error') ? setIsAIModalOpen(false) : null}
+                footer={null}
+                width={500}
+                centered
+                destroyOnHidden
+            >
+                <div className="py-4 space-y-6">
+                    {importState.status === 'idle' ? (
+                        <div className="space-y-4">
+                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-start gap-3">
+                                <BrainCircuit className="text-blue-500 shrink-0 mt-1" size={20} />
+                                <p className="text-xs text-blue-700 leading-relaxed font-medium">
+                                    Hệ thống sử dụng AI để nhận diện nội dung từ file của bạn.
+                                    Sau khi tải lên, quá trình xử lý có thể mất từ 30s - 1 phút.
+                                </p>
+                            </div>
+
+                            <Upload.Dragger
+                                beforeUpload={(file) => {
+                                    const isAllowed = [
+                                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                        'application/pdf',
+                                        'application/msword',
+                                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                                    ].includes(file.type);
+
+                                    if (!isAllowed) {
+                                        message.error('Chỉ hỗ trợ file Excel, Word hoặc PDF!');
+                                        return Upload.LIST_IGNORE;
+                                    }
+                                    setImportFile(file);
+                                    return false;
+                                }}
+                                maxCount={1}
+                                onRemove={() => setImportFile(null)}
+                                className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-8 hover:bg-white hover:border-amber-400 transition-all"
+                            >
+                                <div className="flex flex-col items-center gap-4 py-4">
+                                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-slate-300 shadow-sm">
+                                        <UploadCloud size={32} />
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-sm font-black text-slate-700">Kéo thả file vào đây hoặc click để chọn</p>
+                                        <p className="text-[11px] text-slate-400 font-medium">Hỗ trợ .docx, .xlsx, .pdf (Max 10MB)</p>
+                                    </div>
+                                </div>
+                            </Upload.Dragger>
+
+                            <Button
+                                type="primary"
+                                block
+                                size="large"
+                                onClick={handleAIImportSubmit}
+                                className="h-12 rounded-2xl bg-slate-900 border-none font-black shadow-lg shadow-slate-200"
+                                icon={<Zap size={18} />}
+                                disabled={!importFile}
+                            >
+                                BẮT ĐẦU XỬ LÝ AI
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="text-center py-6 space-y-6">
+                            <div className="relative inline-block">
+                                <div className={`w-28 h-28 rounded-full border-4 flex items-center justify-center transition-all duration-1000 ${importState.status === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-500' :
+                                    importState.status === 'error' ? 'border-rose-500 bg-rose-50 text-rose-500' :
+                                        'border-slate-100 bg-slate-50 text-[#0487e2]'
+                                    }`}>
+                                    {importState.status === 'completed' ? <CheckCircle size={48} /> :
+                                        importState.status === 'error' ? <X size={48} /> :
+                                            <Loader2 size={48} className="animate-spin" />}
+                                </div>
+                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white px-3 py-1 rounded-full shadow-md border border-slate-100 text-[10px] font-black whitespace-nowrap uppercase tracking-widest">
+                                    {importState.status === 'processing' ? 'Đang đọc nội dung' :
+                                        importState.status === 'uploading' ? 'Đang tải file' :
+                                            importState.status === 'completed' ? 'Thành công' : 'Thất bại'}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <h4 className="text-sm font-black text-slate-700">Tiến trình Import</h4>
+                                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Job ID: {importState.jobId || '...'}</p>
+                                </div>
+                                <Progress
+                                    percent={importState.progress}
+                                    status={importState.status === 'error' ? 'exception' : 'active'}
+                                    strokeColor={importState.status === 'completed' ? '#10b981' : '#0487e2'}
+                                    size={[null, 12]}
+                                    showInfo={false}
+                                    className="px-8"
+                                />
+                                <div className="flex justify-center">
+                                    <Tag className="m-0 bg-blue-50 text-blue-600 border-none font-bold rounded-full px-3 py-1">
+                                        {importState.progress}% Hoàn tất
+                                    </Tag>
+                                </div>
+                            </div>
+
+                            {importState.error && (
+                                <div className="bg-rose-50 text-rose-600 p-3 rounded-xl text-xs font-bold border border-rose-100 mx-4">
+                                    Lỗi: {importState.error}
+                                </div>
+                            )}
+
+                            {importState.status === 'completed' && (
+                                <Button onClick={() => setIsAIModalOpen(false)} type="primary" className="h-10 rounded-xl font-bold bg-emerald-500 border-none">
+                                    Đóng cửa sổ
+                                </Button>
+                            )}
+
+                            {importState.status === 'error' && (
+                                <Button onClick={() => setImportState({ status: 'idle', progress: 0, jobId: null, error: null })} className="h-10 rounded-xl font-bold">
+                                    Thử lại
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </Modal>
+
+            {/* Question Bank Modal */}
+            <Modal
+                title={
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-blue-50 text-[#0487e2] flex items-center justify-center shadow-sm">
+                            <Database size={22} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-slate-800 m-0">Ngân hàng câu hỏi</h3>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Tái sử dụng câu hỏi cũ từ kho dữ liệu</p>
+                        </div>
+                    </div>
+                }
+                open={isBankModalOpen}
+                onCancel={() => setIsBankModalOpen(false)}
+                footer={[
+                    <Button key="cancel" onClick={() => setIsBankModalOpen(false)} className="rounded-xl h-10 font-bold">Hủy</Button>,
+                    <Button
+                        key="submit"
+                        type="primary"
+                        onClick={handleBankImport}
+                        loading={isBankImporting}
+                        disabled={selectedBankIds.length === 0}
+                        className="rounded-xl h-10 font-black bg-[#0487e2] border-none shadow-lg shadow-blue-100"
+                    >
+                        IMPORT {selectedBankIds.length > 0 && `(${selectedBankIds.length})`} CÂU HỎI
+                    </Button>
+                ]}
+                width={850}
+                centered
+                destroyOnHidden
+            >
+                <div className="py-2 space-y-4">
+                    <Input
+                        placeholder="Tìm kiếm câu hỏi trong kho..."
+                        prefix={<Search size={16} className="text-slate-300" />}
+                        className="h-11 rounded-2xl bg-slate-50 border-none"
+                    />
+
+                    <Table
+                        loading={isBankLoading}
+                        dataSource={bankQuestions}
+                        rowSelection={{
+                            type: 'checkbox',
+                            selectedRowKeys: selectedBankIds,
+                            onChange: (keys) => setSelectedBankIds(keys)
+                        }}
+                        rowKey={(r) => r.questionId || r.id}
+                        columns={[
+                            {
+                                title: 'NỘI DUNG CÂU HỎI',
+                                dataIndex: 'questionText',
+                                key: 'text',
+                                render: (text, r) => (
+                                    <div className="max-w-md">
+                                        <p className="font-bold text-slate-700 mb-1 line-clamp-2">{text}</p>
+                                        <div className="flex gap-2">
+                                            <Tag className="text-[10px] m-0 border-none bg-slate-100 text-slate-400 font-black uppercase tracking-widest">{r.questionType}</Tag>
+                                            <Tag className="text-[10px] m-0 border-none bg-blue-50 text-blue-500 font-black uppercase tracking-widest">{r.options?.length} Đáp án</Tag>
+                                        </div>
+                                    </div>
+                                )
+                            },
+                            {
+                                title: 'LOẠI',
+                                dataIndex: 'questionType',
+                                key: 'type',
+                                width: 120,
+                                align: 'center',
+                                render: (type) => <Tag className="rounded-md font-bold text-[10px] uppercase px-2 py-0.5 border-none bg-slate-100 text-slate-500">{type}</Tag>
+                            },
+                        ]}
+                        pagination={{ pageSize: 5 }}
+                        className="custom-bank-table"
+                    />
+                </div>
+            </Modal>
         </div >
     );
 }
