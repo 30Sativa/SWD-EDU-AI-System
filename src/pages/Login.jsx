@@ -61,10 +61,14 @@ export default function Login() {
         try {
             const response = await loginAPI(formData);
 
-            const token = response.accessToken || response.token || response.data?.accessToken || response.data?.token;
+            const token = response.accessToken || response.token || response.data?.accessToken || response.data?.token || response.data?.data?.accessToken;
+            const refreshToken = response.refreshToken || response.data?.refreshToken || response.data?.data?.refreshToken;
 
             if (token) {
                 localStorage.setItem('accessToken', token);
+                if (refreshToken) {
+                    localStorage.setItem('refreshToken', refreshToken);
+                }
                 const decoded = parseJwt(token);
                 const role = decoded?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded?.role;
 
@@ -140,10 +144,14 @@ export default function Login() {
             const idToken = credentialResponse.credential;
             const response = await googleLoginAPI(idToken);
 
-            const token = response.accessToken || response.token || response.data?.accessToken || response.data?.token;
+            const token = response.accessToken || response.token || response.data?.accessToken || response.data?.token || response.data?.data?.accessToken;
+            const refreshToken = response.refreshToken || response.data?.refreshToken || response.data?.data?.refreshToken;
 
             if (token) {
                 localStorage.setItem('accessToken', token);
+                if (refreshToken) {
+                    localStorage.setItem('refreshToken', refreshToken);
+                }
                 const decoded = parseJwt(token);
                 const role = decoded?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded?.role;
 
@@ -306,7 +314,8 @@ export default function Login() {
                             <GoogleLogin
                                 onSuccess={handleGoogleSuccess}
                                 onError={handleGoogleError}
-                                useOneTap
+                                useOneTap={false} // Tắt One Tap để tránh AbortError tự động hỏng
+                                use_fedcm_for_prompt={true} // Bật tường minh cơ chế FedCM mới của Google
                                 width="350"
                                 theme="outline"
                                 shape="pill"

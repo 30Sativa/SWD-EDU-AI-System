@@ -26,3 +26,7 @@ export const resetPasswordAPI = async (values) => {
 export const verifyEmailAPI = async (token) => {
     return axiosClient.post('/api/Auth/verify-email', { token });
 };
+
+export const refreshTokenAPI = async (refreshToken) => {
+    return axiosClient.post('/api/auth/refresh-token', { token: refreshToken });
+};
