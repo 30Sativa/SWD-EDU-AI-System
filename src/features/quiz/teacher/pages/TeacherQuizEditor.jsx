@@ -56,8 +56,10 @@ import {
     deleteQuestionInQuiz,
     importQuestionsFromFile,
     getQuestionsBank,
-    importQuestionsFromBank
+    importQuestionsFromBank,
+    getQuestionBankSummary
 } from '../api/quizApi';
+import { getMyCourses, getTeacherCourseDetail } from '../../../course/api/courseApi';
 
 export default function TeacherQuizEditor() {
     const { courseId, quizId } = useParams();
@@ -121,6 +123,17 @@ export default function TeacherQuizEditor() {
     const [selectedBankIds, setSelectedBankIds] = useState([]);
     const [isBankLoading, setIsBankLoading] = useState(false);
     const [isBankImporting, setIsBankImporting] = useState(false);
+    
+    // Bank Filtering State
+    const [bankFilters, setBankFilters] = useState({
+        courseId: null,
+        lessonId: null,
+        search: ''
+    });
+    const [availableCourses, setAvailableCourses] = useState([]);
+    const [availableLessons, setAvailableLessons] = useState([]);
+    const [bankSummary, setBankSummary] = useState(null);
+
     const [hubConnection, setHubConnection] = useState(null);
 
     const fetchQuizDetail = useCallback(async (silent = false) => {
@@ -452,17 +465,84 @@ export default function TeacherQuizEditor() {
     };
 
     // Question Bank Logic
+    const fetchBankQuestions = useCallback(async (filters) => {
+        setIsBankLoading(true);
+        try {
+            const params = {};
+            if (filters.courseId) params.courseId = filters.courseId;
+            if (filters.lessonId) params.lessonId = filters.lessonId;
+            if (filters.search) params.search = filters.search;
+
+            const resp = await getQuestionsBank(params);
+            const qData = resp.data || resp;
+            setBankQuestions(Array.isArray(qData) ? qData : (qData.items || []));
+        } catch (err) {
+            message.error('Lỗi khi lọc câu hỏi');
+        } finally {
+            setIsBankLoading(false);
+        }
+    }, []);
+
     const handleOpenBank = async () => {
         setIsBankModalOpen(true);
         setIsBankLoading(true);
+        // Reset filters
+        setBankFilters({ courseId: null, lessonId: null, search: '' });
+        setAvailableLessons([]);
+        
         try {
+            // Load courses for filter
+            const coursesRes = await getMyCourses();
+            const cData = coursesRes.data || coursesRes;
+            setAvailableCourses(Array.isArray(cData) ? cData : (cData.items || []));
+            
+            // Load summary
+            const summaryRes = await getQuestionBankSummary();
+            setBankSummary(summaryRes.data || summaryRes);
+
+            // Fetch initial questions (no filters)
             const resp = await getQuestionsBank();
-            setBankQuestions(resp.data || []);
+            const qData = resp.data || resp;
+            setBankQuestions(Array.isArray(qData) ? qData : (qData.items || []));
         } catch (err) {
             message.error('Không thể tải ngân hàng câu hỏi');
         } finally {
             setIsBankLoading(false);
         }
+    };
+
+    const handleCourseFilterChange = async (courseId) => {
+        setBankFilters(prev => ({ ...prev, courseId, lessonId: null }));
+        setAvailableLessons([]);
+        
+        if (courseId) {
+            try {
+                const courseDetail = await getTeacherCourseDetail(courseId);
+                const data = courseDetail.data || courseDetail;
+                const lessons = [];
+                (data.sections || []).forEach(sec => {
+                    (sec.lessons || []).forEach(les => {
+                        lessons.push(les);
+                    });
+                });
+                setAvailableLessons(lessons);
+            } catch (err) {
+                console.error("Lỗi khi tải bài học của khóa học:", err);
+            }
+        }
+        
+        fetchBankQuestions({ ...bankFilters, courseId, lessonId: null });
+    };
+
+    const handleLessonFilterChange = (lessonId) => {
+        setBankFilters(prev => ({ ...prev, lessonId }));
+        fetchBankQuestions({ ...bankFilters, lessonId });
+    };
+
+    const handleBankSearch = (val) => {
+        setBankFilters(prev => ({ ...prev, search: val }));
+        // Use a debounce if needed, but for now direct
+        fetchBankQuestions({ ...bankFilters, search: val });
     };
 
     const handleBankImport = async () => {
@@ -1194,11 +1274,71 @@ export default function TeacherQuizEditor() {
                 destroyOnHidden
             >
                 <div className="py-2 space-y-4">
-                    <Input
-                        placeholder="Tìm kiếm câu hỏi trong kho..."
-                        prefix={<Search size={16} className="text-slate-300" />}
-                        className="h-11 rounded-2xl bg-slate-50 border-none"
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <Select
+                            placeholder="Lọc theo Khóa học"
+                            className="w-full h-11"
+                            allowClear
+                            value={bankFilters.courseId}
+                            onChange={handleCourseFilterChange}
+                        >
+                            {availableCourses.map(c => (
+                                <Select.Option key={c.id} value={c.id}>
+                                    {c.title || c.name}
+                                </Select.Option>
+                            ))}
+                        </Select>
+
+                        <Select
+                            placeholder="Lọc theo Bài học"
+                            className="w-full h-11"
+                            allowClear
+                            disabled={!bankFilters.courseId}
+                            value={bankFilters.lessonId}
+                            onChange={handleLessonFilterChange}
+                        >
+                            {availableLessons.map(l => (
+                                <Select.Option key={l.id} value={l.id}>
+                                    {l.title || l.name}
+                                </Select.Option>
+                            ))}
+                        </Select>
+
+                        <Input
+                            placeholder="Tìm kiếm câu hỏi..."
+                            prefix={<Search size={16} className="text-slate-300" />}
+                            className="h-11 rounded-lg bg-slate-50 border-none"
+                            value={bankFilters.search}
+                            onChange={(e) => handleBankSearch(e.target.value)}
+                        />
+                    </div>
+
+                    {bankSummary && !bankFilters.courseId && (
+                        <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="text-center px-4 border-r border-blue-100">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Tổng câu hỏi</p>
+                                    <p className="text-lg font-black text-[#0487e2] m-0">{bankSummary.totalQuestions || 0}</p>
+                                </div>
+                                <div className="text-center px-4 border-r border-blue-100">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Môn học</p>
+                                    <p className="text-lg font-black text-slate-700 m-0">{bankSummary.courseStats?.length || 0}</p>
+                                </div>
+                                <div className="text-center px-4">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Bài học</p>
+                                    <p className="text-lg font-black text-slate-700 m-0">{bankSummary.courseStats?.reduce((acc, c) => acc + (c.lessons?.length || 0), 0) || 0}</p>
+                                </div>
+                            </div>
+                            <Button 
+                                type="text" 
+                                size="small" 
+                                className="text-[10px] font-black text-[#0487e2] uppercase tracking-widest"
+                                onClick={() => message.info("Chọn khóa học hoặc bài học để lọc nhanh hơn!")}
+                            >
+                                Gợi ý lọc
+                            </Button>
+                        </div>
+                    )}
 
                     <Table
                         loading={isBankLoading}

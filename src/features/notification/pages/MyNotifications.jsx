@@ -11,8 +11,7 @@ import {
     Calendar,
     ChevronLeft,
     ChevronRight,
-    MoreVertical,
-    Trash2
+    Eye as ViewIcon
 } from 'lucide-react';
 import {
     Badge,
@@ -27,7 +26,8 @@ import {
     Select,
     Segmented,
     Divider,
-    Pagination
+    Pagination,
+    Modal
 } from 'antd';
 import {
     getMyNotifications,
@@ -42,6 +42,8 @@ export default function MyNotifications() {
     const [loading, setLoading] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [markingAll, setMarkingAll] = useState(false);
+    const [selectedNotification, setSelectedNotification] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Pagination
     const [pagination, setPagination] = useState({
@@ -183,7 +185,11 @@ export default function MyNotifications() {
                                 {notifications.map((n) => (
                                     <Card
                                         key={n.id}
-                                        onClick={() => !n.isRead && handleMarkAsRead(n.id)}
+                                        onClick={() => {
+                                            setSelectedNotification(n);
+                                            setIsModalOpen(true);
+                                            if (!n.isRead) handleMarkAsRead(n.id);
+                                        }}
                                         className={`rounded-3xl border-none shadow-sm transition-all hover:shadow-md cursor-pointer group ${!n.isRead ? 'bg-white border-l-4 border-l-blue-600' : 'bg-white/60'}`}
                                         bodyStyle={{ padding: '24px' }}
                                     >
@@ -217,14 +223,30 @@ export default function MyNotifications() {
                                                         )}
                                                     </div>
 
-                                                    {n.link && (
-                                                        <Link
-                                                            to={n.link}
-                                                            className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg shadow-blue-100 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0"
-                                                        >
-                                                            Khám phá ngay <ExternalLink size={14} />
-                                                        </Link>
-                                                    )}
+                                                    <div className="flex items-center gap-3">
+                                                        {n.link && (
+                                                            <Link
+                                                                to={n.link}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-lg shadow-blue-100 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0"
+                                                            >
+                                                                Khám phá ngay <ExternalLink size={12} />
+                                                            </Link>
+                                                        )}
+                                                        <Tooltip title="Xem chi tiết">
+                                                            <Button
+                                                                type="text"
+                                                                icon={<ViewIcon size={18} />}
+                                                                className="h-9 w-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-all border border-transparent hover:border-blue-100"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedNotification(n);
+                                                                    setIsModalOpen(true);
+                                                                    if (!n.isRead) handleMarkAsRead(n.id);
+                                                                }}
+                                                            />
+                                                        </Tooltip>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -256,6 +278,79 @@ export default function MyNotifications() {
                     </div>
                 )}
             </div>
+
+            {/* Notification Detail Modal */}
+            <Modal
+                title={
+                    <div className="flex items-center gap-3 py-2">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Bell size={20} />
+                        </div>
+                        <div>
+                            <p className="text-base font-black text-slate-800 leading-tight">Chi tiết thông báo</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Edu-AI Notification System</p>
+                        </div>
+                    </div>
+                }
+                open={isModalOpen}
+                onCancel={() => setIsModalOpen(false)}
+                footer={[
+                    <Button 
+                        key="close" 
+                        onClick={() => setIsModalOpen(false)}
+                        className="rounded-xl font-bold h-11 px-6 border-slate-200"
+                    >
+                        Đóng
+                    </Button>,
+                    selectedNotification?.link && (
+                        <Button
+                            key="action"
+                            type="primary"
+                            icon={<ExternalLink size={16} />}
+                            onClick={() => window.open(selectedNotification.link, '_blank')}
+                            className="rounded-xl font-black h-11 px-6 bg-blue-600 border-none shadow-lg shadow-blue-100"
+                        >
+                            KHÁM PHÁ NGAY
+                        </Button>
+                    )
+                ]}
+                centered
+                width={600}
+                className="notification-detail-modal"
+            >
+                {selectedNotification && (
+                    <div className="py-6 space-y-6">
+                        <div className="space-y-1">
+                            <h2 className="text-xl font-black text-slate-900 leading-snug">
+                                {selectedNotification.title}
+                            </h2>
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                                <Clock size={14} />
+                                {formatDate(selectedNotification.createdAt)}
+                            </div>
+                        </div>
+
+                        <Divider className="m-0 bg-slate-100" />
+
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">Nội dung chi tiết</p>
+                            <div className="text-base text-slate-700 font-medium leading-relaxed whitespace-pre-wrap bg-slate-50/50 p-5 rounded-2xl border border-slate-100/50">
+                                {selectedNotification.message}
+                            </div>
+                        </div>
+
+                        {selectedNotification.link && (
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">Đường dẫn đính kèm</p>
+                                <div className="flex items-center gap-2 p-3 bg-blue-50/30 rounded-xl border border-blue-50 text-blue-600 text-xs font-bold break-all">
+                                    <ExternalLink size={14} className="shrink-0" />
+                                    {selectedNotification.link}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </Modal>
 
             <style>{`
         .custom-pagination .ant-pagination-item {

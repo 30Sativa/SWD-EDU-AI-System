@@ -5,23 +5,29 @@ import {
     Clock,
     ExternalLink,
     MoreHorizontal,
-    Circle
+    Circle,
+    Eye as ViewIcon
 } from 'lucide-react';
-import { Badge, Spin, List, Button, message, Tooltip, Empty } from 'antd';
+import { Badge, Spin, List, Button, message, Tooltip, Empty, Modal, Divider } from 'antd';
 import {
     getMyNotifications,
     getUnreadNotificationsCount,
     markNotificationAsRead,
     markAllNotificationsAsRead
 } from '../../notification/api/notificationApi';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function NotificationDropdown({ basePath }) {
+    const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [markingAll, setMarkingAll] = useState(false);
+    
+    // Modal state
+    const [selectedNotification, setSelectedNotification] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const fetchUnreadCount = useCallback(async () => {
         try {
@@ -50,7 +56,6 @@ export default function NotificationDropdown({ basePath }) {
 
     useEffect(() => {
         fetchUnreadCount();
-        // Poll for unread count every 1 minute
         const interval = setInterval(fetchUnreadCount, 60000);
         return () => clearInterval(interval);
     }, [fetchUnreadCount]);
@@ -126,7 +131,7 @@ export default function NotificationDropdown({ basePath }) {
                     <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden flex flex-col max-h-[500px] animate-in fade-in slide-in-from-top-2 duration-200">
                         {/* Header */}
                         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                            <span className="font-bold text-slate-800">Thông báo</span>
+                            <span className="font-bold text-slate-800">Thông báo gần đây</span>
                             <div className="flex items-center gap-2">
                                 {unreadCount > 0 && (
                                     <Button
@@ -137,7 +142,7 @@ export default function NotificationDropdown({ basePath }) {
                                         onClick={handleMarkAllRead}
                                         loading={markingAll}
                                     >
-                                        Đánh dấu tất cả
+                                        Đọc tất cả
                                     </Button>
                                 )}
                                 <Tooltip title="Cài đặt">
@@ -164,8 +169,9 @@ export default function NotificationDropdown({ basePath }) {
                                         <div
                                             key={n.id}
                                             onClick={(e) => {
+                                                setSelectedNotification(n);
+                                                setIsModalOpen(true);
                                                 if (!n.isRead) handleMarkAsRead(n.id);
-                                                if (n.link) setIsOpen(false);
                                             }}
                                             className={`px-5 py-4 cursor-pointer transition-colors group relative flex gap-3 ${!n.isRead ? 'bg-blue-50/40 hover:bg-blue-50' : 'hover:bg-gray-50'}`}
                                         >
@@ -191,14 +197,11 @@ export default function NotificationDropdown({ basePath }) {
                                                         <Clock size={10} /> {timeSince(n.createdAt)}
                                                     </span>
 
-                                                    {n.link && (
-                                                        <Link
-                                                            to={n.link}
-                                                            className="text-[10px] text-blue-600 font-black uppercase tracking-wider flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        >
-                                                            Xem ngay <ExternalLink size={10} />
-                                                        </Link>
-                                                    )}
+                                                    <button
+                                                        className="text-[10px] text-blue-600 font-black uppercase tracking-wider flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        Xem ngay <ExternalLink size={10} />
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -220,6 +223,73 @@ export default function NotificationDropdown({ basePath }) {
                     </div>
                 </>
             )}
+
+            {/* Notification Detail Modal */}
+            <Modal
+                title={
+                    <div className="flex items-center gap-3 py-2">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Bell size={20} />
+                        </div>
+                        <div>
+                            <p className="text-base font-black text-slate-800 leading-tight">Chi tiết thông báo</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Edu-AI System Hub</p>
+                        </div>
+                    </div>
+                }
+                open={isModalOpen}
+                onCancel={() => setIsModalOpen(false)}
+                footer={[
+                    <Button 
+                        key="close" 
+                        onClick={() => setIsModalOpen(false)}
+                        className="rounded-xl font-bold h-11 px-6"
+                    >
+                        Đóng
+                    </Button>,
+                    selectedNotification?.link && (
+                        <Button
+                            key="action"
+                            type="primary"
+                            icon={<ExternalLink size={16} />}
+                            onClick={() => {
+                                setIsModalOpen(false);
+                                setIsOpen(false);
+                                navigate(selectedNotification.link);
+                            }}
+                            className="rounded-xl font-black h-11 px-6 bg-blue-600 border-none shadow-lg shadow-blue-100"
+                        >
+                            KHÁM PHÁ NGAY
+                        </Button>
+                    )
+                ]}
+                centered
+                width={550}
+                className="notification-detail-modal"
+            >
+                {selectedNotification && (
+                    <div className="py-4 space-y-6">
+                        <div className="space-y-1">
+                            <h2 className="text-lg font-black text-slate-900 leading-snug">
+                                {selectedNotification.title}
+                            </h2>
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                                <Clock size={14} />
+                                {new Date(selectedNotification.createdAt).toLocaleString('vi-VN')}
+                            </div>
+                        </div>
+
+                        <Divider className="m-0" />
+
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nội dung</p>
+                            <div className="text-[15px] text-slate-700 font-medium leading-relaxed whitespace-pre-wrap bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                {selectedNotification.message}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }

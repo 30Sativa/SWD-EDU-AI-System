@@ -129,8 +129,13 @@ export const importQuestionsFromFile = (quizId, file, onProgress) => {
 };
 
 // Get list of existing questions from the platform (Question Bank)
-export const getQuestionsBank = () => {
-    return axiosClient.get('/api/teacher/quizzes/questions-bank');
+export const getQuestionsBank = (params = {}) => {
+    return axiosClient.get('/api/teacher/quizzes/questions-bank', { params });
+};
+
+// Get Question Bank Summary
+export const getQuestionBankSummary = () => {
+    return axiosClient.get('/api/teacher/quizzes/questions-bank/summary');
 };
 
 // Clone/Import questions from Bank into a specific Quiz

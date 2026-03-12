@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, LogOut, Search, GraduationCap } from 'lucide-react';
 import { message } from 'antd';
 import { getCurrentUser } from '../../features/user/api/userApi';
+import NotificationDropdown from '../../features/dashboard/components/NotificationDropdown';
 
 export default function StudentHeader() {
     const location = useLocation();
@@ -95,10 +96,7 @@ export default function StudentHeader() {
                         <Search size={20} />
                     </button>
 
-                    <button className="relative text-gray-500 hover:text-blue-600 transition-colors">
-                        <Bell size={20} />
-                        <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                    </button>
+                    <NotificationDropdown basePath={BASE_PATH} />
 
                     <div className="h-8 w-px bg-gray-200/60 mx-1"></div>
 

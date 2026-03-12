@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Plus,
     Search,
     Filter,
-    MoreHorizontal,
     FolderOpen,
     FileQuestion,
-    BrainCircuit,
-    PenTool,
-    Trash2,
-    Eye,
-    Edit,
-    Layers,
     Clock,
+    ChevronRight,
+    ArrowRightLeft,
+    TrendingUp,
+    Zap,
+    Download,
+    Eye,
+    Layers,
     CheckCircle2
 } from 'lucide-react';
 import {
@@ -23,123 +23,95 @@ import {
     Tag,
     Select,
     Tooltip,
-    Empty
+    Empty,
+    message,
+    Spin,
+    Card,
+    Progress
 } from 'antd';
+import { getQuestionBankSummary } from '../../../quiz/teacher/api/quizApi';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 export default function QuestionBank() {
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+    const [bankData, setBankData] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
 
-    // Mock data for question folders (grouped by Lesson/Topic)
-    const questionFolders = [
-        {
-            id: 1,
-            title: 'Hàm số bậc hai',
-            code: 'MATH10-C2-L1',
-            subject: 'Toán học',
-            grade: 'Lớp 10',
-            questionCount: 45,
-            aiGenerated: 20,
-            manual: 25,
-            lastUpdated: '2 giờ trước',
-            status: 'Active',
-            difficulty: 'Trung bình'
-        },
-        {
-            id: 2,
-            title: 'Phương trình lượng giác',
-            code: 'MATH11-C1-L3',
-            subject: 'Toán học',
-            grade: 'Lớp 11',
-            questionCount: 32,
-            aiGenerated: 15,
-            manual: 17,
-            lastUpdated: '1 ngày trước',
-            status: 'Active',
-            difficulty: 'Khó'
-        },
-        {
-            id: 3,
-            title: 'Động lực học chất điểm',
-            code: 'PHYS10-C2-L5',
-            subject: 'Vật lý',
-            grade: 'Lớp 10',
-            questionCount: 28,
-            aiGenerated: 28,
-            manual: 0,
-            lastUpdated: '3 ngày trước',
-            status: 'Draft',
-            difficulty: 'Dễ'
-        },
-        {
-            id: 4,
-            title: 'Di truyền học',
-            code: 'BIO12-C3-L1',
-            subject: 'Sinh học',
-            grade: 'Lớp 12',
-            questionCount: 50,
-            aiGenerated: 10,
-            manual: 40,
-            lastUpdated: '5 ngày trước',
-            status: 'Active',
-            difficulty: 'Khó'
-        },
-        {
-            id: 5,
-            title: 'Thì hiện tại hoàn thành',
-            code: 'ENG10-U2-GR',
-            subject: 'Tiếng Anh',
-            grade: 'Lớp 10',
-            questionCount: 60,
-            aiGenerated: 30,
-            manual: 30,
-            lastUpdated: '1 tuần trước',
-            status: 'Active',
-            difficulty: 'Trung bình'
+    const fetchSummary = useCallback(async () => {
+        try {
+            setLoading(true);
+            const resp = await getQuestionBankSummary();
+            // From provided JSON, data is an array
+            setBankData(resp.data || []);
+        } catch (error) {
+            console.error("Lỗi khi tải thống kê ngân hàng:", error);
+            message.error("Không thể tải dữ liệu ngân hàng câu hỏi");
+        } finally {
+            setLoading(false);
         }
-    ];
+    }, []);
 
-    const filteredData = questionFolders.filter(item => {
-        const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.code.toLowerCase().includes(searchTerm.toLowerCase());
+    useEffect(() => {
+        fetchSummary();
+    }, [fetchSummary]);
+
+    const filteredData = bankData.filter(item => {
+        const matchesSearch = 
+            (item.topicName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (item.topicCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (item.courseName || '').toLowerCase().includes(searchTerm.toLowerCase());
 
         let matchesStatus = true;
         if (statusFilter !== 'all') {
-            const isActive = item.status === 'Active';
-            if (statusFilter === 'active') matchesStatus = isActive;
-            if (statusFilter === 'draft') matchesStatus = !isActive;
+            matchesStatus = item.status === statusFilter;
         }
 
         return matchesSearch && matchesStatus;
     });
 
+    const totalQuestionsInBank = bankData.reduce((acc, curr) => acc + (curr.totalQuestions || 0), 0);
+    const totalTopics = bankData.length;
+
     const columns = [
         {
-            title: 'CHỦ ĐỀ',
+            title: 'CHỦ ĐỀ / BÀI HỌC',
             key: 'topic',
-            width: 300,
+            width: 320,
             render: (_, record) => (
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-sm border border-indigo-100 shrink-0">
-                        <FolderOpen size={24} />
+                <div className="flex items-center gap-4 py-1">
+                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm border border-blue-100 shrink-0">
+                        <FolderOpen size={22} />
                     </div>
                     <div className="min-w-0">
-                        <div className="font-bold text-slate-700 text-[15px] truncate">{record.title}</div>
-                        <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{record.code}</div>
+                        <div className="font-bold text-slate-800 text-[15px] truncate group-hover:text-[#0487e2] transition-colors">
+                            {record.topicName}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] bg-slate-100 text-slate-500 font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                {record.topicCode}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold">•</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase truncate max-w-[120px]">
+                                {record.courseName}
+                            </span>
+                        </div>
                     </div>
                 </div>
             )
         },
         {
-            title: 'MÔN HỌC',
-            key: 'subject',
+            title: 'THÔNG TIN CHUNG',
+            key: 'info',
             render: (_, record) => (
-                <div className="flex flex-col gap-1">
-                    <span className="text-sm font-bold text-slate-700">{record.subject}</span>
-                    <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Layers size={12} className="text-slate-400" />
-                        {record.grade}
+                <div className="flex flex-col">
+                    <span className="text-sm font-bold text-slate-700">{record.grade}</span>
+                    <span className="text-xs text-slate-400 flex items-center gap-1 mt-1 font-medium">
+                        {record.courseName}
                     </span>
                 </div>
             )
@@ -147,39 +119,53 @@ export default function QuestionBank() {
         {
             title: 'THỐNG KÊ CÂU HỎI',
             key: 'stats',
-            render: (_, record) => (
-                <div className="space-y-1.5">
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs" title="Tổng số câu hỏi">
-                            <FileQuestion size={14} className="text-slate-400" />
-                            {record.questionCount}
+            width: 250,
+            render: (_, record) => {
+                const total = record.totalQuestions || 0;
+                const { easy = 0, medium = 0, hard = 0 } = record.stats || {};
+                
+                return (
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                                <FileQuestion size={16} className="text-[#0487e2]" />
+                                {total} <span className="text-[10px] text-slate-400 font-bold uppercase">câu</span>
+                            </span>
                         </div>
-                        <Tag
-                            color={record.difficulty === 'Dễ' ? 'success' : record.difficulty === 'Trung bình' ? 'warning' : 'error'}
-                            className="m-0 border-none px-1.5 text-[10px] font-bold uppercase"
-                        >
-                            {record.difficulty}
-                        </Tag>
+                        
+                        <div className="flex items-center gap-1 w-full h-1.5 rounded-full overflow-hidden bg-slate-100">
+                            {easy > 0 && <div style={{ width: `${(easy/total)*100}%` }} className="h-full bg-emerald-400" />}
+                            {medium > 0 && <div style={{ width: `${(medium/total)*100}%` }} className="h-full bg-amber-400" />}
+                            {hard > 0 && <div style={{ width: `${(hard/total)*100}%` }} className="h-full bg-rose-400" />}
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-tighter text-emerald-600">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {easy} Dễ
+                            </div>
+                            <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-tighter text-amber-600">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> {medium} TB
+                            </div>
+                            <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-tighter text-rose-600">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-400" /> {hard} Khó
+                            </div>
+                        </div>
                     </div>
-
-                    <div className="flex items-center gap-3 text-[10px] font-medium text-slate-500">
-                        <div className="flex items-center gap-1 text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded" title="Tạo bởi AI">
-                            <BrainCircuit size={10} /> {record.aiGenerated}
-                        </div>
-                        <div className="flex items-center gap-1 text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded" title="Tạo thủ công">
-                            <PenTool size={10} /> {record.manual}
-                        </div>
-                    </div>
-                </div>
-            )
+                );
+            }
         },
         {
             title: 'CẬP NHẬT',
             key: 'updated',
             render: (_, record) => (
-                <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                    <Clock size={12} />
-                    {record.lastUpdated}
+                <div className="text-xs text-slate-500 font-bold flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5">
+                        <Clock size={12} className="text-slate-400" />
+                        {dayjs(record.lastUpdated).fromNow()}
+                    </div>
+                    <span className="text-[10px] text-slate-300 font-medium">
+                        {dayjs(record.lastUpdated).format('DD/MM/YYYY')}
+                    </span>
                 </div>
             )
         },
@@ -188,141 +174,223 @@ export default function QuestionBank() {
             key: 'status',
             align: 'center',
             render: (_, record) => {
-                const isActive = record.status === 'Active';
+                const isReady = record.status === 'Sẵn sàng';
                 return (
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${isActive
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${isReady
                         ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                         : 'bg-slate-50 text-slate-500 border-slate-100'
                         }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                        {isActive ? 'Sẵn sàng' : 'Nháp'}
+                        <span className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                        {record.status}
                     </span>
                 );
             }
         },
         {
-            title: 'TÁC VỤ',
+            title: '',
             key: 'action',
             align: 'right',
             render: (_, record) => (
-                <div className="flex items-center justify-end gap-2">
-                    <Tooltip title="Xem chi tiết">
-                        <Button
-                            type="text"
-                            shape="circle"
-                            icon={<Eye size={16} />}
-                            className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
-                            onClick={() => navigate(`/dashboard/teacher/question-bank/${record.id}`)}
-                        />
-                    </Tooltip>
-                    <Tooltip title="Chỉnh sửa">
-                        <Button
-                            type="text"
-                            shape="circle"
-                            icon={<Edit size={16} />}
-                            className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
-                        />
-                    </Tooltip>
-                    <Tooltip title="Xóa">
-                        <Button
-                            type="text"
-                            shape="circle"
-                            icon={<Trash2 size={16} />}
-                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                        />
-                    </Tooltip>
-                </div>
+                <Button
+                    type="text"
+                    icon={<ChevronRight size={18} />}
+                    className="text-slate-300 hover:text-[#0487e2] hover:bg-blue-50 transition-all rounded-lg"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        const type = record.topicName === record.courseName ? 'course' : 'lesson';
+                        navigate(`/dashboard/teacher/question-bank/${record.topicId}?type=${type}`);
+                    }}
+                />
             )
         }
     ];
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+                <Spin size="large" />
+                <p className="mt-4 text-slate-400 font-bold uppercase tracking-widest text-xs">Đang tải ngân hàng câu hỏi...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
             <div className="max-w-7xl mx-auto space-y-6">
 
-                {/* Header */}
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Ngân hàng câu hỏi</h1>
-                        <p className="text-slate-500 text-sm mt-1 font-medium">Quản lý kho câu hỏi theo chủ đề và bài học.</p>
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-[#0487e2] font-black text-[10px] uppercase tracking-[0.2em]">
+                            <TrendingUp size={14} /> Hệ thống quản lý thông minh
+                        </div>
+                        <h1 className="text-3xl font-black tracking-tight text-slate-900 m-0">
+                            Kho Ngân Hàng <span className="text-[#0487e2]">Câu Hỏi</span>
+                        </h1>
+                        <p className="text-slate-500 text-sm font-medium">Tổ chức, lọc và tái sử dụng nội dung giảng dạy của bạn một cách hiệu quả.</p>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex items-center gap-3">
                         <Button
-                            className="h-11 px-5 rounded-lg font-bold border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+                            icon={<Download size={18} />}
+                            className="h-11 px-6 rounded-xl font-bold border-slate-200 text-slate-600 hover:text-[#0487e2] hover:border-[#0487e2] bg-white transition-all flex items-center gap-2"
                         >
-                            Import / Export
+                            Dữ liệu mẫu
                         </Button>
                         <Button
                             type="primary"
                             icon={<Plus size={18} />}
-                            className="bg-[#0487e2] hover:bg-[#0374c4] h-11 px-6 rounded-lg font-bold shadow-md border-none flex items-center gap-2"
+                            className="bg-slate-900 hover:bg-slate-800 h-11 px-8 rounded-xl font-bold shadow-xl border-none flex items-center gap-2 active:scale-95 transition-all"
                         >
-                            Tạo chủ đề mới
+                            Tạo thủ công
                         </Button>
                     </div>
-                </header>
+                </div>
 
-                {/* Main Content Card */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                {/* Dashboard Stats Banner */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Card className="rounded-2xl border-none shadow-sm bg-indigo-600 text-white overflow-hidden relative group">
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                                    <FileQuestion size={20} />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.1em] opacity-80">Tổng số câu hỏi</span>
+                            </div>
+                            <div className="text-4xl font-black mb-1">{totalQuestionsInBank}</div>
+                            <div className="text-[11px] font-bold opacity-70">Có sẵn trong kho lưu trữ của bạn</div>
+                        </div>
+                        <Zap className="absolute -bottom-6 -right-6 w-32 h-32 opacity-10 group-hover:rotate-12 transition-transform duration-500" />
+                    </Card>
 
+                    <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden relative group">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                                <Layers size={20} />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">Chương & Bài học</span>
+                        </div>
+                        <div className="text-4xl font-black text-slate-900 mb-1">{totalTopics}</div>
+                        <div className="text-[11px] font-bold text-slate-500 tracking-tight flex items-center gap-2">
+                            <CheckCircle2 size={14} className="text-emerald-500" /> 100% Đã được phân loại
+                        </div>
+                    </Card>
+
+                    <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden relative group">
+                         <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                                <TrendingUp size={20} />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">Độ phủ kiến thức</span>
+                        </div>
+                        <div className="text-4xl font-black text-slate-900 mb-1">92%</div>
+                        <Progress percent={92} showInfo={false} strokeColor="#f59e0b" className="m-0 mt-2" />
+                        <div className="text-[11px] font-bold text-slate-500 mt-2">Dựa trên chương trình chuẩn</div>
+                    </Card>
+                </div>
+
+                {/* Main Table Area */}
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
+                    
                     {/* Toolbar */}
-                    <div className="px-5 py-4 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center">
-                        <div className="text-sm font-medium text-slate-500">
-                            Hiển thị {filteredData.length} chủ đề
+                    <div className="px-8 py-6 flex flex-col md:flex-row gap-6 justify-between items-center border-b border-slate-50">
+                        <div className="flex items-center gap-6 w-full md:w-auto">
+                            <div className="hidden lg:block">
+                                <h3 className="text-lg font-black text-slate-800 m-0">Danh sách chủ đề</h3>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">Sắp xếp theo cập nhật mới nhất</p>
+                            </div>
+                            <Input
+                                placeholder="Tìm kiếm theo tên, mã hoặc môn học..."
+                                prefix={<Search size={18} className="text-slate-300" />}
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="h-12 w-full md:w-80 rounded-2xl border-none bg-slate-50 text-sm font-medium hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
+                                allowClear
+                            />
                         </div>
 
                         <div className="flex gap-3 w-full md:w-auto">
-                            <Input
-                                placeholder="Tìm kiếm bộ câu hỏi..."
-                                prefix={<Search size={16} className="text-slate-400" />}
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                className="h-10 w-full md:w-64 rounded-lg border-slate-200 bg-white hover:border-[#0487e2] focus:border-[#0487e2]"
-                                allowClear
-                            />
-
                             <Select
                                 value={statusFilter}
                                 onChange={setStatusFilter}
-                                className="w-40 h-10 [&>.ant-select-selector]:!rounded-lg [&>.ant-select-selector]:!border-slate-200 [&>.ant-select-selector]:!h-10 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
+                                className="w-full md:w-44 h-12 [&>.ant-select-selector]:!rounded-2xl [&>.ant-select-selector]:!border-none [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!h-12 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center font-bold text-slate-600"
                                 options={[
                                     { value: 'all', label: 'Tất cả trạng thái' },
-                                    { value: 'active', label: 'Sẵn sàng' },
-                                    { value: 'draft', label: 'Nháp' }
+                                    { value: 'Sẵn sàng', label: 'Sẵn sàng' },
+                                    { value: 'Nháp', label: 'Đang soạn' }
                                 ]}
+                            />
+                            <Button
+                                icon={<Filter size={18} />}
+                                className="h-12 w-12 rounded-2xl border-none bg-slate-50 text-slate-400 flex items-center justify-center"
                             />
                         </div>
                     </div>
 
-                    {/* Table */}
-                    <Table
-                        columns={columns}
-                        dataSource={filteredData}
-                        rowKey="id"
-                        pagination={{
-                            pageSize: 10,
-                            showSizeChanger: false,
-                            className: "px-5 py-4"
-                        }}
-                        className="custom-table"
-                        locale={{
-                            emptyText: (
-                                <div className="py-12 flex flex-col items-center">
-                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-slate-300">
-                                        <FolderOpen size={32} />
+                    {/* Table Container */}
+                    <div className="px-4 pb-4">
+                        <Table
+                            columns={columns}
+                            dataSource={filteredData}
+                            rowKey="topicId"
+                            pagination={{
+                                pageSize: 12,
+                                showSizeChanger: false,
+                                className: "px-8 py-6",
+                                position: ['bottomCenter']
+                            }}
+                            className="question-bank-table"
+                            rowClassName="group cursor-pointer hover:bg-blue-50/30 transition-all duration-300"
+                            onRow={(record) => ({
+                                onClick: () => {
+                                    const type = record.topicName === record.courseName ? 'course' : 'lesson';
+                                    navigate(`/dashboard/teacher/question-bank/${record.topicId}?type=${type}`);
+                                }
+                            })}
+                            locale={{
+                                emptyText: (
+                                    <div className="py-20 flex flex-col items-center">
+                                        <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 text-slate-200">
+                                            <FolderOpen size={40} />
+                                        </div>
+                                        <Empty description={
+                                            <div className="space-y-1">
+                                                <p className="text-slate-700 font-bold text-base">Không tìm thấy chủ đề nào</p>
+                                                <p className="text-slate-400 text-sm font-medium">Hãy thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
+                                            </div>
+                                        } />
                                     </div>
-                                    <Empty description={<span className="text-slate-400 font-medium">Không tìm thấy bộ câu hỏi nào</span>} />
-                                </div>
-                            )
-                        }}
-                        onRow={(record) => ({
-                            onClick: () => navigate(`/dashboard/teacher/question-bank/${record.id}`),
-                            className: "cursor-pointer hover:bg-slate-50 transition-colors"
-                        })}
-                    />
+                                )
+                            }}
+                        />
+                    </div>
                 </div>
             </div>
+
+            {/* Aesthetic Overlays */}
+            <style dangerouslySetInnerHTML={{ __html: `
+                .question-bank-table .ant-table-thead > tr > th {
+                    background: transparent;
+                    border-bottom: 2px solid #f8fafc;
+                    padding: 20px 24px;
+                    color: #94a3b8;
+                    font-size: 10px;
+                    font-weight: 900;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                }
+                .question-bank-table .ant-table-tbody > tr > td {
+                    padding: 20px 24px;
+                    border-bottom: 1px solid #f8fafc;
+                }
+                .question-bank-table .ant-table-row:last-child td {
+                    border-bottom: none;
+                }
+                .ant-progress-inner {
+                    background-color: #f1f5f9 !important;
+                }
+            ` }} />
         </div>
     );
 }
+
