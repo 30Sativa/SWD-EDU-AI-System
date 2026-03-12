@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Diagnostics;
+using System.Security.Claims;
 
 namespace EduAISystem.WebAPI.Controllers.Teacher
 {
@@ -488,17 +489,44 @@ Xoá một câu hỏi cụ thể khỏi quiz.
             Description = "Lấy danh sách các câu hỏi cũ đã được tạo trên hệ thống để giáo viên tái sử dụng cho quiz mới."
         )]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<TeacherQuestionDetailResponseDto>>))]
-        public async Task<IActionResult> GetTeacherQuestionBank(CancellationToken cancellationToken)
+        public async Task<IActionResult> GetTeacherQuestionBank(
+            [FromQuery] Guid? courseId,
+            [FromQuery] Guid? lessonId,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var questions = await _mediator.Send(new GetTeacherQuestionBankQuery(), cancellationToken);
+                var questions = await _mediator.Send(new GetTeacherQuestionBankQuery(courseId, lessonId), cancellationToken);
                 return Ok(ApiResponse<List<TeacherQuestionDetailResponseDto>>.Ok(questions, "Lấy ngân hàng câu hỏi thành công!"));
             }
             catch (Exception ex)
             {
                 var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
                 _logger.LogError(ex, "Lỗi lấy Question Bank: {TraceId}", traceId);
+                throw;
+            }
+        }
+
+        [HttpGet("questions-bank/summary")]
+        [SwaggerOperation(
+            Summary = "GV - Lấy thống kê Ngân hàng câu hỏi (theo Chủ đề/Bài học)",
+            Description = "Lấy dữ liệu tổng hợp để hiển thị bảng thống kê ngân hàng câu hỏi, bao gồm số lượng câu hỏi, độ khó tóm tắt và thông tin môn học."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<QuestionBankSummaryResponseDto>>))]
+        public async Task<IActionResult> GetTeacherQuestionBankSummary(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var teacherId = GetCurrentUserId();
+                if (teacherId == null) return Unauthorized();
+
+                var summary = await _mediator.Send(new GetQuestionBankSummaryQuery(teacherId.Value), cancellationToken);
+                return Ok(ApiResponse<List<QuestionBankSummaryResponseDto>>.Ok(summary, "Lấy thống kê ngân hàng thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex, "Lỗi lấy Question Bank Summary: {TraceId}", traceId);
                 throw;
             }
         }
@@ -530,6 +558,12 @@ Xoá một câu hỏi cụ thể khỏi quiz.
                 _logger.LogError(ex, "Lỗi clone questions từ Bank: {TraceId}", traceId);
                 throw;
             }
+        }
+
+        private Guid? GetCurrentUserId()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return Guid.TryParse(userId, out var id) ? id : null;
         }
     }
 }

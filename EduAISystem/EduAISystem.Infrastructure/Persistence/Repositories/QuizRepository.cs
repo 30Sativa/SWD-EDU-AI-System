@@ -1,6 +1,7 @@
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Common.Exceptions;
 using EduAISystem.Application.Features.Quiz;
+using EduAISystem.Application.Features.Quiz.DTOs.Response;
 using EduAISystem.Domain.Entities;
 using EduAISystem.Domain.Enums;
 using EduAISystem.Infrastructure.Persistence.Context;
@@ -262,12 +263,27 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<QuestionDomain>> GetQuestionBankAsync(CancellationToken cancellationToken)
+        public async Task<List<QuestionDomain>> GetQuestionBankAsync(Guid? courseId, Guid? lessonId, CancellationToken cancellationToken)
         {
-            // Trong hệ thống thực tế cần map theo UserId, ở scope nhỏ ta trả về 100 câu hỏi gần nhất
-            var entities = await _context.Questions
+            var query = _context.Questions
                 .AsNoTracking()
+                .Include(q => q.Quiz)
                 .Include(q => q.QuestionOptions.OrderBy(o => o.SortOrder))
+                .Where(q => q.Quiz.IsActive == true);
+
+            if (lessonId.HasValue)
+            {
+                // Lấy các câu hỏi thuộc Quiz nằm trong Lesson này
+                query = query.Where(q => q.Quiz.LessonId == lessonId.Value);
+            }
+            else if (courseId.HasValue)
+            {
+                // Lấy các câu hỏi thuộc Quiz nằm trong Course này (cả Summative trực tiếp và Formative thông qua Lesson)
+                query = query.Where(q => q.Quiz.CourseId == courseId.Value || 
+                                         (q.Quiz.Lesson != null && q.Quiz.Lesson.Section.CourseId == courseId.Value));
+            }
+
+            var entities = await query
                 .OrderByDescending(q => q.Id)
                 .Take(100)
                 .ToListAsync(cancellationToken);
@@ -283,6 +299,53 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         {
             return await _context.QuizAttempts
                 .CountAsync(a => a.QuizId == quizId && a.StudentId == studentId, cancellationToken);
+        }
+
+        public async Task<List<QuestionBankSummaryResponseDto>> GetQuestionBankSummaryAsync(Guid teacherId, CancellationToken cancellationToken)
+        {
+            // Lấy tất cả câu hỏi của giáo viên này, group theo Lesson
+            var query = _context.Questions
+                .AsNoTracking()
+                .Include(q => q.Quiz)
+                    .ThenInclude(z => z.Lesson)
+                        .ThenInclude(l => l!.Section)
+                            .ThenInclude(s => s.Course)
+                .Include(q => q.Quiz)
+                    .ThenInclude(z => z.Course)
+                .Where(q => q.Quiz.IsActive == true && 
+                           (q.Quiz.Course != null && q.Quiz.Course.TeacherId == teacherId || 
+                            (q.Quiz.Lesson != null && q.Quiz.Lesson.Section != null && q.Quiz.Lesson.Section.Course != null && q.Quiz.Lesson.Section.Course.TeacherId == teacherId)));
+
+            var questions = await query.ToListAsync(cancellationToken);
+
+            // Grouping in memory (EF doesn't easily support complex grouping back to DTOs in this specific structure)
+            var result = questions
+                .GroupBy(q => new 
+                { 
+                    TopicId = q.Quiz.LessonId ?? q.Quiz.CourseId ?? Guid.Empty,
+                    Name = q.Quiz.Lesson?.Title ?? q.Quiz.Course?.Title ?? "Chưa phân loại",
+                    Code = q.Quiz.Lesson?.Slug ?? q.Quiz.Course?.Code ?? "QUIZ-BANK",
+                    CourseName = q.Quiz.Course?.Title ?? q.Quiz.Lesson?.Section?.Course?.Title ?? "Khác",
+                    Grade = "Lớp " + (q.Quiz.Course?.Level ?? q.Quiz.Lesson?.Section?.Course?.Level ?? "Hệ thống")
+                })
+                .Select(g => new QuestionBankSummaryResponseDto(
+                    TopicId: g.Key.TopicId,
+                    TopicName: g.Key.Name,
+                    TopicCode: g.Key.Code,
+                    CourseName: g.Key.CourseName,
+                    Grade: g.Key.Grade,
+                    TotalQuestions: g.Count(),
+                    Stats: new DifficultyStatsDto(
+                        Easy: g.Count(q => (q.Points ?? 1m) <= 1m),
+                        Medium: g.Count(q => (q.Points ?? 1m) > 1m && (q.Points ?? 1m) < 3m),
+                        Hard: g.Count(q => (q.Points ?? 1m) >= 3m)
+                    ),
+                    LastUpdated: g.Max(q => q.Quiz.UpdatedAt ?? q.Quiz.CreatedAt),
+                    Status: "Sẵn sàng"
+                ))
+                .ToList();
+
+            return result;
         }
 
         // =============================================

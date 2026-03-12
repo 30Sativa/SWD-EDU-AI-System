@@ -1,3 +1,4 @@
+using EduAISystem.Application.Features.Quiz.DTOs.Response;
 using EduAISystem.Domain.Entities;
 
 namespace EduAISystem.Application.Abstractions.Persistence
@@ -40,7 +41,8 @@ namespace EduAISystem.Application.Abstractions.Persistence
         /// <summary>Flow 2: Lấy tất cả Summative Quiz của một Course.</summary>
         Task<List<QuizDomain>> GetByCourseIdAsync(Guid courseId, CancellationToken cancellationToken);
 
-        Task<List<QuestionDomain>> GetQuestionBankAsync(CancellationToken cancellationToken);
+        Task<List<QuestionDomain>> GetQuestionBankAsync(Guid? courseId, Guid? lessonId, CancellationToken cancellationToken);
+        Task<List<QuestionBankSummaryResponseDto>> GetQuestionBankSummaryAsync(Guid teacherId, CancellationToken cancellationToken);
 
         // =============================================
         // BUSINESS RULE SUPPORT

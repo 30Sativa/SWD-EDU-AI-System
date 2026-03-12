@@ -350,7 +350,7 @@ namespace EduAISystem.Application.Features.Quiz.Handler
         public async Task<List<TeacherQuestionDetailResponseDto>> Handle(
             GetTeacherQuestionBankQuery request, CancellationToken cancellationToken)
         {
-            var questions = await _quizRepository.GetQuestionBankAsync(cancellationToken);
+            var questions = await _quizRepository.GetQuestionBankAsync(request.CourseId, request.LessonId, cancellationToken);
 
             return questions.Select(q => new TeacherQuestionDetailResponseDto(
                 QuestionId: q.Id,
@@ -370,6 +370,26 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                     ))
                     .ToList()
             )).ToList();
+        }
+    }
+
+    // =============================================
+    // Teacher — Lấy thống kê ngân hàng câu hỏi
+    // =============================================
+    public class GetQuestionBankSummaryQueryHandler
+        : IRequestHandler<GetQuestionBankSummaryQuery, List<QuestionBankSummaryResponseDto>>
+    {
+        private readonly IQuizRepository _quizRepository;
+
+        public GetQuestionBankSummaryQueryHandler(IQuizRepository quizRepository)
+        {
+            _quizRepository = quizRepository;
+        }
+
+        public async Task<List<QuestionBankSummaryResponseDto>> Handle(
+            GetQuestionBankSummaryQuery request, CancellationToken cancellationToken)
+        {
+            return await _quizRepository.GetQuestionBankSummaryAsync(request.TeacherId, cancellationToken);
         }
     }
 }
