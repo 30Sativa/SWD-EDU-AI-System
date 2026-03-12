@@ -150,7 +150,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 gradeLevelId: c.GradeLevelId,
                 categoryId: c.CategoryId,
                 level: levelEnum,
-                language: c.Language,
+                language: c.Language ?? "vi",
                 totalLessons: c.TotalLessons ?? 0,
                 totalDuration: c.TotalDuration ?? 0,
                 status: statusEnum,

@@ -127,4 +127,24 @@ namespace EduAISystem.Application.Features.Quiz.DTOs.Response
         decimal Percentage,
         bool IsPassed
     );
+    // =============================================
+    // API Ngân hàng câu hỏi — Thống kê theo Chủ đề (Lesson)
+    // =============================================
+    public record QuestionBankSummaryResponseDto(
+        Guid TopicId,
+        string TopicName,
+        string TopicCode,
+        string CourseName,
+        string Grade,
+        int TotalQuestions,
+        DifficultyStatsDto Stats,
+        DateTime? LastUpdated,
+        string Status
+    );
+
+    public record DifficultyStatsDto(
+        int Easy,
+        int Medium,
+        int Hard
+    );
 }
