@@ -187,57 +187,55 @@ export default function AuditLogManagement() {
   const activeFilterCount = [appliedAction, appliedEntity, appliedUser].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
-      <div className="max-w-7xl mx-auto space-y-5">
+    <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-800">
+      <div className="max-w-7xl mx-auto">
 
         {/* ── Header ── */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Nhật ký Hệ thống</h1>
-            <p className="text-slate-500 text-sm mt-1">
+            <p className="text-slate-500 text-sm mt-1 font-medium italic opacity-80">
               Theo dõi toàn bộ hoạt động và lịch sử thay đổi dữ liệu trong hệ thống.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <Activity size={14} className="text-[#0487e2]" />
-              <span className="text-sm font-bold text-slate-700">
-                {loading && pagination.totalCount === 0 ? '...' : pagination.totalCount.toLocaleString()}
-              </span>
-              <span className="text-xs text-slate-400">bản ghi</span>
-            </div>
+          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-5 py-2.5 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <Activity size={16} className="text-[#0487e2]" />
+            <span className="text-base font-bold text-slate-800">
+              {loading && pagination.totalCount === 0 ? '...' : pagination.totalCount.toLocaleString()}
+            </span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">bản ghi</span>
           </div>
         </header>
 
         {/* ── Filter Bar ── */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end border-b border-slate-100">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+          <div className="p-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 items-end border-b border-slate-100">
             {/* User Search */}
             <div className="lg:col-span-1">
-              <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center gap-1">
-                <UserSearch size={11} /> Người thực hiện
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block flex items-center gap-1">
+                <UserSearch size={12} /> NGƯỜI THỰC HIỆN
               </label>
               <Input
                 placeholder="Email hoặc ID..."
                 value={draftUser}
                 onChange={handleUserSearch}
-                className="h-10 rounded-lg text-sm"
+                className="h-12 rounded-xl text-sm font-medium"
                 allowClear
               />
             </div>
 
             {/* Action */}
             <div>
-              <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center gap-1">
-                <Zap size={11} /> Hành động
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block flex items-center gap-1">
+                <Zap size={12} /> HÀNH ĐỘNG
               </label>
               <Select
                 placeholder="Tất cả"
                 allowClear
                 value={appliedAction || undefined}
                 onChange={val => setAppliedAction(val || '')}
-                className="w-full h-10"
+                className="w-full h-12 custom-select [&>.ant-select-selector]:!rounded-xl"
               >
                 {ACTION_OPTIONS.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
               </Select>
@@ -245,15 +243,15 @@ export default function AuditLogManagement() {
 
             {/* Entity */}
             <div>
-              <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center gap-1">
-                <Database size={11} /> Entity
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block flex items-center gap-1">
+                <Database size={12} /> ĐỐI TƯỢNG (ENTITY)
               </label>
               <Select
                 placeholder="Tất cả"
                 allowClear
                 value={appliedEntity || undefined}
                 onChange={val => setAppliedEntity(val || '')}
-                className="w-full h-10"
+                className="w-full h-12 custom-select [&>.ant-select-selector]:!rounded-xl"
               >
                 {ENTITY_OPTIONS.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
               </Select>
@@ -261,11 +259,11 @@ export default function AuditLogManagement() {
 
             {/* Date Range */}
             <div className="lg:col-span-1">
-              <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center gap-1">
-                <Calendar size={11} /> Thời gian
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block flex items-center gap-1">
+                <Calendar size={12} /> THỜI GIAN
               </label>
               <RangePicker
-                className="h-10 w-full rounded-lg"
+                className="h-12 w-full rounded-xl"
                 value={dateRange}
                 onChange={val => setDateRange(val || [])}
                 placeholder={['Từ', 'Đến']}
@@ -273,23 +271,23 @@ export default function AuditLogManagement() {
             </div>
 
             {/* Reset / Size */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="flex-1">
-                <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Hàng</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Hàng</label>
                 <Select
                   value={pagination.pageSize}
                   onChange={size => fetchLogs(1, size, appliedAction, appliedEntity, appliedUser, dateRange)}
-                  className="w-full h-10"
+                  className="w-full h-12 custom-select [&>.ant-select-selector]:!rounded-xl"
                 >
                   {PAGE_SIZE_OPTIONS.map(n => <Option key={n} value={n}>{n}</Option>)}
                 </Select>
               </div>
               <button
                 onClick={handleResetAll}
-                className="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-rose-500 bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 rounded-lg transition-colors mt-auto"
+                className="h-12 w-12 flex items-center justify-center text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-xl transition-all shadow-sm mt-auto"
                 title="Làm mới bộ lọc"
               >
-                <RotateCcw size={16} />
+                <RotateCcw size={18} />
               </button>
             </div>
           </div>

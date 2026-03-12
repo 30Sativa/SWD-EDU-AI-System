@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Search,
   Settings,
   User,
   LogOut,
@@ -59,18 +58,6 @@ export default function Header({ userRole, basePath }) {
       <div className="flex-1"></div>
 
       <div className="flex items-center gap-4">
-        <form autoComplete="off" className="relative hidden md:block md:w-64" onSubmit={(e) => e.preventDefault()}>
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            name="site-search-input"
-            id="site-search-input"
-            autoComplete="new-password"
-            placeholder="Tìm kiếm..."
-            className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-full text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white transition-all"
-          />
-        </form>
-
         <NotificationDropdown basePath={basePath} />
 
         <div className="h-6 w-[1px] bg-gray-200 hidden sm:block"></div>

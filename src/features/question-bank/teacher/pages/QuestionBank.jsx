@@ -92,7 +92,7 @@ export default function QuestionBank() {
                             {record.topicName}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] bg-slate-100 text-slate-500 font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
                                 {record.topicCode}
                             </span>
                             <span className="text-[10px] text-slate-400 font-bold">•</span>
@@ -127,7 +127,7 @@ export default function QuestionBank() {
                 return (
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                            <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
                                 <FileQuestion size={16} className="text-[#0487e2]" />
                                 {total} <span className="text-[10px] text-slate-400 font-bold uppercase">câu</span>
                             </span>
@@ -140,13 +140,13 @@ export default function QuestionBank() {
                         </div>
                         
                         <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-tighter text-emerald-600">
+                            <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-tighter text-emerald-600">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {easy} Dễ
                             </div>
-                            <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-tighter text-amber-600">
+                            <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-tighter text-amber-600">
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> {medium} TB
                             </div>
-                            <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-tighter text-rose-600">
+                            <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-tighter text-rose-600">
                                 <span className="w-1.5 h-1.5 rounded-full bg-rose-400" /> {hard} Khó
                             </div>
                         </div>
@@ -176,7 +176,7 @@ export default function QuestionBank() {
             render: (_, record) => {
                 const isReady = record.status === 'Sẵn sàng';
                 return (
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${isReady
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isReady
                         ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                         : 'bg-slate-50 text-slate-500 border-slate-100'
                         }`}>
@@ -219,110 +219,110 @@ export default function QuestionBank() {
             <div className="max-w-7xl mx-auto space-y-6">
 
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-[#0487e2] font-black text-[10px] uppercase tracking-[0.2em]">
-                            <TrendingUp size={14} /> Hệ thống quản lý thông minh
-                        </div>
-                        <h1 className="text-3xl font-black tracking-tight text-slate-900 m-0">
-                            Kho Ngân Hàng <span className="text-[#0487e2]">Câu Hỏi</span>
-                        </h1>
-                        <p className="text-slate-500 text-sm font-medium">Tổ chức, lọc và tái sử dụng nội dung giảng dạy của bạn một cách hiệu quả.</p>
+                <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Kho Ngân Hàng Câu Hỏi</h1>
+                        <p className="text-slate-500 text-sm mt-1 font-medium italic opacity-80">
+                            Tổ chức, lọc và tái sử dụng nội dung giảng dạy của bạn một cách hiệu quả.
+                        </p>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <Button
                             icon={<Download size={18} />}
-                            className="h-11 px-6 rounded-xl font-bold border-slate-200 text-slate-600 hover:text-[#0487e2] hover:border-[#0487e2] bg-white transition-all flex items-center gap-2"
+                            className="h-12 px-6 rounded-xl font-bold border-slate-200 text-slate-600 hover:text-[#0463ca] hover:border-[#0463ca] bg-white shadow-sm transition-all flex items-center gap-2"
                         >
-                            Dữ liệu mẫu
+                            DỮ LIỆU MẪU
                         </Button>
                         <Button
                             type="primary"
                             icon={<Plus size={18} />}
-                            className="bg-slate-900 hover:bg-slate-800 h-11 px-8 rounded-xl font-bold shadow-xl border-none flex items-center gap-2 active:scale-95 transition-all"
+                            className="bg-[#0487e2] hover:bg-[#0374c4] h-12 px-8 rounded-xl font-bold shadow-md border-none flex items-center gap-2 active:scale-95 transition-all"
                         >
-                            Tạo thủ công
+                            TẠO THỦ CÔNG
                         </Button>
                     </div>
-                </div>
+                </header>
 
                 {/* Dashboard Stats Banner */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card className="rounded-2xl border-none shadow-sm bg-indigo-600 text-white overflow-hidden relative group">
+                    <Card className="rounded-2xl border-none shadow-sm bg-indigo-600 text-white overflow-hidden relative group p-1">
                         <div className="relative z-10">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-md">
                                     <FileQuestion size={20} />
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.1em] opacity-80">Tổng số câu hỏi</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">TỔNG SỐ CÂU HỎI</span>
                             </div>
-                            <div className="text-4xl font-black mb-1">{totalQuestionsInBank}</div>
-                            <div className="text-[11px] font-bold opacity-70">Có sẵn trong kho lưu trữ của bạn</div>
+                            <div className="text-4xl font-bold mb-1">{totalQuestionsInBank}</div>
+                            <div className="text-[11px] font-bold opacity-70 italic">Có sẵn trong kho lưu trữ của bạn</div>
                         </div>
                         <Zap className="absolute -bottom-6 -right-6 w-32 h-32 opacity-10 group-hover:rotate-12 transition-transform duration-500" />
                     </Card>
 
-                    <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden relative group">
+                    <Card className="rounded-2xl border border-slate-100 shadow-sm bg-white overflow-hidden relative group p-1">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
                                 <Layers size={20} />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">Chương & Bài học</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">CHƯƠNG & BÀI HỌC</span>
                         </div>
-                        <div className="text-4xl font-black text-slate-900 mb-1">{totalTopics}</div>
+                        <div className="text-4xl font-bold text-slate-900 mb-1">{totalTopics}</div>
                         <div className="text-[11px] font-bold text-slate-500 tracking-tight flex items-center gap-2">
                             <CheckCircle2 size={14} className="text-emerald-500" /> 100% Đã được phân loại
                         </div>
                     </Card>
 
-                    <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden relative group">
+                    <Card className="rounded-2xl border border-slate-100 shadow-sm bg-white overflow-hidden relative group p-1">
                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm">
                                 <TrendingUp size={20} />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">Độ phủ kiến thức</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">ĐỘ PHỦ KIẾN THỨC</span>
                         </div>
-                        <div className="text-4xl font-black text-slate-900 mb-1">92%</div>
+                        <div className="text-4xl font-bold text-slate-900 mb-1">92%</div>
                         <Progress percent={92} showInfo={false} strokeColor="#f59e0b" className="m-0 mt-2" />
-                        <div className="text-[11px] font-bold text-slate-500 mt-2">Dựa trên chương trình chuẩn</div>
+                        <div className="text-[11px] font-bold text-slate-500 mt-2 italic opacity-70">Dựa trên chương trình chuẩn</div>
                     </Card>
                 </div>
 
                 {/* Main Table Area */}
-                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
                     
                     {/* Toolbar */}
-                    <div className="px-8 py-6 flex flex-col md:flex-row gap-6 justify-between items-center border-b border-slate-50">
-                        <div className="flex items-center gap-6 w-full md:w-auto">
-                            <div className="hidden lg:block">
-                                <h3 className="text-lg font-black text-slate-800 m-0">Danh sách chủ đề</h3>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">Sắp xếp theo cập nhật mới nhất</p>
+                    <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 justify-between items-end border-b border-slate-100">
+                        <div className="flex items-end gap-6 w-full md:w-auto">
+                            <div className="flex-1 md:flex-initial">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">TÌM KIẾM CHỦ ĐỀ</label>
+                                <Input
+                                    placeholder="Tìm kiếm theo tên, mã hoặc môn học..."
+                                    prefix={<Search size={18} className="text-slate-300" />}
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    className="h-12 w-full md:w-80 rounded-xl border-slate-200 text-sm font-medium transition-all"
+                                    allowClear
+                                />
                             </div>
-                            <Input
-                                placeholder="Tìm kiếm theo tên, mã hoặc môn học..."
-                                prefix={<Search size={18} className="text-slate-300" />}
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                className="h-12 w-full md:w-80 rounded-2xl border-none bg-slate-50 text-sm font-medium hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
-                                allowClear
-                            />
+
+                            <div className="w-full md:w-48">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">TRẠNG THÁI</label>
+                                <Select
+                                    value={statusFilter}
+                                    onChange={setStatusFilter}
+                                    className="w-full h-12 custom-select [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!border-slate-200"
+                                    options={[
+                                        { value: 'all', label: 'Tất cả trạng thái' },
+                                        { value: 'Sẵn sàng', label: 'Sẵn sàng' },
+                                        { value: 'Nháp', label: 'Đang soạn' }
+                                    ]}
+                                />
+                            </div>
                         </div>
 
-                        <div className="flex gap-3 w-full md:w-auto">
-                            <Select
-                                value={statusFilter}
-                                onChange={setStatusFilter}
-                                className="w-full md:w-44 h-12 [&>.ant-select-selector]:!rounded-2xl [&>.ant-select-selector]:!border-none [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!h-12 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center font-bold text-slate-600"
-                                options={[
-                                    { value: 'all', label: 'Tất cả trạng thái' },
-                                    { value: 'Sẵn sàng', label: 'Sẵn sàng' },
-                                    { value: 'Nháp', label: 'Đang soạn' }
-                                ]}
-                            />
+                        <div className="flex gap-3">
                             <Button
                                 icon={<Filter size={18} />}
-                                className="h-12 w-12 rounded-2xl border-none bg-slate-50 text-slate-400 flex items-center justify-center"
+                                className="h-12 w-12 rounded-xl border-slate-200 text-slate-400 hover:text-[#0463ca] hover:border-[#0463ca] flex items-center justify-center transition-all shadow-sm"
                             />
                         </div>
                     </div>
@@ -375,7 +375,7 @@ export default function QuestionBank() {
                     padding: 20px 24px;
                     color: #94a3b8;
                     font-size: 10px;
-                    font-weight: 900;
+                    font-weight: 700;
                     text-transform: uppercase;
                     letter-spacing: 0.1em;
                 }

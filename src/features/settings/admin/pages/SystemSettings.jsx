@@ -98,132 +98,121 @@ export default function SystemSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-6 md:p-10 font-sans text-slate-800">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-800">
+      <div className="max-w-6xl mx-auto">
 
         {/* Header Section */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
-                <Settings size={22} className="text-white" />
-              </div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Cấu hình Hệ thống</h1>
-            </div>
-            <p className="text-slate-500 font-medium ml-1">
-              Quản lý các tính năng cốt lõi và kiểm soát lưu lượng nhật ký nền tảng.
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Cấu hình Hệ thống</h1>
+            <p className="text-slate-500 text-sm font-medium mt-1 italic opacity-80">Quản lý các tính năng cốt lõi và kiểm soát lưu lượng nhật ký nền tảng.</p>
           </div>
           <Button
             icon={<RefreshCcw size={16} />}
             onClick={fetchStatus}
             loading={loading}
-            className="rounded-xl h-11 px-6 font-bold text-slate-600 border-slate-200 hover:text-blue-600 hover:border-blue-200"
+            className="rounded-xl h-12 px-6 font-bold text-slate-600 border-slate-200 hover:text-blue-600 hover:border-blue-200 shadow-sm"
           >
-            Làm mới
+            LÀM MỚI
           </Button>
         </header>
 
         {/* Status Dashboard Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="rounded-2xl border-none shadow-sm overflow-hidden bg-white group hover:shadow-md transition-all">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center transition-transform group-hover:scale-110">
-                <ShieldCheck size={24} />
-              </div>
-              <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Trạng thái Tổng</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge status={statusText === "Hoạt động bình thường" ? "success" : "warning"} />
-                  <span className={`text-sm font-bold ${statusText === "Hoạt động bình thường" ? "text-emerald-600" : "text-amber-600"}`}>
-                    {statusText}
-                  </span>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] flex items-center gap-4 group hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 shadow-sm">
+              <ShieldCheck size={26} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-2">TRẠNG THÁI TỔNG</p>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full animate-pulse ${statusText === "Hoạt động bình thường" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                <span className={`text-base font-bold ${statusText === "Hoạt động bình thường" ? "text-emerald-600" : "text-amber-600"}`}>
+                  {statusText}
+                </span>
               </div>
             </div>
-          </Card>
+          </div>
 
-          <Card className="rounded-2xl border-none shadow-sm overflow-hidden bg-white group hover:shadow-md transition-all">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center transition-transform group-hover:scale-110">
-                <Cpu size={24} />
-              </div>
-              <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Tải máy chủ</p>
-                <p className="text-sm font-bold text-slate-700 mt-1">{infra?.cpu?.serverLoadAvg || '0.00'} Load Avg</p>
-              </div>
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] flex items-center gap-4 group hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 shadow-sm">
+              <Cpu size={26} />
             </div>
-          </Card>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-2">TẢI MÁY CHỦ</p>
+              <p className="text-xl font-bold text-slate-800">{infra?.cpu?.serverLoadAvg || '0.00'}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Load Average</p>
+            </div>
+          </div>
 
-          <Card className="rounded-2xl border-none shadow-sm overflow-hidden bg-white group hover:shadow-md transition-all">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center transition-transform group-hover:scale-110">
-                <History size={24} />
-              </div>
-              <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Hoạt động App</p>
-                <p className="text-sm font-bold text-slate-700 mt-1">{infra?.uptime?.app || 'N/A'}</p>
-              </div>
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] flex items-center gap-4 group hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 shadow-sm">
+              <History size={26} />
             </div>
-          </Card>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-2">HOẠT ĐỘNG APP</p>
+              <p className="text-xl font-bold text-slate-800">{infra?.uptime?.app || 'N/A'}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">System Uptime</p>
+            </div>
+          </div>
         </div>
 
         {/* Main Controls */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
 
           {/* Notifications Toggle */}
-          <section className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 p-8 flex flex-col items-center text-center">
-            <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mb-6 relative">
-              <Bell size={40} className="text-blue-600" />
-              <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full border-4 border-white flex items-center justify-center ${notifEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                {notifEnabled ? <CheckCircle2 size={12} className="text-white" /> : <XCircle size={12} className="text-white" />}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 flex flex-col items-center text-center">
+            <div className="w-24 h-24 rounded-full bg-blue-50 flex items-center justify-center mb-8 relative">
+              <Bell size={48} className="text-[#0487e2]" />
+              <div className={`absolute -top-1 -right-1 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center shadow-lg ${notifEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                {notifEnabled ? <CheckCircle2 size={16} className="text-white" /> : <XCircle size={16} className="text-white" />}
               </div>
             </div>
 
-            <h2 className="text-xl font-black text-slate-800 mb-2">Thông báo Hệ thống</h2>
-            <p className="text-slate-500 text-sm mb-8 leading-relaxed px-4">
-              Bật hoặc tắt các thông báo tự động từ hệ thống khi có bài tập mới, bài học mới, hoặc thông tin cập nhật cho học sinh và giáo viên.
+            <h2 className="text-2xl font-bold text-slate-900 mb-3">Thông báo Hệ thống</h2>
+            <p className="text-slate-500 text-sm mb-10 leading-relaxed px-4 font-medium">
+              Bật hoặc tắt các thông báo tự động từ hệ thống khi có bài tập mới, bài học mới, hoặc thông tin cập nhật cho học học sinh và giáo viên.
             </p>
 
-            <div className="w-full bg-slate-50 rounded-2xl p-6 flex items-center justify-between">
+            <div className="w-full bg-slate-50 rounded-2xl p-8 flex items-center justify-between border border-slate-100">
               <div className="text-left">
-                <p className="text-sm font-bold text-slate-700">Trạng thái truyền phát</p>
-                <p className="text-xs text-slate-400">Tất cả thông báo Broadcast</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">CẤU HÌNH TRUYỀN PHÁT</p>
+                <p className="text-base font-bold text-slate-800">Trạng thái hiện tại</p>
               </div>
               <Switch
                 checked={notifEnabled}
                 onChange={handleToggleNotifications}
                 loading={loading}
-                className={notifEnabled ? 'bg-blue-600 shadow-md shadow-blue-200' : 'bg-slate-300'}
+                className={notifEnabled ? '!bg-[#0487e2]' : '!bg-slate-300'}
                 size="large"
               />
             </div>
           </section>
 
           {/* Audit Logs Toggle */}
-          <section className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 p-8 flex flex-col items-center text-center">
-            <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center mb-6 relative">
-              <Database size={40} className="text-slate-700" />
-              <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full border-4 border-white flex items-center justify-center ${auditLogEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                {auditLogEnabled ? <CheckCircle2 size={12} className="text-white" /> : <XCircle size={12} className="text-white" />}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 flex flex-col items-center text-center">
+            <div className="w-24 h-24 rounded-full bg-slate-50 flex items-center justify-center mb-8 relative">
+              <Database size={48} className="text-slate-700" />
+              <div className={`absolute -top-1 -right-1 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center shadow-lg ${auditLogEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                {auditLogEnabled ? <CheckCircle2 size={16} className="text-white" /> : <XCircle size={16} className="text-white" />}
               </div>
             </div>
 
-            <h2 className="text-xl font-black text-slate-800 mb-2">Nhật ký Hệ thống (Audit Logs)</h2>
-            <p className="text-slate-500 text-sm mb-8 leading-relaxed px-4">
+            <h2 className="text-2xl font-bold text-slate-900 mb-3">Audit Logs (Truy vết)</h2>
+            <p className="text-slate-500 text-sm mb-10 leading-relaxed px-4 font-medium">
               Ghi lại chi tiết mọi hành động thay đổi dữ liệu của người dùng. Tắt nhật ký có thể tiết kiệm dung lượng cơ sở dữ liệu nhưng sẽ làm mất khả năng truy vết lỗi.
             </p>
 
-            <div className="w-full bg-slate-50 rounded-2xl p-6 flex items-center justify-between">
+            <div className="w-full bg-slate-50 rounded-2xl p-8 flex items-center justify-between border border-slate-100">
               <div className="text-left">
-                <p className="text-sm font-bold text-slate-700">Trình ghi nhật ký</p>
-                <p className="text-xs text-slate-400">Hoạt động tại /api/admin/audit-logs</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">TRÌNH GHI NHẬT KÝ</p>
+                <p className="text-base font-bold text-slate-800">Hoạt động Backend</p>
               </div>
               <Switch
                 checked={auditLogEnabled}
                 onChange={handleToggleAuditLogs}
                 loading={loading}
-                className={auditLogEnabled ? 'bg-slate-800 shadow-md shadow-slate-200' : 'bg-slate-300'}
+                className={auditLogEnabled ? '!bg-slate-800' : '!bg-slate-300'}
                 size="large"
               />
             </div>
@@ -245,12 +234,17 @@ export default function SystemSettings() {
         </div>
 
         {/* Advanced Placeholder Section (Optional Aesthetics) */}
-        <div className="opacity-60 bg-slate-100 rounded-3xl p-8 border-2 border-dashed border-slate-200">
-          <div className="flex items-center gap-3 mb-4">
-            <Zap size={20} className="text-slate-400" />
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Cài đặt Nâng cao (Dự kiến)</h3>
+        <div className="relative overflow-hidden bg-white rounded-2xl p-8 border border-slate-200 shadow-sm group">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity pointer-events-none">
+            <Zap size={120} className="text-blue-600" />
           </div>
-          <p className="text-xs text-slate-400 mb-0">Các tính năng giới hạn tốc độ (Rate Limit), chế độ bảo trì toàn cục và cấu hình tham số AI sẽ được cập nhật trong các phiên bản tiếp theo.</p>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Zap size={16} />
+            </div>
+            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-widest">CÀI ĐẶT NÂNG CAO (DỰ KIẾN)</h3>
+          </div>
+          <p className="text-sm text-slate-500 mb-0 max-w-2xl font-medium leading-relaxed">Các tính năng giới hạn tốc độ (Rate Limit), chế độ bảo trì toàn cục và cấu hình tham số AI sẽ được cập nhật trong các phiên bản tiếp theo.</p>
         </div>
 
       </div>

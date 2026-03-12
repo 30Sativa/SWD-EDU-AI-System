@@ -46,10 +46,10 @@ const ROLE_NAME_MAP = {
 
 // Mapping for POST (based on Swagger [1])
 const ROLE_ID_MAP = {
-  "Student": 1,
-  "Teacher": 2,
-  "Manager": 3,
-  "Admin": 4
+  "Student": 4,
+  "Teacher": 3,
+  "Manager": 2,
+  "Admin": 1
 };
 
 export default function NotificationManagement() {
@@ -261,67 +261,60 @@ export default function NotificationManagement() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-6 md:p-8 font-sans text-slate-800">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-800">
+      <div className="max-w-7xl mx-auto">
 
         {/* ── Header ── */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-[#0487e2] text-white flex items-center justify-center shadow-lg shadow-blue-100">
-                <Megaphone size={22} />
-              </div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">Quản lý Thông báo</h1>
-            </div>
-            <p className="text-slate-500 text-sm font-medium">Gửi thông báo hàng loạt cho các nhóm đối tượng và xem lịch sử phân phát.</p>
-          </div>
-          <Button
-            type="primary"
-            icon={<Plus size={20} />}
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-[#0487e2] hover:bg-[#0463ca] h-12 px-8 rounded-2xl font-black shadow-xl shadow-blue-200 border-none flex items-center gap-2"
-          >
-            SOẠN THÔNG BÁO
-          </Button>
+        <header className="mb-8">
+          <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Quản lý Thông báo</h1>
+          <p className="text-slate-500 text-sm mt-1 font-medium italic opacity-80">Gửi thông báo hàng loạt cho các nhóm đối tượng và xem lịch sử phân phát.</p>
         </header>
 
         {/* ── Toolbar ── */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 space-y-4 mb-8">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Tìm kiếm</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">TÌM KIẾM</label>
               <Input
                 placeholder="Tìm tiêu đề thông báo..."
                 prefix={<Search size={16} className="text-slate-300" />}
-                className="h-11 rounded-xl border-slate-200"
+                className="h-12 rounded-xl border-slate-200"
                 value={filters.title}
                 onChange={e => handleSearch(e.target.value)}
                 allowClear
               />
             </div>
             <div className="w-full md:w-72">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Khoảng thời gian</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">KHOẢNG THỜI GIAN</label>
               <RangePicker
-                className="w-full h-11 rounded-xl border-slate-200"
+                className="w-full h-12 rounded-xl border-slate-200"
                 placeholder={['Từ ngày', 'Đến ngày']}
                 onChange={handleDateChange}
                 value={filters.dateRange}
               />
             </div>
-            <div className="flex items-end pb-0.5">
+            <div className="flex items-end pb-0.5 gap-3">
               <Button
                 onClick={handleReset}
                 icon={<RotateCcw size={16} />}
-                className="h-11 rounded-xl font-bold flex items-center gap-1 border-slate-200 text-slate-600 hover:text-blue-600"
+                className="h-12 px-6 rounded-xl font-bold flex items-center gap-1 border-slate-200 text-slate-600 hover:text-blue-600"
               >
-                Đặt lại
+                ĐẶT LẠI
+              </Button>
+              <Button
+                type="primary"
+                icon={<Plus size={20} />}
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-[#0487e2] hover:bg-[#0374c4] h-12 px-8 rounded-xl font-bold border-none flex items-center gap-2 shadow-md"
+              >
+                SOẠN THÔNG BÁO
               </Button>
             </div>
           </div>
         </div>
 
         {/* ── Table ── */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/40 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <Spin spinning={loading} tip="Đang tải dữ liệu...">
             <Table
               columns={columns}

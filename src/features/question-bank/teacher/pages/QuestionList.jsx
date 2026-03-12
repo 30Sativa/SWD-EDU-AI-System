@@ -78,10 +78,10 @@ export default function QuestionList() {
             <div className="max-w-6xl mx-auto space-y-6">
                 
                 {/* Header & Breadcrumb */}
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 mb-4">
                     <Breadcrumb 
                         items={[
-                            { title: <span onClick={() => navigate('/dashboard/teacher/question-bank')} className="text-slate-400 hover:text-[#0487e2] cursor-pointer">Ngân hàng</span> },
+                            { title: <span onClick={() => navigate('/dashboard/teacher/question-bank')} className="text-slate-400 hover:text-[#0463ca] cursor-pointer font-medium">Ngân hàng</span> },
                             { title: <span className="text-slate-600 font-bold">Danh sách câu hỏi</span> },
                         ]}
                     />
@@ -91,62 +91,68 @@ export default function QuestionList() {
                             <Button
                                 icon={<ArrowLeft size={18} />}
                                 onClick={() => navigate('/dashboard/teacher/question-bank')}
-                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border-slate-200 text-slate-400 hover:text-[#0487e2] hover:border-blue-200 shadow-sm"
+                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border-slate-200 text-slate-400 hover:text-[#0463ca] hover:border-blue-200 shadow-sm"
                             />
                             <div>
-                                <h1 className="text-2xl font-black text-slate-900 m-0">Chi tiết <span className="text-[#0487e2]">Kho câu hỏi</span></h1>
-                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 flex items-center gap-2">
-                                    <BookOpen size={14} className="text-slate-300" /> {type === 'lesson' ? 'Lesson' : 'Course'} ID: {folderId}
+                                <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Chi tiết Kho câu hỏi</h1>
+                                <p className="text-slate-500 text-xs font-medium italic opacity-80 mt-1 flex items-center gap-2">
+                                    <BookOpen size={14} className="text-slate-400" /> {type === 'lesson' ? 'Lesson' : 'Course'} ID: {folderId}
                                 </p>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-3">
                             <div className="flex flex-col items-end pr-4 border-r border-slate-200">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hiển thị</span>
-                                <span className="text-lg font-black text-slate-800">{filteredData.length} <span className="text-slate-300">/</span> {questions.length}</span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">HIỂN THỊ</span>
+                                <span className="text-lg font-bold text-slate-800">{filteredData.length} <span className="text-slate-300">/</span> {questions.length}</span>
                             </div>
                             <Button
                                 type="primary"
                                 icon={<Plus size={18} />}
-                                className="bg-slate-900 hover:bg-slate-800 h-11 px-6 rounded-xl font-bold shadow-lg border-none active:scale-95 transition-all"
+                                className="bg-[#0487e2] hover:bg-[#0374c4] h-12 px-6 rounded-xl font-bold shadow-md border-none active:scale-95 transition-all"
                             >
-                                Thêm mới
+                                THÊM MỚI
                             </Button>
                         </div>
                     </div>
                 </div>
 
                 {/* Toolbar */}
-                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-                    <div className="relative flex-1 group w-full">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#0487e2] transition-colors" size={18} />
-                        <Input
-                            placeholder="Tìm kiếm nhanh nội dung câu hỏi..."
-                            className="h-12 pl-12 pr-4 bg-slate-50 border-none rounded-xl text-sm font-medium hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            allowClear
-                        />
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-end mb-8">
+                    <div className="flex-1 w-full">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">TÌM KIẾM CÂU HỎI</label>
+                        <div className="relative group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#0463ca] transition-colors" size={18} />
+                            <Input
+                                placeholder="Tìm kiếm nhanh nội dung câu hỏi..."
+                                className="h-12 pl-12 pr-4 bg-white border-slate-200 rounded-xl text-sm font-medium transition-all"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                allowClear
+                            />
+                        </div>
                     </div>
                     
-                    <div className="flex gap-3 w-full md:w-auto">
-                        <Select
-                            value={filterType}
-                            onChange={setFilterType}
-                            className="w-full md:w-52 h-12 [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!border-none [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!h-12 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center font-bold text-slate-600"
-                            options={[
-                                { value: 'All', label: 'Tất cả các loại' },
-                                { value: 'MCQ', label: '⭐ Một đáp án' },
-                                { value: 'MultipleChoice', label: '✨ Nhiều đáp án' },
-                                { value: 'TrueFalse', label: '✅ Đúng / Sai' },
-                                { value: 'ShortAnswer', label: '✍️ Trả lời ngắn' }
-                            ]}
-                        />
+                    <div className="flex gap-4 w-full md:w-auto items-end">
+                        <div className="w-full md:w-56">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">PHÂN LOẠI</label>
+                            <Select
+                                value={filterType}
+                                onChange={setFilterType}
+                                className="w-full h-12 custom-select [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!border-slate-200 font-bold text-slate-600"
+                                options={[
+                                    { value: 'All', label: 'Tất cả các loại' },
+                                    { value: 'MCQ', label: '⭐ Một đáp án' },
+                                    { value: 'MultipleChoice', label: '✨ Nhiều đáp án' },
+                                    { value: 'TrueFalse', label: '✅ Đúng / Sai' },
+                                    { value: 'ShortAnswer', label: '✍️ Trả lời ngắn' }
+                                ]}
+                            />
+                        </div>
                         <Tooltip title="Lọc nâng cao">
                             <Button
                                 icon={<Filter size={18} />}
-                                className="h-12 w-12 rounded-xl border-none bg-slate-50 text-slate-400 flex items-center justify-center hover:text-[#0487e2]"
+                                className="h-12 w-12 rounded-xl border-slate-200 text-slate-400 flex items-center justify-center hover:text-[#0463ca] hover:border-[#0463ca] transition-all shadow-sm"
                             />
                         </Tooltip>
                     </div>
@@ -165,14 +171,14 @@ export default function QuestionList() {
                                 <div className="flex justify-between items-start gap-6">
                                     <div className="flex-1 space-y-3">
                                         <div className="flex items-center gap-3">
-                                            <span className="w-8 h-8 rounded-lg bg-blue-50 text-[#0487e2] flex items-center justify-center font-black text-xs border border-blue-100">
+                                            <span className="w-8 h-8 rounded-lg bg-blue-50 text-[#0487e2] flex items-center justify-center font-bold text-xs border border-blue-100">
                                                 {index + 1}
                                             </span>
                                             <div className="flex items-center gap-2">
-                                                <Tag className="rounded-md font-black text-[10px] uppercase px-2 py-0.5 border-none bg-slate-100 text-slate-500 tracking-wider">
+                                                <Tag className="rounded-md font-bold text-[10px] uppercase px-2 py-0.5 border-none bg-slate-100 text-slate-500 tracking-wider">
                                                     {question.questionType}
                                                 </Tag>
-                                                <Tag className={`rounded-md font-black text-[10px] uppercase px-2 py-0.5 border-none tracking-wider ${
+                                                <Tag className={`rounded-md font-bold text-[10px] uppercase px-2 py-0.5 border-none tracking-wider ${
                                                     question.difficulty === 'Easy' ? 'bg-emerald-50 text-emerald-600' :
                                                     question.difficulty === 'Medium' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'
                                                 }`}>
@@ -219,20 +225,20 @@ export default function QuestionList() {
                             </div>
                         ))
                     ) : (
-                        <div className="py-24 bg-white rounded-[2.5rem] border border-dashed border-slate-200 flex flex-col items-center justify-center">
+                        <div className="py-24 bg-white rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center shadow-sm">
                             <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-200">
                                 <SearchX size={48} />
                             </div>
                             <Empty description={
                                 <div className="space-y-1">
-                                    <p className="text-slate-700 font-black text-lg">Không tìm thấy câu hỏi nào</p>
-                                    <p className="text-slate-400 text-sm font-medium">Bạn có thể thêm câu hỏi mới hoặc điều chỉnh bộ lọc</p>
+                                    <p className="text-slate-700 font-bold text-lg">Không tìm thấy câu hỏi nào</p>
+                                    <p className="text-slate-400 text-sm font-medium italic opacity-80">Bạn có thể thêm câu hỏi mới hoặc điều chỉnh bộ lọc</p>
                                 </div>
                             } />
                             <Button 
                                 type="primary" 
                                 icon={<Plus size={18} />}
-                                className="mt-8 bg-[#0487e2] h-11 px-8 rounded-xl font-bold border-none shadow-lg shadow-blue-200"
+                                className="mt-8 bg-[#0487e2] hover:bg-[#0374c4] h-12 px-8 rounded-xl font-bold border-none shadow-md transition-all active:scale-95"
                             >
                                 Tạo câu hỏi đầu tiên
                             </Button>

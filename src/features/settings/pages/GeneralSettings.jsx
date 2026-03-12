@@ -278,12 +278,14 @@ export default function GeneralSettings() {
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
             <div className="max-w-5xl mx-auto space-y-6">
-                <header>
-                    <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Cài đặt tài khoản</h1>
-                    <p className="text-slate-500 text-sm mt-1 font-medium">Quản lý thông tin cá nhân và tùy chọn hệ thống.</p>
+                <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Cài đặt tài khoản</h1>
+                        <p className="text-slate-500 text-sm font-medium mt-1 italic opacity-80">Quản lý thông tin cá nhân và tùy chọn hệ thống cho tài khoản của bạn.</p>
+                    </div>
                 </header>
 
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 min-h-[600px]">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 min-h-[600px] overflow-hidden">
                     <Tabs
                         defaultActiveKey="2"
                         items={items}
