@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Quiz.Commands;
 using EduAISystem.Application.Features.Quiz.DTOs.Request;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Diagnostics;
+using System.Security.Claims;
 
 namespace EduAISystem.WebAPI.Controllers.Teacher
 {
@@ -17,11 +19,13 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
     {
         private readonly IMediator _mediator;
         private readonly ILogger<QuizzesController> _logger;
+        private readonly IAuditService _auditService;
 
-        public QuizzesController(IMediator mediator, ILogger<QuizzesController> logger)
+        public QuizzesController(IMediator mediator, ILogger<QuizzesController> logger, IAuditService auditService)
         {
             _mediator = mediator;
             _logger = logger;
+            _auditService = auditService;
         }
 
         [HttpPost("formative")]
@@ -47,6 +51,7 @@ Giáo viên tạo quiz đánh giá quá trình (formative) gắn với một bà
             try
             {
                 var quizId = await _mediator.Send(new CreateFormativeQuizCommand(dto), cancellationToken);
+                _auditService.LogAction("CREATE_QUIZ", "Quiz", quizId, null, new { Type = "Formative", LessonId = dto.LessonId });
                 return Ok(ApiResponse<Guid>.Ok(quizId, "Tạo formative quiz thành công!"));
             }
             catch (Exception ex)
@@ -82,6 +87,7 @@ Giáo viên tạo quiz đánh giá tổng kết (summative) gắn với một kh
             try
             {
                 var quizId = await _mediator.Send(new CreateSummativeQuizCommand(dto), cancellationToken);
+                _auditService.LogAction("CREATE_QUIZ", "Quiz", quizId, null, new { Type = "Summative", CourseId = dto.CourseId });
                 return Ok(ApiResponse<Guid>.Ok(quizId, "Tạo summative quiz thành công!"));
             }
             catch (Exception ex)
@@ -437,6 +443,127 @@ Xoá một câu hỏi cụ thể khỏi quiz.
                     traceId, questionId, optionId, ex.GetType().Name, ex.Message);
                 throw;
             }
+        }
+
+        // =============================================
+        // FLOW 1: IMPORT FILE CÂU HỎI
+        // =============================================
+        [HttpPost("{quizId:guid}/import-file")]
+        [SwaggerOperation(
+            Summary = "GV - Import nhiều câu hỏi từ file (Excel, Word, PDF) bằng AI",
+            Description = "API này tải file lên và kích hoạt background job đọc file. Trả về jobId, hãy dùng jobId này để tracking trên SignalR (kết nối tới /hubs/import, Lắng nghe các event: ReceiveProgress, ReceiveCompleted, ReceiveError với tham số truyền vào là group(jobId))."
+        )]
+        [ProducesResponseType(StatusCodes.Status202Accepted, Type = typeof(ApiResponse<Guid>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ImportFileQuestions(
+            Guid quizId,
+            IFormFile file,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (file == null || file.Length == 0) return BadRequest(ApiResponse<object>.Fail("File is empty"));
+                
+                using var ms = new System.IO.MemoryStream();
+                await file.CopyToAsync(ms, cancellationToken);
+                var fileBytes = ms.ToArray();
+
+                // Return 202 Accepted because it starts a background job
+                var jobId = await _mediator.Send(new ImportQuestionsFromFileCommand(quizId, fileBytes, file.FileName, file.ContentType), cancellationToken);
+                return Accepted(ApiResponse<Guid>.Ok(jobId, "Đã nhận file và bắt đầu xử lý import. Hãy tracking bằng SignalR với JobId."));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex, "Lỗi Import File: {TraceId}", traceId);
+                throw;
+            }
+        }
+
+        // =============================================
+        // FLOW 2: QUESTION BANK ẢO
+        // =============================================
+        [HttpGet("questions-bank")]
+        [SwaggerOperation(
+            Summary = "GV - Lấy danh sách Ngân hàng câu hỏi",
+            Description = "Lấy danh sách các câu hỏi cũ đã được tạo trên hệ thống để giáo viên tái sử dụng cho quiz mới."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<TeacherQuestionDetailResponseDto>>))]
+        public async Task<IActionResult> GetTeacherQuestionBank(
+            [FromQuery] Guid? courseId,
+            [FromQuery] Guid? lessonId,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var questions = await _mediator.Send(new GetTeacherQuestionBankQuery(courseId, lessonId), cancellationToken);
+                return Ok(ApiResponse<List<TeacherQuestionDetailResponseDto>>.Ok(questions, "Lấy ngân hàng câu hỏi thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex, "Lỗi lấy Question Bank: {TraceId}", traceId);
+                throw;
+            }
+        }
+
+        [HttpGet("questions-bank/summary")]
+        [SwaggerOperation(
+            Summary = "GV - Lấy thống kê Ngân hàng câu hỏi (theo Chủ đề/Bài học)",
+            Description = "Lấy dữ liệu tổng hợp để hiển thị bảng thống kê ngân hàng câu hỏi, bao gồm số lượng câu hỏi, độ khó tóm tắt và thông tin môn học."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<QuestionBankSummaryResponseDto>>))]
+        public async Task<IActionResult> GetTeacherQuestionBankSummary(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var teacherId = GetCurrentUserId();
+                if (teacherId == null) return Unauthorized();
+
+                var summary = await _mediator.Send(new GetQuestionBankSummaryQuery(teacherId.Value), cancellationToken);
+                return Ok(ApiResponse<List<QuestionBankSummaryResponseDto>>.Ok(summary, "Lấy thống kê ngân hàng thành công!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex, "Lỗi lấy Question Bank Summary: {TraceId}", traceId);
+                throw;
+            }
+        }
+
+        [HttpPost("{quizId:guid}/import-questions")]
+        [SwaggerOperation(
+            Summary = "GV - Clone câu hỏi từ Ngân hàng vào Quiz (Tái sử dụng)",
+            Description = "Sao chép hoàn toàn (Clone) cấu trúc các câu hỏi cũ đưa vào một Quiz mới. Việc tạo clone đảm bảo khi GV thay đổi câu hỏi ở Quiz mới không ảnh hưởng tới Quiz cũ."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<Guid>>))]
+        public async Task<IActionResult> CloneQuestionsFromBank(
+            Guid quizId,
+            [FromBody] List<Guid> sourceQuestionIds,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (sourceQuestionIds == null || !sourceQuestionIds.Any())
+                {
+                    return BadRequest(ApiResponse<object>.Fail("Hãy chọn ít nhất 1 câu hỏi để import."));
+                }
+
+                var newQuestionIds = await _mediator.Send(new CloneQuestionsFromBankCommand(quizId, sourceQuestionIds), cancellationToken);
+                return Ok(ApiResponse<List<Guid>>.Ok(newQuestionIds, $"Clone thành công {newQuestionIds.Count} câu hỏi!"));
+            }
+            catch (Exception ex)
+            {
+                var traceId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+                _logger.LogError(ex, "Lỗi clone questions từ Bank: {TraceId}", traceId);
+                throw;
+            }
+        }
+
+        private Guid? GetCurrentUserId()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return Guid.TryParse(userId, out var id) ? id : null;
         }
     }
 }

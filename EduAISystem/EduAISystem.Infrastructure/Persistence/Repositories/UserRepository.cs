@@ -292,5 +292,18 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
 
             await _context.SaveChangesAsync(cancellationToken);
         }
+
+        public async Task<List<Guid>> GetUserIdsByRolesAsync(IEnumerable<int>? roleFilters, bool activeOnly = true, CancellationToken cancellationToken = default)
+        {
+            var query = _context.Users.AsNoTracking();
+
+            if (activeOnly)
+                query = query.Where(u => u.IsActive == true && u.DeletedAt == null);
+
+            if (roleFilters != null && roleFilters.Any())
+                query = query.Where(u => roleFilters.Contains(u.Role));
+
+            return await query.Select(u => u.Id).ToListAsync(cancellationToken);
+        }
     }
 }

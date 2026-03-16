@@ -49,6 +49,8 @@ namespace EduAISystem.Application.Abstractions.Persistence
             Guid? gradeLevelId,
             Guid? termId,
             CancellationToken cancellationToken = default);
+
+        Task<List<Guid>> GetStudentIdsByCourseClassesAsync(Guid courseId, CancellationToken cancellationToken = default);
     }
 }
 

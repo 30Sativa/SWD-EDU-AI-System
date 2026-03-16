@@ -1,3 +1,4 @@
+using EduAISystem.Application.Features.Quiz.DTOs.Response;
 using EduAISystem.Domain.Entities;
 
 namespace EduAISystem.Application.Abstractions.Persistence
@@ -26,6 +27,8 @@ namespace EduAISystem.Application.Abstractions.Persistence
         /// </summary>
         Task<QuizWithQuestionsDomain?> GetWithQuestionsAsync(Guid quizId, CancellationToken cancellationToken);
 
+        Task<List<QuestionDomain>> GetQuestionsByIdsAsync(IEnumerable<Guid> questionIds, CancellationToken cancellationToken);
+
         Task<List<QuestionOptionDomain>> GetQuestionOptionsAsync(Guid questionId, CancellationToken cancellationToken);
 
         // =============================================
@@ -37,6 +40,9 @@ namespace EduAISystem.Application.Abstractions.Persistence
 
         /// <summary>Flow 2: Lấy tất cả Summative Quiz của một Course.</summary>
         Task<List<QuizDomain>> GetByCourseIdAsync(Guid courseId, CancellationToken cancellationToken);
+
+        Task<List<QuestionDomain>> GetQuestionBankAsync(Guid? courseId, Guid? lessonId, CancellationToken cancellationToken);
+        Task<List<QuestionBankSummaryResponseDto>> GetQuestionBankSummaryAsync(Guid teacherId, CancellationToken cancellationToken);
 
         // =============================================
         // BUSINESS RULE SUPPORT
@@ -51,5 +57,6 @@ namespace EduAISystem.Application.Abstractions.Persistence
     {
         public QuizDomain Quiz { get; init; } = null!;
         public List<QuestionDomain> Questions { get; init; } = [];
+        public Guid? TeacherId { get; init; }
     }
 }

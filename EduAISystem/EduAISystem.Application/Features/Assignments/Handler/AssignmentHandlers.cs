@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Common.Exceptions;
 using EduAISystem.Application.Features.Assignments.Commands;
@@ -5,6 +6,7 @@ using EduAISystem.Application.Features.Assignments.DTOs.Request;
 using EduAISystem.Application.Features.Assignments.DTOs.Response;
 using EduAISystem.Application.Features.Assignments.Queries;
 using EduAISystem.Domain.Entities;
+using EduAISystem.Domain.Enums;
 using MediatR;
 
 namespace EduAISystem.Application.Features.Assignments.Handler
@@ -14,13 +16,16 @@ namespace EduAISystem.Application.Features.Assignments.Handler
     {
         private readonly ICourseRepository _courseRepository;
         private readonly IAssignmentRepository _assignmentRepository;
+        private readonly INotificationService _notificationService;
 
         public CreateAssignmentCommandHandler(
             ICourseRepository courseRepository,
-            IAssignmentRepository assignmentRepository)
+            IAssignmentRepository assignmentRepository,
+            INotificationService notificationService)
         {
             _courseRepository = courseRepository;
             _assignmentRepository = assignmentRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<Guid> Handle(CreateAssignmentCommand request, CancellationToken cancellationToken)
@@ -30,7 +35,6 @@ namespace EduAISystem.Application.Features.Assignments.Handler
             var course = await _courseRepository.GetByIdAsync(dto.CourseId, cancellationToken)
                 ?? throw new NotFoundException($"Course {dto.CourseId} không tồn tại.");
 
-            // Có thể bổ sung rule: chỉ teacher owner course mới tạo được assignment (sau này dùng ICurrentUserService)
             var assignment = AssignmentDomain.Create(
                 dto.CourseId,
                 dto.Title,
@@ -44,6 +48,22 @@ namespace EduAISystem.Application.Features.Assignments.Handler
                 dto.AllowFileSubmit);
 
             await _assignmentRepository.CreateAsync(assignment, cancellationToken);
+
+            if (dto.Publish == true)
+            {
+                var studentIds = await _courseRepository.GetStudentIdsByCourseClassesAsync(course.Id, cancellationToken);
+                if (studentIds.Any())
+                {
+                    await _notificationService.SendBatchNotificationAsync(
+                        studentIds,
+                        NotificationTypeDomain.System,
+                        "Bài tập mới",
+                        $"Giáo viên đã thêm bài tập mới: '{assignment.Title}' trong khóa học '{course.Title}'.",
+                        $"/student/assignments/{assignment.Id}",
+                        cancellationToken);
+                }
+            }
+
             return assignment.Id;
         }
     }
@@ -101,10 +121,17 @@ namespace EduAISystem.Application.Features.Assignments.Handler
         : IRequestHandler<PublishAssignmentCommand, Guid>
     {
         private readonly IAssignmentRepository _assignmentRepository;
+        private readonly ICourseRepository _courseRepository;
+        private readonly INotificationService _notificationService;
 
-        public PublishAssignmentCommandHandler(IAssignmentRepository assignmentRepository)
+        public PublishAssignmentCommandHandler(
+            IAssignmentRepository assignmentRepository,
+            ICourseRepository courseRepository,
+            INotificationService notificationService)
         {
             _assignmentRepository = assignmentRepository;
+            _courseRepository = courseRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<Guid> Handle(PublishAssignmentCommand request, CancellationToken cancellationToken)
@@ -114,6 +141,21 @@ namespace EduAISystem.Application.Features.Assignments.Handler
 
             assignment.Publish();
             await _assignmentRepository.UpdateAsync(assignment, cancellationToken);
+
+            var course = await _courseRepository.GetByIdAsync(assignment.CourseId, cancellationToken);
+            var studentIds = await _courseRepository.GetStudentIdsByCourseClassesAsync(assignment.CourseId, cancellationToken);
+            
+            if (studentIds.Any())
+            {
+                await _notificationService.SendBatchNotificationAsync(
+                    studentIds,
+                    NotificationTypeDomain.System,
+                    "Bài tập mới",
+                    $"Giáo viên đã thêm bài tập mới: '{assignment.Title}' trong khóa học '{course?.Title}'.",
+                    $"/student/assignments/{assignment.Id}",
+                    cancellationToken);
+            }
+
             return assignment.Id;
         }
     }

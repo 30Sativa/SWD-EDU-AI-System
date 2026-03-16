@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Sections.Commands;
 using EduAISystem.Application.Features.Sections.DTOs.Request;
@@ -15,10 +16,12 @@ namespace EduAISystem.WebAPI.Controllers
     public class SectionsController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IAuditService _auditService;
 
-        public SectionsController(IMediator mediator)
+        public SectionsController(IMediator mediator, IAuditService auditService)
         {
             _mediator = mediator;
+            _auditService = auditService;
         }
 
         // GET: api/courses/{courseId}/sections
@@ -116,6 +119,8 @@ namespace EduAISystem.WebAPI.Controllers
             await _mediator.Send(
                 new DeleteSectionCommand(sectionId)
             );
+
+            _auditService.LogAction("DELETE_SECTION", "Section", sectionId);
 
             return NoContent();
         }

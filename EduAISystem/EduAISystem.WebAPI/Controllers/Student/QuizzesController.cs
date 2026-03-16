@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Quiz.Commands;
 using EduAISystem.Application.Features.Quiz.DTOs.Request;
@@ -17,10 +18,12 @@ namespace EduAISystem.WebAPI.Controllers.Student
     public class QuizzesController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IAuditService _auditService;
 
-        public QuizzesController(IMediator mediator)
+        public QuizzesController(IMediator mediator, IAuditService auditService)
         {
             _mediator = mediator;
+            _auditService = auditService;
         }
 
         // =============================================
@@ -106,6 +109,7 @@ Tạo một lần làm bài mới (attempt) cho học sinh.
         public async Task<IActionResult> StartAttempt(Guid quizId, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(new StartQuizAttemptCommand(quizId), cancellationToken);
+            _auditService.LogAction("START_QUIZ", "Quiz", quizId, null, new { AttemptId = result.AttemptId });
             return Ok(ApiResponse<StartAttemptResponseDto>.Ok(result, "Bắt đầu làm bài thành công."));
         }
 
@@ -135,6 +139,7 @@ Học sinh nộp câu trả lời cho một attempt.
             CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(new SubmitQuizAttemptCommand(attemptId, dto), cancellationToken);
+            _auditService.LogAction("FINISH_QUIZ", "QuizAttempt", attemptId, null, new { Score = result.Score });
             return Ok(ApiResponse<SubmitAttemptResponseDto>.Ok(result, "Nộp bài thành công."));
         }
 

@@ -25,5 +25,8 @@ namespace EduAISystem.Application.Abstractions.Persistence
 
         /// <summary>Cập nhật toàn bộ user (IsEmailVerified, GoogleId, PasswordHash, IsActive...)</summary>
         Task UpdateAsync(UserDomain user, CancellationToken cancellationToken = default);
+
+        /// <summary>Lấy danh sách ID người dùng theo Role (null = tất cả) để phục vụ gửi thông báo hàng loạt</summary>
+        Task<List<Guid>> GetUserIdsByRolesAsync(IEnumerable<int>? roleFilters, bool activeOnly = true, CancellationToken cancellationToken = default);
     }
 }
