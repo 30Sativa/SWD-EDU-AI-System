@@ -4,10 +4,14 @@ import { Bell, LogOut, Search, GraduationCap } from 'lucide-react';
 import { message } from 'antd';
 import { getCurrentUser } from '../../features/user/api/userApi';
 
+import NotificationDropdown from '../../features/dashboard/components/NotificationDropdown';
+
+
+
 export default function StudentHeader() {
     const location = useLocation();
     const navigate = useNavigate();
-    const [user, setUser] = useState({ name: 'User', role: 'Student' });
+    const [user, setUser] = useState({ name: localStorage.getItem('userFullName') || 'User', role: 'Student' });
     const BASE_PATH = '/dashboard/student';
 
     React.useEffect(() => {
@@ -15,6 +19,18 @@ export default function StudentHeader() {
             try {
                 const response = await getCurrentUser();
                 const userData = response?.data || response;
+
+                const displayName = userData?.fullName || userData?.profile?.fullName || userData?.userName || 'User';
+                userData && setUser({
+                    name: displayName,
+                    role: userData.roleName || 'Student'
+                });
+                userData && localStorage.setItem('userFullName', displayName);
+            } catch (error) {
+                console.error('Failed to fetch user profile:', error);
+                // Fallback to localStorage
+                const storedName = localStorage.getItem('userFullName');
+
                 userData && setUser({
                     name: userData.userName || 'User',
                     role: userData.roleName || 'Student'
@@ -24,6 +40,7 @@ export default function StudentHeader() {
                 console.error('Failed to fetch user profile:', error);
                 // Fallback to localStorage
                 const storedName = localStorage.getItem('userName');
+
                 const storedRole = localStorage.getItem('userRole');
                 setUser({
                     name: storedName || 'User',
@@ -35,10 +52,10 @@ export default function StudentHeader() {
     }, []);
 
     const navItems = [
-        { label: 'Tổng quan', path: 'dashboard' },
-        { label: 'Khóa học', path: 'courses' },
-        { label: 'Bài kiểm tra', path: 'quizzes' },
-        { label: 'Tiến độ', path: 'progress' },
+        { label: 'Tổng quan', path: '/dashboard/student' },
+        { label: 'Khóa học', path: '/dashboard/student/courses' },
+        { label: 'Bài kiểm tra', path: '/dashboard/student/quizzes' },
+        { label: 'Tiến độ', path: '/dashboard/student/progress' },
     ];
 
     const getInitials = (name) => {
@@ -49,7 +66,7 @@ export default function StudentHeader() {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('token');
         localStorage.removeItem('userRole');
-        localStorage.removeItem('userName');
+        localStorage.removeItem('userFullName');
         message.success('Đăng xuất thành công');
         navigate('/');
     };
@@ -68,15 +85,14 @@ export default function StudentHeader() {
                 {/* Navigation - Perfectly Centered, Absolute */}
                 <nav className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-2">
                     {navItems.map((item) => {
-                        const fullPath = item.path === 'dashboard' ? BASE_PATH : `${BASE_PATH}/${item.path}`;
-                        const isActive = item.path === 'dashboard'
-                            ? location.pathname === BASE_PATH
-                            : location.pathname.startsWith(fullPath);
+                        const isActive = item.path === '/dashboard/student'
+                            ? location.pathname === item.path
+                            : location.pathname.startsWith(item.path);
 
                         return (
                             <Link
                                 key={item.label}
-                                to={fullPath}
+                                to={item.path}
                                 className={`font-medium text-sm px-2 py-1 mx-2 border-b-2 transition-all duration-200 ${isActive
                                     ? 'text-blue-600 border-blue-600'
                                     : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-600'
@@ -95,10 +111,7 @@ export default function StudentHeader() {
                         <Search size={20} />
                     </button>
 
-                    <button className="relative text-gray-500 hover:text-blue-600 transition-colors">
-                        <Bell size={20} />
-                        <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                    </button>
+                    <NotificationDropdown basePath={BASE_PATH} />
 
                     <div className="h-8 w-px bg-gray-200/60 mx-1"></div>
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
-import { loginAPI } from '../api/authApi';
+import { loginAPI, googleLoginAPI } from '../api/authApi';
+import { GoogleLogin } from '@react-oauth/google';
 
 const parseJwt = (token) => {
     try {
@@ -60,10 +61,14 @@ export default function Login() {
         try {
             const response = await loginAPI(formData);
 
-            const token = response.accessToken || response.token || response.data?.accessToken || response.data?.token;
+            const token = response.accessToken || response.token || response.data?.accessToken || response.data?.token || response.data?.data?.accessToken;
+            const refreshToken = response.refreshToken || response.data?.refreshToken || response.data?.data?.refreshToken;
 
             if (token) {
                 localStorage.setItem('accessToken', token);
+                if (refreshToken) {
+                    localStorage.setItem('refreshToken', refreshToken);
+                }
                 const decoded = parseJwt(token);
                 const role = decoded?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded?.role;
 
@@ -105,7 +110,7 @@ export default function Login() {
                     else if (lowerRole.includes('teacher')) {
                         navigate('/dashboard/teacher');
                     }
-                    else if (lowerRole.includes('user')) {
+                    else if (lowerRole.includes('user') || lowerRole.includes('student')) {
                         navigate('/dashboard/student');
                     }
                     else if (lowerRole.includes('manager')) {
@@ -132,6 +137,73 @@ export default function Login() {
         }
     };
 
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setIsLoading(true);
+        setError('');
+        try {
+            const idToken = credentialResponse.credential;
+            const response = await googleLoginAPI(idToken);
+
+            const token = response.accessToken || response.token || response.data?.accessToken || response.data?.token || response.data?.data?.accessToken;
+            const refreshToken = response.refreshToken || response.data?.refreshToken || response.data?.data?.refreshToken;
+
+            if (token) {
+                localStorage.setItem('accessToken', token);
+                if (refreshToken) {
+                    localStorage.setItem('refreshToken', refreshToken);
+                }
+                const decoded = parseJwt(token);
+                const role = decoded?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded?.role;
+
+                if (role) {
+                    localStorage.setItem('userRole', role);
+                    let name = response.userName || response.data?.userName || response.userInfo?.userName;
+
+                    if (!name) {
+                        name = decoded?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
+                            || decoded?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/name']
+                            || decoded?.name
+                            || decoded?.unique_name;
+                    }
+
+                    if (!name) name = 'User';
+                    localStorage.setItem('userName', name);
+                    message.success('Đăng nhập bằng Google thành công!');
+
+                    const lowerRole = String(role).toLowerCase();
+                    if (lowerRole.includes('admin')) navigate('/dashboard/admin');
+                    else if (lowerRole.includes('teacher')) navigate('/dashboard/teacher');
+                    else if (lowerRole.includes('user') || lowerRole.includes('student')) navigate('/dashboard/student');
+                    else if (lowerRole.includes('manager')) navigate('/dashboard/manager');
+                    else navigate('/');
+                } else {
+                    throw new Error("Không tìm thấy thông tin vai trò");
+                }
+            } else {
+                throw new Error("Không nhận được token từ hệ thống");
+            }
+        } catch (err) {
+            console.error("Google Login failed:", err);
+            let errorMsg = 'Đăng nhập bằng Google thất bại.';
+
+            // If the user does not exist in the system, backend usually returns 404 or 401
+            if (err.response?.status === 404 || err.response?.status === 401) {
+                errorMsg = 'Tài khoản không tồn tại trong hệ thống. Vui lòng liên hệ quản lý.';
+            } else if (err.response?.data?.message) {
+                errorMsg = err.response.data.message;
+            }
+
+            setError(errorMsg);
+            message.error(errorMsg);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleGoogleError = () => {
+        message.error('Đăng nhập bằng Google thất bại. Vui lòng thử lại.');
+    };
+
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-[#F8FAFC] relative overflow-hidden">
             {/* Abstract Background Shapes */}
@@ -140,8 +212,15 @@ export default function Login() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-400/20 rounded-full blur-[100px] animate-pulse delay-1000"></div>
             </div>
 
-            <div className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100 p-8 z-10 mx-4 transition-all duration-300 hover:shadow-2xl hover:bg-white/90">
-                <div className="mb-8 text-center">
+            <div className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100 p-8 z-10 mx-4 transition-all duration-300 hover:shadow-2xl hover:bg-white/90 relative">
+                <button
+                    onClick={() => navigate('/')}
+                    className="absolute top-4 left-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
+                    title="Quay lại"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="mb-8 mt-2 text-center">
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Chào mừng trở lại</h1>
                     <p className="text-gray-500 mt-2 text-sm">Vui lòng đăng nhập để tiếp tục</p>
                 </div>
@@ -196,9 +275,13 @@ export default function Login() {
                             </button>
                         </div>
                         <div className="flex justify-end">
-                            <a href="#" className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
+                            <button
+                                type="button"
+                                onClick={() => navigate('/forgot-password')}
+                                className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+                            >
                                 Quên mật khẩu?
-                            </a>
+                            </button>
                         </div>
                     </div>
 
@@ -216,16 +299,33 @@ export default function Login() {
                             </>
                         )}
                     </button>
+
+                    <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-200"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-white text-gray-500">Hoặc tiếp tục với</span>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-center">
+                        <div className="w-full">
+                            <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={handleGoogleError}
+                                useOneTap={false} // Tắt One Tap để tránh AbortError tự động hỏng
+                                use_fedcm_for_prompt={true} // Bật tường minh cơ chế FedCM mới của Google
+                                width="350"
+                                theme="outline"
+                                shape="pill"
+                                text="signin_with"
+                            />
+                        </div>
+                    </div>
                 </form>
 
-                <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-                    <p className="text-sm text-gray-500">
-                        Chưa có tài khoản?{' '}
-                        <a href="/register" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>
-                            Đăng ký ngay
-                        </a>
-                    </p>
-                </div>
+
             </div>
         </div>
     );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Calendar, Edit, X } from 'lucide-react';
-import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, DatePicker } from 'antd';
-import { getTerms, createTerm } from '../../api/termApi';
+import { Plus, Search, Calendar, Edit, X, Trash2, Power } from 'lucide-react';
+import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, DatePicker, Popconfirm } from 'antd';
+import { getTerms, createTerm, updateTerm, deleteTerm, changeTermStatus } from '../../api/termApi';
 import dayjs from 'dayjs';
 
 export default function TermManagement() {
@@ -10,6 +10,7 @@ export default function TermManagement() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [editingTerm, setEditingTerm] = useState(null);
     const [form] = Form.useForm();
 
     const fetchTerms = useCallback(async () => {
@@ -29,7 +30,7 @@ export default function TermManagement() {
         fetchTerms();
     }, [fetchTerms]);
 
-    const handleCreateSubmit = async (values) => {
+    const handleSubmit = async (values) => {
         try {
             setSubmitting(true);
             const payload = {
@@ -37,20 +38,26 @@ export default function TermManagement() {
                 startDate: values.startDate ? dayjs(values.startDate).format('YYYY-MM-DD') : null,
                 endDate: values.endDate ? dayjs(values.endDate).format('YYYY-MM-DD') : null,
             };
-            console.log('Term Payload:', payload);
-            await createTerm(payload);
-            message.success('Tạo kỳ học mới thành công!');
+
+            if (editingTerm) {
+                await updateTerm(editingTerm.id, payload);
+                message.success('Cập nhật kỳ học thành công!');
+            } else {
+                await createTerm(payload);
+                message.success('Tạo kỳ học mới thành công!');
+            }
+
             setIsModalOpen(false);
             form.resetFields();
+            setEditingTerm(null);
             fetchTerms();
         } catch (error) {
-            console.error('Create Term Error:', error);
+            console.error('Term Submit Error:', error);
             if (error.response && error.response.data && error.response.data.errors) {
-                // Inspect validation errors if available
                 const errorMsg = Object.values(error.response.data.errors).flat().join(', ');
                 message.error(errorMsg || 'Lỗi dữ liệu không hợp lệ');
             } else {
-                message.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo kỳ học');
+                message.error(error.response?.data?.message || 'Có lỗi xảy ra');
             }
         } finally {
             setSubmitting(false);
@@ -58,8 +65,47 @@ export default function TermManagement() {
     };
 
     const handleOpenModal = () => {
+        setEditingTerm(null);
         form.resetFields();
         setIsModalOpen(true);
+    };
+
+    const handleEditClick = (record) => {
+        setEditingTerm(record);
+        form.setFieldsValue({
+            code: record.code,
+            name: record.name,
+            startDate: record.startDate ? dayjs(record.startDate) : null,
+            endDate: record.endDate ? dayjs(record.endDate) : null,
+            description: record.description || '',
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            setLoading(true);
+            await deleteTerm(id);
+            message.success('Xóa kỳ học thành công');
+            fetchTerms();
+        } catch (error) {
+            console.error('Delete Error:', error);
+            message.error(error.response?.data?.message || 'Không thể xóa kỳ học này');
+            setLoading(false);
+        }
+    };
+
+    const handleToggleStatus = async (record) => {
+        try {
+            setLoading(true);
+            await changeTermStatus(record.id, { isActive: !record.isActive });
+            message.success('Cập nhật trạng thái thành công');
+            fetchTerms();
+        } catch (error) {
+            console.error('Status Error:', error);
+            message.error('Không thể cập nhật trạng thái');
+            setLoading(false);
+        }
     };
 
     const filteredTerms = terms.filter(item =>
@@ -114,6 +160,55 @@ export default function TermManagement() {
                 <Tag color={isActive ? "success" : "default"} className="border-0 m-0">
                     {isActive ? "Đang hoạt động" : "Kết thúc"}
                 </Tag>
+            )
+        },
+        {
+            title: 'THAO TÁC',
+            key: 'action',
+            align: 'center',
+            render: (_, record) => (
+                <div className="flex items-center justify-center gap-2">
+                    <Tooltip title="Chỉnh sửa">
+                        <Button
+                            type="text"
+                            icon={<Edit size={16} />}
+                            className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
+                            onClick={() => handleEditClick(record)}
+                        />
+                    </Tooltip>
+                    <Tooltip title={record.isActive ? "Tạm ngưng" : "Kích hoạt"}>
+                        <Popconfirm
+                            title="Xác nhận"
+                            description={`Bạn có chắc muốn ${record.isActive ? "ngưng" : "mở"} kỳ học này?`}
+                            onConfirm={() => handleToggleStatus(record)}
+                            okText="Đồng ý"
+                            cancelText="Hủy"
+                        >
+                            <Button
+                                type="text"
+                                icon={<Power size={16} />}
+                                className={`hover:bg-slate-100 ${record.isActive ? 'text-amber-500 hover:text-amber-600' : 'text-emerald-500 hover:text-emerald-600'}`}
+                            />
+                        </Popconfirm>
+                    </Tooltip>
+                    <Tooltip title="Xóa">
+                        <Popconfirm
+                            title="Xóa kỳ học"
+                            description="Bạn có chắc chắn muốn xóa kỳ học này? Hành động không thể hoàn tác."
+                            onConfirm={() => handleDelete(record.id)}
+                            okText="Xóa"
+                            cancelText="Hủy"
+                            okButtonProps={{ danger: true }}
+                        >
+                            <Button
+                                type="text"
+                                danger
+                                icon={<Trash2 size={16} />}
+                                className="text-slate-400 hover:text-red-500 hover:bg-red-50"
+                            />
+                        </Popconfirm>
+                    </Tooltip>
+                </div>
             )
         }
     ];
@@ -181,7 +276,7 @@ export default function TermManagement() {
             <Modal
                 title={null}
                 open={isModalOpen}
-                onCancel={() => setIsModalOpen(false)}
+                onCancel={() => { setIsModalOpen(false); setEditingTerm(null); }}
                 footer={null}
                 centered
                 width={480}
@@ -192,11 +287,11 @@ export default function TermManagement() {
                         <div className="w-12 h-12 bg-blue-50 text-[#0487e2] rounded-2xl flex items-center justify-center mx-auto mb-3">
                             <Calendar size={24} />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-800">Thêm Kỳ Học Mới</h3>
-                        <p className="text-slate-500 text-sm mt-1">Tạo kỳ học mới cho hệ thống</p>
+                        <h3 className="text-xl font-bold text-slate-800">{editingTerm ? 'Cập Nhật Kỳ Học' : 'Thêm Kỳ Học Mới'}</h3>
+                        <p className="text-slate-500 text-sm mt-1">{editingTerm ? 'Chỉnh sửa thông tin kỳ học' : 'Tạo kỳ học mới cho hệ thống'}</p>
                     </div>
 
-                    <Form form={form} layout="vertical" onFinish={handleCreateSubmit} className="space-y-4">
+                    <Form form={form} layout="vertical" onFinish={handleSubmit} className="space-y-4">
                         <Form.Item label="Mã Kỳ" name="code" rules={[{ required: true, message: 'Vui lòng nhập mã kỳ' }]}>
                             <Input className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" placeholder="VD: FA24" />
                         </Form.Item>
@@ -219,8 +314,8 @@ export default function TermManagement() {
                         </Form.Item>
 
                         <div className="flex gap-3 pt-2">
-                            <Button className="flex-1 h-11 rounded-xl font-semibold border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => setIsModalOpen(false)}>Hủy bỏ</Button>
-                            <Button type="primary" htmlType="submit" loading={submitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold shadow-lg shadow-blue-200 border-none">Tạo Mới</Button>
+                            <Button className="flex-1 h-11 rounded-xl font-semibold border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => { setIsModalOpen(false); setEditingTerm(null); }}>Hủy bỏ</Button>
+                            <Button type="primary" htmlType="submit" loading={submitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold shadow-lg shadow-blue-200 border-none">{editingTerm ? 'Cập Nhật' : 'Tạo Mới'}</Button>
                         </div>
                     </Form>
                 </div>

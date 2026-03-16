@@ -18,11 +18,13 @@ namespace EduAISystem.WebAPI.Controllers.Teacher
     {
         private readonly IMediator _mediator;
         private readonly ILogger<LessonsController> _logger;
+        private readonly IAuditService _auditService;
 
-        public LessonsController(IMediator mediator, ILogger<LessonsController> logger)
+        public LessonsController(IMediator mediator, ILogger<LessonsController> logger, IAuditService auditService)
         {
             _mediator = mediator;
             _logger = logger;
+            _auditService = auditService;
         }
 
         // GET: api/teacher/lessons/{id}
@@ -134,6 +136,7 @@ Giáo viên cập nhật thông tin bài học: tiêu đề, mô tả, tài li�
             {
                 var command = new UpdateLessonCommand(id, dto);
                 await _mediator.Send(command);
+                _auditService.LogAction("UPDATE_LESSON", "Lesson", id, null, dto);
                 return NoContent();
             }
             catch (Exception ex)

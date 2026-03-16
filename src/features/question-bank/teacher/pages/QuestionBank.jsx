@@ -1,177 +1,396 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-    Search,
     Plus,
+    Search,
     Filter,
-    MoreHorizontal,
     FolderOpen,
     FileQuestion,
-    BrainCircuit,
-    PenTool,
-    Trash2,
+    Clock,
     ChevronRight,
-    BookOpen
+    ArrowRightLeft,
+    TrendingUp,
+    Zap,
+    Download,
+    Eye,
+    Layers,
+    CheckCircle2
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import {
+    Table,
+    Button,
+    Input,
+    Tag,
+    Select,
+    Tooltip,
+    Empty,
+    message,
+    Spin,
+    Card,
+    Progress
+} from 'antd';
+import { getQuestionBankSummary } from '../../../quiz/teacher/api/quizApi';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 export default function QuestionBank() {
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+    const [bankData, setBankData] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedSubject, setSelectedSubject] = useState('All');
+    const [statusFilter, setStatusFilter] = useState('all');
 
-    // Mock data for question folders (grouped by Lesson/Topic)
-    const questionFolders = [
-        {
-            id: 1,
-            title: 'Hàm số bậc hai',
-            subject: 'Toán học',
-            grade: 'Lớp 10',
-            questionCount: 45,
-            aiGenerated: 20,
-            manual: 25,
-            lastUpdated: '2 giờ trước',
-            status: 'Active'
-        },
-        {
-            id: 2,
-            title: 'Phương trình lượng giác',
-            subject: 'Toán học',
-            grade: 'Lớp 11',
-            questionCount: 32,
-            aiGenerated: 15,
-            manual: 17,
-            lastUpdated: '1 ngày trước',
-            status: 'Active'
-        },
-        {
-            id: 3,
-            title: 'Động lực học chất điểm',
-            subject: 'Vật lý',
-            grade: 'Lớp 10',
-            questionCount: 28,
-            aiGenerated: 28,
-            manual: 0,
-            lastUpdated: '3 ngày trước',
-            status: 'Draft'
-        },
-        {
-            id: 4,
-            title: 'Di truyền học',
-            subject: 'Sinh học',
-            grade: 'Lớp 12',
-            questionCount: 50,
-            aiGenerated: 10,
-            manual: 40,
-            lastUpdated: '5 ngày trước',
-            status: 'Active'
+    const fetchSummary = useCallback(async () => {
+        try {
+            setLoading(true);
+            const resp = await getQuestionBankSummary();
+            // From provided JSON, data is an array
+            setBankData(resp.data || []);
+        } catch (error) {
+            console.error("Lỗi khi tải thống kê ngân hàng:", error);
+            message.error("Không thể tải dữ liệu ngân hàng câu hỏi");
+        } finally {
+            setLoading(false);
         }
-    ];
+    }, []);
 
-    return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Ngân hàng câu hỏi</h1>
-                    <p className="text-gray-500 mt-1">Quản lý kho câu hỏi theo chủ đề và bài học</p>
-                </div>
-                <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm">
-                        Import / Export
-                    </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm shadow-blue-200">
-                        <Plus size={18} />
-                        Tạo chủ đề mới
-                    </button>
-                </div>
-            </div>
+    useEffect(() => {
+        fetchSummary();
+    }, [fetchSummary]);
 
-            {/* Filters */}
-            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4 md:space-y-0 md:flex md:items-center md:gap-4">
-                <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Tìm kiếm chủ đề, bài học..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
+    const filteredData = bankData.filter(item => {
+        const matchesSearch = 
+            (item.topicName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (item.topicCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (item.courseName || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-                <div className="relative w-full md:w-48">
-                    <select
-                        className="w-full pl-3 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm cursor-pointer"
-                        value={selectedSubject}
-                        onChange={(e) => setSelectedSubject(e.target.value)}
-                    >
-                        <option value="All">Tất cả môn học</option>
-                        <option value="Math">Toán học</option>
-                        <option value="Physics">Vật lý</option>
-                        <option value="Bio">Sinh học</option>
-                    </select>
-                    <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-                </div>
-            </div>
+        let matchesStatus = true;
+        if (statusFilter !== 'all') {
+            matchesStatus = item.status === statusFilter;
+        }
 
-            {/* Content Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {questionFolders.map((folder) => (
-                    <div
-                        key={folder.id}
-                        onClick={() => navigate(`/dashboard/teacher/question-bank/${folder.id}`)}
-                        className="group bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <MoreHorizontal className="text-gray-400 hover:text-gray-600" />
+        return matchesSearch && matchesStatus;
+    });
+
+    const totalQuestionsInBank = bankData.reduce((acc, curr) => acc + (curr.totalQuestions || 0), 0);
+    const totalTopics = bankData.length;
+
+    const columns = [
+        {
+            title: 'CHỦ ĐỀ / BÀI HỌC',
+            key: 'topic',
+            width: 320,
+            render: (_, record) => (
+                <div className="flex items-center gap-4 py-1">
+                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm border border-blue-100 shrink-0">
+                        <FolderOpen size={22} />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="font-bold text-slate-800 text-[15px] truncate group-hover:text-[#0487e2] transition-colors">
+                            {record.topicName}
                         </div>
-
-                        <div className="flex items-start gap-4">
-                            <div className="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                <FolderOpen size={24} />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">{folder.title}</h3>
-                                <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                                    <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-600 font-medium">{folder.subject}</span>
-                                    <span>•</span>
-                                    <span>{folder.grade}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-1.5 text-gray-600">
-                                <FileQuestion size={16} />
-                                <span className="font-semibold">{folder.questionCount}</span> câu hỏi
-                            </div>
-                            <div className="flex items-center gap-3 text-xs">
-                                <div className="flex items-center gap-1 text-purple-600" title="Tạo bởi AI">
-                                    <BrainCircuit size={14} /> {folder.aiGenerated}
-                                </div>
-                                <div className="flex items-center gap-1 text-gray-500" title="Tạo thủ công">
-                                    <PenTool size={14} /> {folder.manual}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-                            <span>Cập nhật {folder.lastUpdated}</span>
-                            <span className={`px-2 py-0.5 rounded-full ${folder.status === 'Active' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
-                                {folder.status === 'Active' ? 'Đang sử dụng' : 'Bản nháp'}
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                {record.topicCode}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold">•</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase truncate max-w-[120px]">
+                                {record.courseName}
                             </span>
                         </div>
                     </div>
-                ))}
-
-                {/* Add New Card */}
-                <button className="flex flex-col items-center justify-center gap-3 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-6 hover:border-blue-400 hover:bg-blue-50/50 transition-all text-gray-400 hover:text-blue-600">
-                    <div className="p-3 bg-white rounded-full shadow-sm">
-                        <Plus size={24} />
+                </div>
+            )
+        },
+        {
+            title: 'THÔNG TIN CHUNG',
+            key: 'info',
+            render: (_, record) => (
+                <div className="flex flex-col">
+                    <span className="text-sm font-bold text-slate-700">{record.grade}</span>
+                    <span className="text-xs text-slate-400 flex items-center gap-1 mt-1 font-medium">
+                        {record.courseName}
+                    </span>
+                </div>
+            )
+        },
+        {
+            title: 'THỐNG KÊ CÂU HỎI',
+            key: 'stats',
+            width: 250,
+            render: (_, record) => {
+                const total = record.totalQuestions || 0;
+                const { easy = 0, medium = 0, hard = 0 } = record.stats || {};
+                
+                return (
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                                <FileQuestion size={16} className="text-[#0487e2]" />
+                                {total} <span className="text-[10px] text-slate-400 font-bold uppercase">câu</span>
+                            </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 w-full h-1.5 rounded-full overflow-hidden bg-slate-100">
+                            {easy > 0 && <div style={{ width: `${(easy/total)*100}%` }} className="h-full bg-emerald-400" />}
+                            {medium > 0 && <div style={{ width: `${(medium/total)*100}%` }} className="h-full bg-amber-400" />}
+                            {hard > 0 && <div style={{ width: `${(hard/total)*100}%` }} className="h-full bg-rose-400" />}
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-tighter text-emerald-600">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {easy} Dễ
+                            </div>
+                            <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-tighter text-amber-600">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> {medium} TB
+                            </div>
+                            <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-tighter text-rose-600">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-400" /> {hard} Khó
+                            </div>
+                        </div>
                     </div>
-                    <span className="font-medium">Tạo bộ câu hỏi mới</span>
-                </button>
+                );
+            }
+        },
+        {
+            title: 'CẬP NHẬT',
+            key: 'updated',
+            render: (_, record) => (
+                <div className="text-xs text-slate-500 font-bold flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5">
+                        <Clock size={12} className="text-slate-400" />
+                        {dayjs(record.lastUpdated).fromNow()}
+                    </div>
+                    <span className="text-[10px] text-slate-300 font-medium">
+                        {dayjs(record.lastUpdated).format('DD/MM/YYYY')}
+                    </span>
+                </div>
+            )
+        },
+        {
+            title: 'TRẠNG THÁI',
+            key: 'status',
+            align: 'center',
+            render: (_, record) => {
+                const isReady = record.status === 'Sẵn sàng';
+                return (
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isReady
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                        : 'bg-slate-50 text-slate-500 border-slate-100'
+                        }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                        {record.status}
+                    </span>
+                );
+            }
+        },
+        {
+            title: '',
+            key: 'action',
+            align: 'right',
+            render: (_, record) => (
+                <Button
+                    type="text"
+                    icon={<ChevronRight size={18} />}
+                    className="text-slate-300 hover:text-[#0487e2] hover:bg-blue-50 transition-all rounded-lg"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        const type = record.topicName === record.courseName ? 'course' : 'lesson';
+                        navigate(`/dashboard/teacher/question-bank/${record.topicId}?type=${type}`);
+                    }}
+                />
+            )
+        }
+    ];
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+                <Spin size="large" />
+                <p className="mt-4 text-slate-400 font-bold uppercase tracking-widest text-xs">Đang tải ngân hàng câu hỏi...</p>
             </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
+            <div className="max-w-7xl mx-auto space-y-6">
+
+                {/* Header Section */}
+                <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Kho Ngân Hàng Câu Hỏi</h1>
+                        <p className="text-slate-500 text-sm mt-1 font-medium italic opacity-80">
+                            Tổ chức, lọc và tái sử dụng nội dung giảng dạy của bạn một cách hiệu quả.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <Button
+                            icon={<Download size={18} />}
+                            className="h-12 px-6 rounded-xl font-bold border-slate-200 text-slate-600 hover:text-[#0463ca] hover:border-[#0463ca] bg-white shadow-sm transition-all flex items-center gap-2"
+                        >
+                            DỮ LIỆU MẪU
+                        </Button>
+                        <Button
+                            type="primary"
+                            icon={<Plus size={18} />}
+                            className="bg-[#0487e2] hover:bg-[#0374c4] h-12 px-8 rounded-xl font-bold shadow-md border-none flex items-center gap-2 active:scale-95 transition-all"
+                        >
+                            TẠO THỦ CÔNG
+                        </Button>
+                    </div>
+                </header>
+
+                {/* Dashboard Stats Banner */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Card className="rounded-2xl border-none shadow-sm bg-indigo-600 text-white overflow-hidden relative group p-1">
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                                    <FileQuestion size={20} />
+                                </div>
+                                <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">TỔNG SỐ CÂU HỎI</span>
+                            </div>
+                            <div className="text-4xl font-bold mb-1">{totalQuestionsInBank}</div>
+                            <div className="text-[11px] font-bold opacity-70 italic">Có sẵn trong kho lưu trữ của bạn</div>
+                        </div>
+                        <Zap className="absolute -bottom-6 -right-6 w-32 h-32 opacity-10 group-hover:rotate-12 transition-transform duration-500" />
+                    </Card>
+
+                    <Card className="rounded-2xl border border-slate-100 shadow-sm bg-white overflow-hidden relative group p-1">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+                                <Layers size={20} />
+                            </div>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">CHƯƠNG & BÀI HỌC</span>
+                        </div>
+                        <div className="text-4xl font-bold text-slate-900 mb-1">{totalTopics}</div>
+                        <div className="text-[11px] font-bold text-slate-500 tracking-tight flex items-center gap-2">
+                            <CheckCircle2 size={14} className="text-emerald-500" /> 100% Đã được phân loại
+                        </div>
+                    </Card>
+
+                    <Card className="rounded-2xl border border-slate-100 shadow-sm bg-white overflow-hidden relative group p-1">
+                         <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm">
+                                <TrendingUp size={20} />
+                            </div>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">ĐỘ PHỦ KIẾN THỨC</span>
+                        </div>
+                        <div className="text-4xl font-bold text-slate-900 mb-1">92%</div>
+                        <Progress percent={92} showInfo={false} strokeColor="#f59e0b" className="m-0 mt-2" />
+                        <div className="text-[11px] font-bold text-slate-500 mt-2 italic opacity-70">Dựa trên chương trình chuẩn</div>
+                    </Card>
+                </div>
+
+                {/* Main Table Area */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+                    
+                    {/* Toolbar */}
+                    <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 justify-between items-end border-b border-slate-100">
+                        <div className="flex items-end gap-6 w-full md:w-auto">
+                            <div className="flex-1 md:flex-initial">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">TÌM KIẾM CHỦ ĐỀ</label>
+                                <Input
+                                    placeholder="Tìm kiếm theo tên, mã hoặc môn học..."
+                                    prefix={<Search size={18} className="text-slate-300" />}
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    className="h-12 w-full md:w-80 rounded-xl border-slate-200 text-sm font-medium transition-all"
+                                    allowClear
+                                />
+                            </div>
+
+                            <div className="w-full md:w-48">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">TRẠNG THÁI</label>
+                                <Select
+                                    value={statusFilter}
+                                    onChange={setStatusFilter}
+                                    className="w-full h-12 custom-select [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!border-slate-200"
+                                    options={[
+                                        { value: 'all', label: 'Tất cả trạng thái' },
+                                        { value: 'Sẵn sàng', label: 'Sẵn sàng' },
+                                        { value: 'Nháp', label: 'Đang soạn' }
+                                    ]}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <Button
+                                icon={<Filter size={18} />}
+                                className="h-12 w-12 rounded-xl border-slate-200 text-slate-400 hover:text-[#0463ca] hover:border-[#0463ca] flex items-center justify-center transition-all shadow-sm"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Table Container */}
+                    <div className="px-4 pb-4">
+                        <Table
+                            columns={columns}
+                            dataSource={filteredData}
+                            rowKey="topicId"
+                            pagination={{
+                                pageSize: 12,
+                                showSizeChanger: false,
+                                className: "px-8 py-6",
+                                position: ['bottomCenter']
+                            }}
+                            className="question-bank-table"
+                            rowClassName="group cursor-pointer hover:bg-blue-50/30 transition-all duration-300"
+                            onRow={(record) => ({
+                                onClick: () => {
+                                    const type = record.topicName === record.courseName ? 'course' : 'lesson';
+                                    navigate(`/dashboard/teacher/question-bank/${record.topicId}?type=${type}`);
+                                }
+                            })}
+                            locale={{
+                                emptyText: (
+                                    <div className="py-20 flex flex-col items-center">
+                                        <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 text-slate-200">
+                                            <FolderOpen size={40} />
+                                        </div>
+                                        <Empty description={
+                                            <div className="space-y-1">
+                                                <p className="text-slate-700 font-bold text-base">Không tìm thấy chủ đề nào</p>
+                                                <p className="text-slate-400 text-sm font-medium">Hãy thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
+                                            </div>
+                                        } />
+                                    </div>
+                                )
+                            }}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Aesthetic Overlays */}
+            <style dangerouslySetInnerHTML={{ __html: `
+                .question-bank-table .ant-table-thead > tr > th {
+                    background: transparent;
+                    border-bottom: 2px solid #f8fafc;
+                    padding: 20px 24px;
+                    color: #94a3b8;
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                }
+                .question-bank-table .ant-table-tbody > tr > td {
+                    padding: 20px 24px;
+                    border-bottom: 1px solid #f8fafc;
+                }
+                .question-bank-table .ant-table-row:last-child td {
+                    border-bottom: none;
+                }
+                .ant-progress-inner {
+                    background-color: #f1f5f9 !important;
+                }
+            ` }} />
         </div>
     );
 }
+

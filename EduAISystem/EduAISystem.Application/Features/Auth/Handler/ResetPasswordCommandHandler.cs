@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Application.Common.Exceptions;
@@ -18,15 +19,18 @@ namespace EduAISystem.Application.Features.Auth.Handler
         private readonly IPasswordResetTokenRepository _resetTokens;
         private readonly IUserRepository _users;
         private readonly IPasswordHasher _hasher;
+        private readonly IAuditService _auditService;
 
         public ResetPasswordCommandHandler(
             IPasswordResetTokenRepository resetTokens,
             IUserRepository users,
-            IPasswordHasher hasher)
+            IPasswordHasher hasher,
+            IAuditService auditService)
         {
             _resetTokens = resetTokens;
             _users = users;
             _hasher = hasher;
+            _auditService = auditService;
         }
 
         public async Task<Unit> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
@@ -59,6 +63,8 @@ namespace EduAISystem.Application.Features.Auth.Handler
             // Đánh dấu token đã dùng
             resetToken.MarkAsUsed();
             await _resetTokens.UpdateAsync(resetToken, cancellationToken);
+
+            _auditService.LogAction("RESET_PASSWORD", "User", user.Id);
 
             return Unit.Value;
         }

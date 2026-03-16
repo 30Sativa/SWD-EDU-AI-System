@@ -10,6 +10,7 @@ using EduAISystem.Infrastructure.Services.Email;
 using EduAISystem.Infrastructure.Services.Excel;
 using EduAISystem.Infrastructure.Services.ExternalApis;
 using EduAISystem.Infrastructure.Services.Identity;
+using EduAISystem.Infrastructure.Services.Logging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,11 +59,15 @@ namespace EduAISystem.Infrastructure
             services.AddScoped<ILessonBlockRepository, LessonBlockRepository>();
             services.AddScoped<ILessonFaqRepository, LessonFaqRepository>();
             services.AddScoped<IAilogRepository, AilogRepository>();
+            services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+            services.AddScoped<IAuditService, AuditService>();
             services.AddScoped<ILessonAiService, LessonAiService>();
+            services.AddScoped<IQuestionAiService, QuestionAiService>();
             services.AddScoped<IStudentRepository, StudentRepository>();
             services.AddScoped<ILessonProgressRepository, LessonProgressRepository>();
             services.AddScoped<IDashboardRepository, DashboardRepository>();
             services.AddHttpClient<IAiChatService, AiChatService>();
+            services.AddScoped<INotificationService, Services.Notifications.NotificationService>();
             // 3. Auth Token Repositories
             services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
             services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();
@@ -80,6 +85,7 @@ namespace EduAISystem.Infrastructure
 
             // 7. HttpClient + Polly Resilience cho AI Services
             services.AddHttpClient<ICourseAiService, CourseAiService>();
+            services.AddHttpClient<IQuestionAiService, QuestionAiService>();
 
             // ===== LessonAiService: Retry 3 lần + Circuit Breaker =====
             services.AddHttpClient<ILessonAiService, LessonAiService>()

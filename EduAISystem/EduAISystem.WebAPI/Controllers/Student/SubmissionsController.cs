@@ -18,10 +18,12 @@ namespace EduAISystem.WebAPI.Controllers.Student
     public class SubmissionsController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IAuditService _auditService;
 
-        public SubmissionsController(IMediator mediator)
+        public SubmissionsController(IMediator mediator, IAuditService auditService)
         {
             _mediator = mediator;
+            _auditService = auditService;
         }
 
         [HttpPost("assignment/{assignmentId:guid}")]
@@ -64,6 +66,8 @@ namespace EduAISystem.WebAPI.Controllers.Student
             var id = await _mediator.Send(
                 new SubmitAssignmentCommand(assignmentId, dto),
                 cancellationToken);
+
+            _auditService.LogAction("SUBMIT_ASSIGNMENT", "Assignment", assignmentId, null, new { SubmissionId = id });
 
             return Ok(ApiResponse<Guid>.Ok(id, "Nộp bài thành công."));
         }

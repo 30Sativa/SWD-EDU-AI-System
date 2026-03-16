@@ -9,9 +9,8 @@ public partial class AuditLog
 
     public Guid? UserId { get; set; }
 
-    public string Action { get; set; } = null!;
-
-    public string Entity { get; set; } = null!;
+    public string? Action { get; set; }
+    public string? Entity { get; set; }
 
     public Guid? EntityId { get; set; }
 
