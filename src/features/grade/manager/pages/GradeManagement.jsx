@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Edit, Layers, BookOpen, Filter, School, Trash2, X, Users, Calendar, Eye, UserPlus } from 'lucide-react';
 import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, Switch, Select, Tabs, Popconfirm, Descriptions } from 'antd';
+
+import { Plus, Search, Edit, Layers, BookOpen, Filter, School, Trash2, X } from 'lucide-react';
+import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, Switch, Select, Tabs } from 'antd';
+
 import {
     getGradeLevels,
     createGradeLevel,
@@ -11,6 +16,7 @@ import {
 import {
     getClasses,
     createClass,
+
     updateClass,
     changeClassStatus,
     deleteClass,
@@ -25,6 +31,16 @@ import { getSubjects } from '../../../subject/api/subjectApi';
 export default function GradeManagement() {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('2'); // '1': Grades, '2': Classes
+
+    updateClass
+} from '../../../classes/api/classApi';
+import { Users, Calendar } from 'lucide-react';
+import { getUsers, ROLE_ENUM } from '../../../user/api/userApi';
+import { getTerms } from '../../../term/api/termApi';
+
+export default function GradeManagement() {
+    const [activeTab, setActiveTab] = useState('1'); // '1': Grades, '2': Classes
+
 
     // Common State
     const [loading, setLoading] = useState(true);
@@ -50,19 +66,30 @@ export default function GradeManagement() {
     const [form] = Form.useForm();
     const [classForm] = Form.useForm();
 
+
     // Data for Class Assignment UI check
     const [subjects, setSubjects] = useState([]);
+
+
 
     // Fetch Data
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
+
             const [gradeRes, classRes, teacherRes, termRes, subjectRes] = await Promise.all([
                 getGradeLevels(),
                 getClasses(),
                 getUsers({ RoleFilter: ROLE_ENUM.TEACHER, PageSize: 100 }),
                 getTerms().catch(() => ({ data: [] })), // Use centralized API
                 getSubjects().catch(() => ({ data: [] }))
+
+            const [gradeRes, classRes, teacherRes, termRes] = await Promise.all([
+                getGradeLevels(),
+                getClasses(),
+                getUsers({ RoleFilter: ROLE_ENUM.TEACHER, PageSize: 100 }),
+                getTerms().catch(() => ({ data: [] })) // Use centralized API
+
             ]);
 
             const gradeData = gradeRes?.data?.items || gradeRes?.items || gradeRes?.data || gradeRes || [];
@@ -76,9 +103,12 @@ export default function GradeManagement() {
             const termItems = termRes?.data?.items || termRes?.items || termRes?.data || termRes || [];
             setTerms(Array.isArray(termItems) ? termItems : []);
 
+
             // Handle Subjects
             const subjectItems = subjectRes?.data?.items || subjectRes?.items || subjectRes?.data || subjectRes || [];
             setSubjects(Array.isArray(subjectItems) ? subjectItems : []);
+
+
 
             setGrades(Array.isArray(gradeData) ? gradeData : []);
             setClasses(Array.isArray(classData) ? classData : []);
@@ -129,6 +159,7 @@ export default function GradeManagement() {
             setGradeSubmitting(false);
         }
     };
+
 
     const handleToggleGradeStatus = (record) => {
         if (!record || !record.id) {
@@ -242,10 +273,21 @@ export default function GradeManagement() {
             console.error('Toggle Class Status Error:', error);
             message.error('Không thể cập nhật trạng thái lớp');
             setClasses(previousClasses);
+
+    const handleToggleGradeStatus = async (id) => {
+        try {
+            setStatusUpdating(id);
+            await changeGradeLevelStatus(id);
+            message.success('Cập nhật trạng thái khối thành công');
+            setGrades(prev => prev.map(g => g.id === id ? { ...g, isActive: !g.isActive } : g));
+        } catch (error) {
+            message.error('Không thể đổi trạng thái');
+
         } finally {
             setStatusUpdating(null);
         }
     };
+
 
     const handleDeleteClass = async (id) => {
         const previousClasses = [...classes];
@@ -264,6 +306,8 @@ export default function GradeManagement() {
             setClasses(previousClasses);
         }
     };
+
+
 
     const handleOpenClassModal = (classItem = null) => {
         setEditingClass(classItem);
@@ -288,6 +332,7 @@ export default function GradeManagement() {
         try {
             setClassSubmitting(true);
 
+
             if (editingClass) {
                 const updatePayload = {
                     name: values.name,
@@ -305,6 +350,18 @@ export default function GradeManagement() {
                     maxStudents: parseInt(values.maxStudents) || 0
                 };
                 await createClass(createPayload);
+
+            const payload = {
+                ...values,
+                maxStudents: parseInt(values.maxStudents)
+            };
+
+            if (editingClass) {
+                await updateClass(editingClass.id, payload);
+                message.success('Cập nhật lớp học thành công!');
+            } else {
+                await createClass(payload);
+
                 message.success('Tạo lớp học mới thành công!');
             }
 
@@ -389,7 +446,11 @@ export default function GradeManagement() {
                         size="small"
                         checked={isActive}
                         loading={statusUpdating === record.id}
+
                         onChange={() => handleToggleGradeStatus(record)}
+
+                        onChange={() => handleToggleGradeStatus(record.id)}
+
                         className={isActive ? 'bg-[#0487e2]' : 'bg-slate-300'}
                     />
                 </div>
@@ -456,7 +517,11 @@ export default function GradeManagement() {
             }
         },
         {
+
             title: 'GVCN',
+
+            title: 'GIÁO VIÊN',
+
             key: 'teacher',
             render: (_, record) => {
                 // Try to find teacher name from the record or look it up in the teachers list if we have IDs
@@ -478,10 +543,17 @@ export default function GradeManagement() {
         },
         {
             title: 'SĨ SỐ',
+
             dataIndex: 'currentStudents',
             key: 'students',
             render: (count, record) => {
                 const current = count || record.studentCount || 0;
+
+            dataIndex: 'studentCount',
+            key: 'students',
+            render: (count, record) => {
+                const current = count || 0;
+
                 const max = record.maxStudents || record.maxStudent || 40;
                 return (
                     <div className="text-sm font-medium text-slate-600">
@@ -494,6 +566,7 @@ export default function GradeManagement() {
             title: 'TRẠNG THÁI',
             dataIndex: 'isActive',
             align: 'center',
+
             render: (isActive, record) => (
                 <div onClick={(e) => e.stopPropagation()}>
                     <Switch
@@ -504,6 +577,12 @@ export default function GradeManagement() {
                         className={isActive ? 'bg-emerald-500' : 'bg-slate-300'}
                     />
                 </div>
+
+            render: (isActive) => (
+                <Tag color={isActive ? "success" : "default"} className="border-0 m-0">
+                    {isActive ? "Đang hoạt động" : "Ngừng hoạt động"}
+                </Tag>
+
             )
         },
         {
@@ -511,6 +590,7 @@ export default function GradeManagement() {
             key: 'action',
             align: 'right',
             render: (_, record) => (
+
                 <div className="flex justify-end gap-2">
                     <Tooltip title="Phân công GV Bộ môn">
                         <Button
@@ -557,6 +637,17 @@ export default function GradeManagement() {
                         </Tooltip>
                     </Popconfirm>
                 </div>
+
+                <Tooltip title="Chỉnh sửa">
+                    <Button
+                        type="text"
+                        shape="circle"
+                        icon={<Edit size={16} />}
+                        className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 transition-colors"
+                        onClick={() => handleOpenClassModal(record)}
+                    />
+                </Tooltip>
+
             )
         }
     ];
@@ -589,20 +680,36 @@ export default function GradeManagement() {
                             onChange={setActiveTab}
                             items={[
                                 {
+
                                     key: '2',
                                     label: (
                                         <span className="flex items-center gap-2 px-1">
                                             <BookOpen size={16} />
                                             Danh sách Lớp học
-                                        </span>
-                                    ),
-                                },
-                                {
+
                                     key: '1',
                                     label: (
                                         <span className="flex items-center gap-2 px-1">
                                             <Layers size={16} />
                                             Danh sách Khối
+
+                                        </span>
+                                    ),
+                                },
+                                {
+
+                                    key: '1',
+                                    label: (
+                                        <span className="flex items-center gap-2 px-1">
+                                            <Layers size={16} />
+                                            Danh sách Khối
+
+                                    key: '2',
+                                    label: (
+                                        <span className="flex items-center gap-2 px-1">
+                                            <BookOpen size={16} />
+                                            Danh sách Lớp học
+
                                         </span>
                                     ),
                                 }
@@ -711,21 +818,35 @@ export default function GradeManagement() {
                 onCancel={() => setIsClassModalOpen(false)}
                 footer={null}
                 centered
+
                 width={600}
                 closeIcon={<div className="p-1.5 bg-slate-100 rounded-full text-slate-500 hover:bg-rose-50 hover:text-rose-500 transition-colors"><X size={18} /></div>}
             >
                 <div className="pt-4 px-1">
                     <div className="mb-4 text-center">
                         <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-2">
+
+                width={550}
+                closeIcon={<div className="p-1.5 bg-slate-100 rounded-full text-slate-500 hover:bg-rose-50 hover:text-rose-500 transition-colors"><X size={18} /></div>}
+            >
+                <div className="pt-6 px-2">
+                    <div className="mb-6 text-center">
+                        <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+
                             <School size={24} />
                         </div>
                         <h3 className="text-xl font-bold text-slate-800">
                             {editingClass ? "Cập nhật Lớp học" : "Thêm Lớp học mới"}
                         </h3>
+
                         <p className="text-slate-500 text-sm mt-0.5">
+
+                        <p className="text-slate-500 text-sm mt-1">
+
                             {editingClass ? "Điều chỉnh thông tin lớp học hiện tại" : "Tạo lớp học mới cho năm học hiện tại"}
                         </p>
                     </div>
+
 
                     <Form form={classForm} layout="vertical" onFinish={handleClassSubmit} className="space-y-3">
 
@@ -746,10 +867,35 @@ export default function GradeManagement() {
                             <Select
                                 placeholder="Chọn học kỳ"
                                 className="h-10 [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent [&>.ant-select-selector]:!h-10 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
+
+                    <Form form={classForm} layout="vertical" onFinish={handleClassSubmit} className="space-y-4">
+
+                        <Form.Item label="Tên Lớp" name="name" rules={[{ required: true, message: 'Nhập tên lớp' }]}>
+                            <Input className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" placeholder="VD: Lớp 10A1" />
+                        </Form.Item>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <Form.Item label="Mã Lớp" name="code" rules={[{ required: true, message: 'Nhập mã lớp' }]}>
+                                <Input className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" placeholder="VD: 10A1" />
+                            </Form.Item>
+                            <Form.Item label="Sĩ số tối đa" name="maxStudents">
+                                <Input type="number" className="h-11 rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" placeholder="40" />
+                            </Form.Item>
+                        </div>
+
+                        <Form.Item label="Thuộc Học Kỳ" name="termId" rules={[{ required: true, message: 'Vui lòng chọn học kỳ' }]}>
+                            <Select
+                                placeholder="Chọn học kỳ"
+                                className="h-11 [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent [&>.ant-select-selector]:!h-11 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
+
                             >
                                 {terms.length > 0 ? terms.map(t => (
                                     <Select.Option key={t.id} value={t.id}>{t.name} ({t.code})</Select.Option>
                                 )) : (
+
+
+                                    // Fallback if no terms found, maybe offer a manual input or dummy
+
                                     <>
                                         <Select.Option value="term_1">Học kỳ 1 (2025-2026)</Select.Option>
                                         <Select.Option value="term_2">Học kỳ 2 (2025-2026)</Select.Option>
@@ -759,12 +905,20 @@ export default function GradeManagement() {
                         </Form.Item>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                             <Form.Item label="Giáo viên chủ nhiệm" name="teacherId" rules={[{ required: true, message: 'Vui lòng chọn giáo viên' }]} className="mb-2">
+
+                            <Form.Item label="Giáo viên chủ nhiệm" name="teacherId" rules={[{ required: true, message: 'Vui lòng chọn giáo viên' }]}>
+
                                 <Select
                                     placeholder="Chọn giáo viên"
                                     showSearch
                                     optionFilterProp="children"
+
                                     className="h-10 [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent [&>.ant-select-selector]:!h-10 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
+
+                                    className="h-11 [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent [&>.ant-select-selector]:!h-11 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
+
                                 >
                                     {teachers.map(t => (
                                         <Select.Option key={t.id} value={t.id}>
@@ -779,10 +933,17 @@ export default function GradeManagement() {
                                 </Select>
                             </Form.Item>
 
+
                             <Form.Item label="Thuộc Khối" name="gradeLevelId" rules={[{ required: true, message: 'Vui lòng chọn khối' }]} className="mb-2">
                                 <Select
                                     placeholder="Chọn khối lớp"
                                     className="h-10 [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent [&>.ant-select-selector]:!h-10 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
+
+                            <Form.Item label="Thuộc Khối" name="gradeLevelId" rules={[{ required: true, message: 'Vui lòng chọn khối' }]}>
+                                <Select
+                                    placeholder="Chọn khối lớp"
+                                    className="h-11 [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!bg-slate-50 [&>.ant-select-selector]:!border-transparent [&>.ant-select-selector]:!h-11 [&>.ant-select-selector]:!flex [&>.ant-select-selector]:!items-center"
+
                                 >
                                     {grades.map(g => (
                                         <Select.Option key={g.id} value={g.id}>{g.name} ({g.code})</Select.Option>
@@ -791,6 +952,7 @@ export default function GradeManagement() {
                             </Form.Item>
                         </div>
 
+
                         <Form.Item label="Mô tả" name="description" className="mb-4">
                             <Input.TextArea rows={2} className="rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" />
                         </Form.Item>
@@ -798,6 +960,15 @@ export default function GradeManagement() {
                         <div className="flex gap-3 pt-1">
                             <Button className="flex-1 h-10 rounded-xl font-semibold border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => setIsClassModalOpen(false)}>Hủy bỏ</Button>
                             <Button type="primary" htmlType="submit" loading={classSubmitting} className="flex-1 h-10 rounded-xl bg-[#0487e2] font-bold shadow-lg shadow-blue-200 border-none">
+
+                        <Form.Item label="Mô tả" name="description">
+                            <Input.TextArea rows={3} className="rounded-xl bg-slate-50 border-transparent hover:bg-white focus:bg-white transition-all font-medium" />
+                        </Form.Item>
+
+                        <div className="flex gap-3 pt-2">
+                            <Button className="flex-1 h-11 rounded-xl font-semibold border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => setIsClassModalOpen(false)}>Hủy bỏ</Button>
+                            <Button type="primary" htmlType="submit" loading={classSubmitting} className="flex-1 h-11 rounded-xl bg-[#0487e2] font-bold shadow-lg shadow-blue-200 border-none">
+
                                 {editingClass ? "Lưu Thay Đổi" : "Tạo Lớp Mới"}
                             </Button>
                         </div>

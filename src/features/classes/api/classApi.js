@@ -4,14 +4,18 @@ export const getClasses = (params) => {
     return axiosClient.get('/api/manager/classes', { params });
 };
 
+
 export const getTeacherHomeroomClasses = (params) => {
     return axiosClient.get('/api/teacher/classes/homeroom', { params });
 };
 
 
+
+
 export const createClass = (data) => {
     return axiosClient.post('/api/manager/classes', data);
 };
+
 
 export const getTeacherClassStudents = (id) => {
     return axiosClient.get(`/api/teacher/classes/${id}/students`);
@@ -35,6 +39,8 @@ export const importStudentsToClass = (id, file) => {
     });
 };
 
+
+
 export const getClassDetail = (id) => {
     return axiosClient.get(`/api/manager/classes/${id}`);
 };
@@ -42,6 +48,7 @@ export const getClassDetail = (id) => {
 export const updateClass = (id, data) => {
     return axiosClient.put(`/api/manager/classes/${id}`, data);
 };
+
 
 export const changeClassStatus = (id, status) => {
     return axiosClient.patch(`/api/manager/classes/${id}/status`, status !== undefined ? { isActive: status } : {});
@@ -62,3 +69,5 @@ export const getSubjectTeachers = (id) => {
 export const getTeacherAssignedClasses = (teacherId) => {
     return axiosClient.get(`/api/manager/classes/teacher/${teacherId}/class-subjects`);
 };
+
+

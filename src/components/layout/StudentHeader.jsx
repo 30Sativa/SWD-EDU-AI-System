@@ -3,7 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, LogOut, Search, GraduationCap } from 'lucide-react';
 import { message } from 'antd';
 import { getCurrentUser } from '../../features/user/api/userApi';
+
 import NotificationDropdown from '../../features/dashboard/components/NotificationDropdown';
+
+
 
 export default function StudentHeader() {
     const location = useLocation();
@@ -16,6 +19,7 @@ export default function StudentHeader() {
             try {
                 const response = await getCurrentUser();
                 const userData = response?.data || response;
+
                 const displayName = userData?.fullName || userData?.profile?.fullName || userData?.userName || 'User';
                 userData && setUser({
                     name: displayName,
@@ -26,6 +30,17 @@ export default function StudentHeader() {
                 console.error('Failed to fetch user profile:', error);
                 // Fallback to localStorage
                 const storedName = localStorage.getItem('userFullName');
+
+                userData && setUser({
+                    name: userData.userName || 'User',
+                    role: userData.roleName || 'Student'
+                });
+                userData?.userName && localStorage.setItem('userName', userData.userName);
+            } catch (error) {
+                console.error('Failed to fetch user profile:', error);
+                // Fallback to localStorage
+                const storedName = localStorage.getItem('userName');
+
                 const storedRole = localStorage.getItem('userRole');
                 setUser({
                     name: storedName || 'User',

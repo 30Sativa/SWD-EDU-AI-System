@@ -19,4 +19,3 @@ export const updateSubject = (id, data) => {
 export const changeSubjectStatus = (id, statusData) => {
     return axiosClient.patch(`/api/manager/subjects/${id}/status`, statusData);
 };
-

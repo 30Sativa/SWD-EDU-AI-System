@@ -8,7 +8,10 @@ import {
 } from 'lucide-react';
 import { message } from 'antd';
 import { getCurrentUser } from '../../user/api/userApi';
+
 import NotificationDropdown from './NotificationDropdown';
+
+
 
 export default function Header({ userRole, basePath }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -23,10 +26,14 @@ export default function Header({ userRole, basePath }) {
         const userData = response?.data || response;
         setCurrentUser(userData);
 
+
         // Prioritize full name for display
         const nameToStore = userData?.fullName || userData?.profile?.fullName || userData?.userName;
         if (nameToStore) localStorage.setItem('userName', nameToStore);
         if (userData?.id) localStorage.setItem('userId', userData.id);
+
+        userData?.userName && localStorage.setItem('userName', userData.userName);
+
       } catch (error) {
         console.error('Failed to fetch user:', error);
       }
@@ -34,8 +41,12 @@ export default function Header({ userRole, basePath }) {
     fetchUser();
   }, []);
 
+
   // Determine display name: State > LocalStorage > Default
   const userName = currentUser?.fullName || currentUser?.profile?.fullName || currentUser?.userName || localStorage.getItem('userName') || 'User';
+
+  const userName = currentUser?.userName || localStorage.getItem('userName') || 'User';
+
 
   const getRoleLabel = (role) => {
     const labels = {
@@ -85,12 +96,17 @@ export default function Header({ userRole, basePath }) {
                   <p className="text-sm font-semibold text-gray-900">{userName}</p>
                   <p className="text-xs text-gray-500">{getRoleLabel(userRole)}</p>
                 </div>
+
                 <Link
                   onClick={() => setUserDropdownOpen(false)}
                   to={`${basePath}/profile`}
                   className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
                 >
                   <User size={16} /> Hồ sơ cá nhân
+
+                <Link to={`${basePath}/profile`} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                  <User size={16} /> Hồ sơ
+
                 </Link>
                 <Link
                   onClick={() => setUserDropdownOpen(false)}
