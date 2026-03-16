@@ -14,24 +14,30 @@ import {
   Bell,
   FileText,
   Book,
+  Layers,
+  Calendar, // Import Calendar
 } from 'lucide-react';
 import ScrollToTop from './ScrollToTop';
 import Header from '../../features/dashboard/components/Header';
+import CheckProfileWrapper from './CheckProfileWrapper';
 
 const MENU_ITEMS = [
-  { label: 'Bảng điều khiển', icon: LayoutDashboard, path: 'dashboard', allowedRoles: ['admin', 'teacher', 'student', 'manager'] },
+  { label: 'Tổng quan', icon: LayoutDashboard, path: 'dashboard', allowedRoles: ['admin', 'teacher', 'student', 'manager'] },
   { label: 'Vai trò & Quyền', icon: Lock, path: 'roles-permissions', allowedRoles: ['admin'] },
   { label: 'Người dùng', icon: Users, path: 'users', allowedRoles: ['admin'] },
-  { label: 'Thông báo', icon: Bell, path: 'notifications', allowedRoles: ['admin', 'manager'] },
+  { label: 'Thông báo', icon: Bell, path: 'notifications', allowedRoles: ['admin'] },
   { label: 'Nhật ký hệ thống', icon: FileText, path: 'audit-logs', allowedRoles: ['admin'] },
-  { label: 'Quản lý Môn học', icon: Book, path: 'subjects', allowedRoles: ['manager'] },
-  { label: 'Ngân hàng câu hỏi', icon: ListChecks, path: 'question-bank', allowedRoles: ['manager'] },
+  { label: 'Môn học & Danh mục', icon: Book, path: 'subjects', allowedRoles: ['manager'] },
+  { label: 'Quản lý Kỳ học', icon: Calendar, path: 'terms', allowedRoles: ['manager'] },
+  { label: 'Quản lý Khối/Lớp', icon: Layers, path: 'grades', allowedRoles: ['manager'] },
   { label: 'Khóa học', icon: BookOpen, path: 'courses', allowedRoles: ['teacher', 'student'] },
+  { label: 'Khóa học mẫu ', icon: BookOpen, path: 'courses', allowedRoles: ['manager'] },
   { label: 'Bài kiểm tra', icon: ListChecks, path: 'quizzes', allowedRoles: ['student'] },
   { label: 'Tiến độ', icon: TrendingUp, path: 'progress', allowedRoles: ['student'] },
   { label: 'Lớp học', icon: Users, path: 'classes', allowedRoles: ['teacher'] },
   { label: 'Câu hỏi', icon: ListChecks, path: 'question-bank', allowedRoles: ['teacher'] },
-  { label: 'Cài đặt', icon: Settings, path: 'settings', allowedRoles: ['admin', 'teacher', 'student', 'manager'] },
+  { label: 'Ngân hàng câu hỏi', icon: ListChecks, path: 'question-bank', allowedRoles: ['manager'] },
+  { label: 'Cấu hình hệ thống', icon: Settings, path: 'settings', allowedRoles: ['admin'] },
 ];
 
 export default function Sidebar({ userRole = 'teacher' }) {
@@ -102,9 +108,11 @@ export default function Sidebar({ userRole = 'teacher' }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <Header userRole={detectedRole} />
+        <Header userRole={detectedRole} basePath={BASE_PATH} />
         <main className="flex-1 overflow-auto bg-gray-50 p-6">
-          <Outlet />
+          <CheckProfileWrapper>
+            <Outlet />
+          </CheckProfileWrapper>
         </main>
       </div>
     </div>

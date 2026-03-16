@@ -9,6 +9,7 @@ import {
     Edit,
     FileText
 } from 'lucide-react';
+import { message } from 'antd';
 import { getSubjectById, updateSubject } from '../../api/subjectApi';
 
 export default function SubjectDetail() {
@@ -20,7 +21,6 @@ export default function SubjectDetail() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
-    const [successMsg, setSuccessMsg] = useState('');
     const [originalData, setOriginalData] = useState(null);
 
     const [formData, setFormData] = useState({
@@ -78,7 +78,6 @@ export default function SubjectDetail() {
         e?.preventDefault();
         try {
             setSaving(true);
-            setSuccessMsg('');
             setError(null);
 
             const payload = {
@@ -98,11 +97,8 @@ export default function SubjectDetail() {
             // Re-fetch server data after a tiny delay to ensure consistency
             setTimeout(async () => {
                 await fetchSubjectDetail(true);
-                setSuccessMsg("Cập nhật môn học thành công!");
-                setTimeout(() => {
-                    setIsEditing(false);
-                    setSuccessMsg('');
-                }, 3000);
+                message.success("Cập nhật môn học thành công!");
+                setIsEditing(false);
             }, 500);
 
         } catch (err) {
@@ -138,12 +134,6 @@ export default function SubjectDetail() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {successMsg && (
-                        <div className="hidden md:flex items-center gap-2 text-emerald-600 font-bold bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-right-4">
-                            <CheckCircle size={18} />
-                            <span className="text-sm">{successMsg}</span>
-                        </div>
-                    )}
 
                     {!isEditing ? (
                         <button

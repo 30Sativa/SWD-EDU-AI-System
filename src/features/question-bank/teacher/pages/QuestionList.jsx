@@ -1,175 +1,250 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft,
     Search,
     Filter,
-    BrainCircuit,
-    PenTool,
-    MoreVertical,
+    FolderOpen,
+    FileQuestion,
     Edit3,
     Trash2,
     Plus,
     CheckCircle2,
-    AlertCircle
+    Zap,
+    BookOpen,
+    ChevronRight,
+    SearchX
 } from 'lucide-react';
+import {
+    Button,
+    Input,
+    Tag,
+    Select,
+    Empty,
+    Spin,
+    message,
+    Tooltip,
+    Breadcrumb
+} from 'antd';
+import { getQuestionsBank } from '../../../quiz/teacher/api/quizApi';
 
 export default function QuestionList() {
     const { folderId } = useParams();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const type = searchParams.get('type');
+    
+    const [loading, setLoading] = useState(true);
+    const [questions, setQuestions] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterType, setFilterType] = useState('All'); // All, AI, Manual
+    const [filterType, setFilterType] = useState('All'); // All, MCQ, TrueFalse, ShortAnswer, MultipleChoice
 
-    // Mock data for questions
-    const questions = [
-        {
-            id: 1,
-            content: 'Trong mặt phẳng tọa độ Oxy, cho parabol (P): y = ax² + bx + c đi qua điểm A(1; 0) và có đỉnh I(–1; –4). Tính giá trị của biểu thức S = a + b + c.',
-            type: 'Multiple Choice',
-            level: 'Medium',
-            source: 'AI Generated', // or 'Manual'
-            tags: ['Hàm số bậc hai', 'Parabol'],
-            createdAt: '2024-03-10'
-        },
-        {
-            id: 2,
-            content: 'Tìm tập xác định D của hàm số y = √(2x - 4) + 1/(x - 5).',
-            type: 'Multiple Choice',
-            level: 'Easy',
-            source: 'Manual',
-            tags: ['Tập xác định'],
-            createdAt: '2024-03-09'
-        },
-        {
-            id: 3,
-            content: 'Giải thích ý nghĩa hình học của hệ số a trong phương trình y = ax² + bx + c.',
-            type: 'Essay',
-            level: 'Hard',
-            source: 'AI Generated',
-            tags: ['Lý thuyết', 'Hàm số'],
-            createdAt: '2024-03-08'
-        },
-        {
-            id: 4,
-            content: 'Cho hàm số y = f(x) có bảng biến thiên như hình vẽ. Hàm số đồng biến trên khoảng nào?',
-            type: 'Multiple Choice',
-            level: 'Easy',
-            source: 'Manual',
-            tags: ['Đơn điệu'],
-            createdAt: '2024-03-05'
+    const fetchQuestions = useCallback(async () => {
+        try {
+            setLoading(true);
+            const params = type === 'lesson' ? { lessonId: folderId } : { courseId: folderId };
+            const resp = await getQuestionsBank(params);
+            const data = resp.data || resp;
+            setQuestions(Array.isArray(data) ? data : (data.items || []));
+        } catch (error) {
+            console.error("Lỗi khi tải danh sách câu hỏi:", error);
+            message.error("Không thể tải danh sách câu hỏi");
+        } finally {
+            setLoading(false);
         }
-    ];
+    }, [folderId, type]);
+
+    useEffect(() => {
+        fetchQuestions();
+    }, [fetchQuestions]);
+
+    const filteredData = questions.filter(q => {
+        const matchesSearch = (q.questionText || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesType = filterType === 'All' || q.questionType === filterType;
+        return matchesSearch && matchesType;
+    });
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+                <Spin size="large" />
+                <p className="mt-4 text-slate-400 font-bold uppercase tracking-widest text-xs">Đang tải danh sách câu hỏi...</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={() => navigate('/dashboard/teacher/question-bank')}
-                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                    <ArrowLeft size={20} />
-                </button>
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Danh sách câu hỏi</h1>
-                    <p className="text-gray-500 text-sm mt-0.5">Chủ đề: Hàm số bậc hai • Lớp 10</p>
-                </div>
-            </div>
+        <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
+            <div className="max-w-6xl mx-auto space-y-6">
+                
+                {/* Header & Breadcrumb */}
+                <div className="flex flex-col gap-4 mb-4">
+                    <Breadcrumb 
+                        items={[
+                            { title: <span onClick={() => navigate('/dashboard/teacher/question-bank')} className="text-slate-400 hover:text-[#0463ca] cursor-pointer font-medium">Ngân hàng</span> },
+                            { title: <span className="text-slate-600 font-bold">Danh sách câu hỏi</span> },
+                        ]}
+                    />
 
-            {/* Toolbar */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                <div className="flex gap-2 w-full md:w-auto">
-                    <div className="relative flex-1 md:w-80">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm nội dung câu hỏi..."
-                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="relative">
-                        <button className="h-full px-3 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
-                            <Filter size={18} />
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex gap-2 w-full md:w-auto justify-end">
-                    <div className="flex bg-gray-100 p-1 rounded-lg">
-                        <button
-                            onClick={() => setFilterType('All')}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterType === 'All' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-                        >
-                            Tất cả
-                        </button>
-                        <button
-                            onClick={() => setFilterType('AI')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterType === 'AI' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-purple-600'}`}
-                        >
-                            <BrainCircuit size={14} /> AI
-                        </button>
-                        <button
-                            onClick={() => setFilterType('Manual')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterType === 'Manual' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-blue-600'}`}
-                        >
-                            <PenTool size={14} /> Thủ công
-                        </button>
-                    </div>
-
-                    <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm">
-                        <Plus size={18} /> Thêm câu hỏi
-                    </button>
-                </div>
-            </div>
-
-            {/* Questions List */}
-            <div className="space-y-4">
-                {questions
-                    .filter(q => filterType === 'All' || (filterType === 'AI' && q.source === 'AI Generated') || (filterType === 'Manual' && q.source === 'Manual'))
-                    .map((question) => (
-                        <div key={question.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-sm transition-all group">
-                            <div className="flex justify-between items-start gap-4">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${question.source === 'AI Generated'
-                                                ? 'bg-purple-50 text-purple-700 border-purple-100'
-                                                : 'bg-blue-50 text-blue-700 border-blue-100'
-                                            }`}>
-                                            {question.source === 'AI Generated' ? <><BrainCircuit size={10} className="inline mr-1" /> AI Generated</> : <><PenTool size={10} className="inline mr-1" /> Thủ công</>}
-                                        </span>
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${question.level === 'Easy' ? 'bg-green-50 text-green-700 border-green-100' :
-                                                question.level === 'Medium' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                                    'bg-red-50 text-red-700 border-red-100'
-                                            }`}>
-                                            {question.level}
-                                        </span>
-                                        <span className="text-xs text-gray-400">• {question.type}</span>
-                                    </div>
-
-                                    <div className="text-gray-900 text-sm leading-relaxed font-medium">
-                                        {question.content}
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-2 mt-3">
-                                        {question.tags.map((tag, idx) => (
-                                            <span key={idx} className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded border border-gray-100">#{tag}</span>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                        <Edit3 size={18} />
-                                    </button>
-                                    <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="flex items-center gap-4">
+                            <Button
+                                icon={<ArrowLeft size={18} />}
+                                onClick={() => navigate('/dashboard/teacher/question-bank')}
+                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border-slate-200 text-slate-400 hover:text-[#0463ca] hover:border-blue-200 shadow-sm"
+                            />
+                            <div>
+                                <h1 className="text-2xl font-bold tracking-tight text-[#0463ca]">Chi tiết Kho câu hỏi</h1>
+                                <p className="text-slate-500 text-xs font-medium italic opacity-80 mt-1 flex items-center gap-2">
+                                    <BookOpen size={14} className="text-slate-400" /> {type === 'lesson' ? 'Lesson' : 'Course'} ID: {folderId}
+                                </p>
                             </div>
                         </div>
-                    ))}
+
+                        <div className="flex items-center gap-3">
+                            <div className="flex flex-col items-end pr-4 border-r border-slate-200">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">HIỂN THỊ</span>
+                                <span className="text-lg font-bold text-slate-800">{filteredData.length} <span className="text-slate-300">/</span> {questions.length}</span>
+                            </div>
+                            <Button
+                                type="primary"
+                                icon={<Plus size={18} />}
+                                className="bg-[#0487e2] hover:bg-[#0374c4] h-12 px-6 rounded-xl font-bold shadow-md border-none active:scale-95 transition-all"
+                            >
+                                THÊM MỚI
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Toolbar */}
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-end mb-8">
+                    <div className="flex-1 w-full">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">TÌM KIẾM CÂU HỎI</label>
+                        <div className="relative group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#0463ca] transition-colors" size={18} />
+                            <Input
+                                placeholder="Tìm kiếm nhanh nội dung câu hỏi..."
+                                className="h-12 pl-12 pr-4 bg-white border-slate-200 rounded-xl text-sm font-medium transition-all"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                allowClear
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="flex gap-4 w-full md:w-auto items-end">
+                        <div className="w-full md:w-56">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">PHÂN LOẠI</label>
+                            <Select
+                                value={filterType}
+                                onChange={setFilterType}
+                                className="w-full h-12 custom-select [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!border-slate-200 font-bold text-slate-600"
+                                options={[
+                                    { value: 'All', label: 'Tất cả các loại' },
+                                    { value: 'MCQ', label: '⭐ Một đáp án' },
+                                    { value: 'MultipleChoice', label: '✨ Nhiều đáp án' },
+                                    { value: 'TrueFalse', label: '✅ Đúng / Sai' },
+                                    { value: 'ShortAnswer', label: '✍️ Trả lời ngắn' }
+                                ]}
+                            />
+                        </div>
+                        <Tooltip title="Lọc nâng cao">
+                            <Button
+                                icon={<Filter size={18} />}
+                                className="h-12 w-12 rounded-xl border-slate-200 text-slate-400 flex items-center justify-center hover:text-[#0463ca] hover:border-[#0463ca] transition-all shadow-sm"
+                            />
+                        </Tooltip>
+                    </div>
+                </div>
+
+                {/* Questions List */}
+                <div className="space-y-4">
+                    {filteredData.length > 0 ? (
+                        filteredData.map((question, index) => (
+                            <div 
+                                key={question.id || question.questionId} 
+                                className="bg-white border border-slate-100 rounded-2xl p-6 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all group relative overflow-hidden"
+                            >
+                                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#0487e2] opacity-0 group-hover:opacity-100 transition-all" />
+                                
+                                <div className="flex justify-between items-start gap-6">
+                                    <div className="flex-1 space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-8 h-8 rounded-lg bg-blue-50 text-[#0487e2] flex items-center justify-center font-bold text-xs border border-blue-100">
+                                                {index + 1}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <Tag className="rounded-md font-bold text-[10px] uppercase px-2 py-0.5 border-none bg-slate-100 text-slate-500 tracking-wider">
+                                                    {question.questionType}
+                                                </Tag>
+                                                <Tag className={`rounded-md font-bold text-[10px] uppercase px-2 py-0.5 border-none tracking-wider ${
+                                                    question.difficulty === 'Easy' ? 'bg-emerald-50 text-emerald-600' :
+                                                    question.difficulty === 'Medium' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'
+                                                }`}>
+                                                    {question.difficulty || 'Normal'}
+                                                </Tag>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-slate-800 text-base leading-relaxed font-bold group-hover:text-[#0487e2] transition-colors">
+                                            {question.questionText}
+                                        </div>
+
+                                        {/* Options Preview */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+                                            {(question.options || question.questionOptions || []).map((opt, oIdx) => (
+                                                <div key={oIdx} className={`p-2 px-3 rounded-lg border text-xs font-medium flex items-center justify-between ${
+                                                    opt.isCorrect ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400'
+                                                }`}>
+                                                    <span className="truncate">{opt.optionText}</span>
+                                                    {opt.isCorrect && <CheckCircle2 size={12} />}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                                        <Tooltip title="Chỉnh sửa câu hỏi">
+                                            <Button 
+                                                type="text" 
+                                                icon={<Edit3 size={18} />} 
+                                                className="h-10 w-10 flex items-center justify-center bg-white shadow-md border border-slate-100 text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 rounded-xl"
+                                            />
+                                        </Tooltip>
+                                        <Tooltip title="Xóa câu hỏi">
+                                            <Button 
+                                                type="text" 
+                                                danger 
+                                                icon={<Trash2 size={18} />} 
+                                                className="h-10 w-10 flex items-center justify-center bg-white shadow-md border border-slate-100 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                                            />
+                                        </Tooltip>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="py-24 bg-white rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center shadow-sm">
+                            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-200">
+                                <SearchX size={48} />
+                            </div>
+                            <Empty description={
+                                <div className="space-y-1">
+                                    <p className="text-slate-700 font-bold text-lg">Không tìm thấy câu hỏi nào</p>
+                                    <p className="text-slate-400 text-sm font-medium italic opacity-80">Bạn có thể thêm câu hỏi mới hoặc điều chỉnh bộ lọc</p>
+                                </div>
+                            } />
+                            <Button 
+                                type="primary" 
+                                icon={<Plus size={18} />}
+                                className="mt-8 bg-[#0487e2] hover:bg-[#0374c4] h-12 px-8 rounded-xl font-bold border-none shadow-md transition-all active:scale-95"
+                            >
+                                Tạo câu hỏi đầu tiên
+                            </Button>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

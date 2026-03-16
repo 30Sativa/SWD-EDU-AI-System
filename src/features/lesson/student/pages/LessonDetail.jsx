@@ -1,75 +1,273 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
-    ArrowLeft,
-    Play,
-    Pause,
-    Volume2,
-    Maximize,
-    Settings,
-    ChevronRight,
-    ChevronDown,
-    ChevronUp,
-    MessageSquare,
-    Send,
-    FileText,
-    Download,
-    CheckCircle,
-    Circle,
-    Lightbulb,
-    AlertCircle,
-    PlayCircle,
-    Lock,
-    Search,
-    PanelLeftClose,
-    PanelLeft,
-    PanelRightClose,
-    PanelRight,
-    MoreVertical,
-    Bot,
-    ListChecks
+    ArrowLeft, Play, Pause, Volume2, Maximize, Settings, ChevronRight, ChevronDown, ChevronUp,
+    MessageSquare, Send, FileText, Download, CheckCircle, Circle, Lightbulb, AlertCircle, PlayCircle,
+    Lock, Search, MoreVertical, Bot, Clock, ListChecks, BookOpen, Layers, Target, CheckSquare, Sparkles
 } from 'lucide-react';
+import { getLessonDetail, getStudentLessonDetail, updateLessonProgress, getLessonsBySection, getStudentLessonBlocks, getStudentLessonFaqs, chatWithAI } from '../../api/lessonApi';
+import { getStudentCourseDetail, getCourseSections } from '../../../course/api/courseApi';
+import { getLessonQuizzes } from '../../../quiz/student/api/quizApi';
+import { Spin, message, Tooltip, Breadcrumb, Button, Tabs, Empty } from 'antd';
+
+// ----- Session-level completed lessons cache (per course) -----
+const getCompletedSet = (courseId) => {
+    try {
+        const raw = sessionStorage.getItem(`completed_${courseId}`);
+        return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch { return new Set(); }
+};
+const addCompletedLesson = (courseId, lessonId) => {
+    try {
+        const set = getCompletedSet(courseId);
+        set.add(lessonId);
+        sessionStorage.setItem(`completed_${courseId}`, JSON.stringify([...set]));
+    } catch { /* ignore */ }
+};
+// ---------------------------------------------------------------
+
+const getYoutubeId = (url) => {
+    if (!url) return null;
+    const trimmed = url.trim();
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+    const match = trimmed.match(regExp);
+    if (match && match[2].length === 11) return match[2];
+    if (trimmed.length === 11 && !trimmed.includes('/') && !trimmed.includes('.') && !trimmed.includes(':')) return trimmed;
+    return null;
+};
 
 export default function LessonDetail() {
     const { courseId, lessonId } = useParams();
-    const [activeTab, setActiveTab] = useState('content');
+    const navigate = useNavigate();
+    const location = useLocation();
+    const justCompletedLessonId = location.state?.completedLessonId || null;
+    if (justCompletedLessonId) addCompletedLesson(courseId, justCompletedLessonId);
+
+    const [activeTab, setActiveTab] = useState('1');
     const [isPlaying, setIsPlaying] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [lessonData, setLessonData] = useState(null);
+    const [lessonBlocks, setLessonBlocks] = useState([]);
+    const [lessonFaqs, setLessonFaqs] = useState([]);
+    const [courseData, setCourseData] = useState(null);
+    const [courseSections, setCourseSections] = useState([]);
+    const courseSectionsRef = useRef([]);
+    const [quizData, setQuizData] = useState(null);
 
-    // Sidebar States
-    const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
-    const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
-
-    const [expandedSections, setExpandedSections] = useState([1, 2]);
+    const [expandedSections, setExpandedSections] = useState([1]);
     const [chatMessages, setChatMessages] = useState([
         {
             id: 1,
             type: 'ai',
-            text: 'Chào em! Thầy AI đây. Em có thắc mắc gì về bài Dao động điều hòa không?',
+            text: 'Chào bạn! Mình là Trợ lý học tập AI. Bạn có cần mình hỗ trợ làm rõ khái niệm hay tóm tắt bài học không?',
             suggestions: [
-                'Công thức tính chu kỳ T?',
-                'Giải thích pha ban đầu φ',
-                'Vẽ đồ thị x = Acos(ωt + φ)'
+                'Tóm tắt bài học',
+                'Giải thích thuật ngữ chính',
+                'Cho tôi ví dụ minh họa'
             ]
-        },
-        {
-            id: 2,
-            type: 'user',
-            text: 'Thầy giải thích giúp em ý nghĩa của tần số góc ạ?'
-        },
-        {
-            id: 3,
-            type: 'ai',
-            text: 'Tần số góc (ω - omega) cho biết tốc độ biến đổi trạng thái dao động. Nó liên hệ với chu kỳ qua công thức ω = 2π / T. Đơn vị là rad/s nhé.',
-            isTyping: false
         }
     ]);
     const [inputMessage, setInputMessage] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
     const chatEndRef = useRef(null);
+    const chatContainerRef = useRef(null);
 
-    // Auto scroll chat
+    // Track Progress Logic
+    const progressIntervalRef = useRef(null);
+    const videoRef = useRef(null);
+    const [watchedTime, setWatchedTime] = useState(0);
+
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [chatMessages]);
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [lessonRes, courseRes, quizRes, blocksRes, faqsRes, sectionsRes] = await Promise.all([
+                    getStudentLessonDetail(lessonId).catch(() => getLessonDetail(lessonId)),
+                    getStudentCourseDetail(courseId).catch(() => null),
+                    getLessonQuizzes(lessonId).catch(() => null),
+                    getStudentLessonBlocks(lessonId).catch(() => null),
+                    getStudentLessonFaqs(lessonId).catch(() => null),
+                    getCourseSections(courseId).catch(() => null)
+                ]);
+
+                const lData = lessonRes?.data || lessonRes;
+                const cData = (courseRes?.data || courseRes) || {};
+                const sData = sectionsRes?.data || sectionsRes || [];
+
+                const bRes = blocksRes?.data || (Array.isArray(blocksRes) ? blocksRes : blocksRes?.items) || [];
+                const bData = Array.isArray(bRes) ? bRes.map(b => ({
+                    id: b.id || b.Id,
+                    blockType: b.blockType || b.Type || 'Concept',
+                    title: b.title || b.Title || '',
+                    content: b.content || b.Content || '',
+                    sortOrder: b.sortOrder || b.SortOrder || 0
+                })) : [];
+
+                let fData = [];
+                if (faqsRes) {
+                    const faqItems = faqsRes?.data?.items || faqsRes?.items || faqsRes?.data || (Array.isArray(faqsRes) ? faqsRes : []);
+                    fData = Array.isArray(faqItems) ? faqItems : [];
+                }
+
+                setLessonData(lData);
+                setLessonBlocks(bData);
+                setLessonFaqs(fData);
+                setCourseData(cData);
+
+                const quizzes = quizRes?.data?.items || quizRes?.items || (Array.isArray(quizRes?.data) ? quizRes.data : (Array.isArray(quizRes) ? quizRes : []));
+                setQuizData(quizzes.length > 0 ? quizzes[0] : null);
+
+                const apiSections = (cData?.sections || cData?.Sections || cData?.items || (Array.isArray(sData) ? sData : (sData?.items || []))) || [];
+                const completedSet = getCompletedSet(courseId);
+                const initialSections = Array.isArray(apiSections) ? apiSections.map(s => ({
+                    id: s.id || s.Id,
+                    title: s.title || s.name || s.Title || 'Chương học',
+                    lessons: (s.lessons || s.Lessons || s.items || s.Items || []).map(l => ({
+                        ...l,
+                        isCompleted: !!(
+                            l.isCompleted || l.IsCompleted || l.is_completed || l.completed || l.Completed ||
+                            completedSet.has(l.id || l.Id || l.quizId)
+                        )
+                    })),
+                    isLocked: s.isLocked || false
+                })) : [];
+                setCourseSections(initialSections);
+                courseSectionsRef.current = initialSections;
+
+                const currentSection = initialSections.find(s =>
+                    (s.lessons || []).some(l => (l.id || l.Id || l.quizId) === lessonId)
+                );
+                if (currentSection) {
+                    setExpandedSections([currentSection.id]);
+                } else if (initialSections.length > 0) {
+                    setExpandedSections([initialSections[0].id]);
+                }
+
+                initialSections.forEach(async (section) => {
+                    if (section.lessons.length === 0) {
+                        try {
+                            const res = await getLessonsBySection(section.id);
+                            const rawLessons = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
+                            const completedSetLazy = getCompletedSet(courseId);
+                            const lessons = rawLessons.map(l => ({
+                                ...l,
+                                isCompleted: !!(
+                                    l.isCompleted || l.IsCompleted || l.is_completed || l.completed || l.Completed ||
+                                    completedSetLazy.has(l.id || l.Id || l.quizId)
+                                )
+                            }));
+                            setCourseSections(prev => {
+                                const updated = prev.map(s =>
+                                    s.id === section.id ? { ...s, lessons: lessons } : s
+                                );
+                                courseSectionsRef.current = updated;
+                                return updated;
+                            });
+                            if (lessons.some(l => (l.id || l.Id || l.quizId) === lessonId)) {
+                                setExpandedSections(prev =>
+                                    prev.includes(section.id) ? prev : [...prev, section.id]
+                                );
+                            }
+                        } catch (e) {
+                            console.error("Error fetching sidebar lessons:", e);
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu bài học:", error);
+                message.error("Không thể tải nội dung bài học");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [courseId, lessonId]);
+
+    useEffect(() => {
+        setWatchedTime(0);
+        setIsPlaying(false);
+    }, [lessonId]);
+
+    useEffect(() => {
+        if (isPlaying) {
+            progressIntervalRef.current = setInterval(() => {
+                setWatchedTime(prev => prev + 1);
+            }, 1000);
+        } else {
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        }
+        return () => {
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        };
+    }, [isPlaying]);
+
+    useEffect(() => {
+        if (watchedTime > 0 && watchedTime % 30 === 0) {
+            handleUpdateProgress(false);
+        }
+    }, [watchedTime]);
+
+    const handleUpdateProgress = async (isCompleted = false) => {
+        try {
+            await updateLessonProgress(lessonId, {
+                watchedDuration: watchedTime,
+                isCompleted: isCompleted
+            });
+            if (isCompleted) {
+                addCompletedLesson(courseId, lessonId);
+                message.success("Tuyệt vời! Bạn đã hoàn tất bài học.");
+                setLessonData(prev => ({ ...prev, progress: 100, isCompleted: true }));
+                setCourseSections(prev => {
+                    const updated = prev.map(s => ({
+                        ...s,
+                        lessons: s.lessons.map(l =>
+                            (l.id === lessonId || l.Id === lessonId)
+                                ? { ...l, completed: true, isCompleted: true }
+                                : l
+                        )
+                    }));
+                    courseSectionsRef.current = updated;
+                    return updated;
+                });
+
+                const allLessons = courseSectionsRef.current.flatMap(s => s.lessons || []);
+                const currentIdx = allLessons.findIndex(l => (l.id || l.Id || l.quizId) === lessonId);
+                if (currentIdx !== -1 && currentIdx < allLessons.length - 1) {
+                    const nextLesson = allLessons[currentIdx + 1];
+                    const nextId = nextLesson.id || nextLesson.Id || nextLesson.quizId;
+                    const isNextQuiz = nextLesson.type?.toLowerCase() === 'quiz';
+
+                    const hide = message.loading('Đang chuyển sang phần tiếp theo...', 0);
+                    setTimeout(() => {
+                        hide();
+                        if (isNextQuiz) {
+                            navigate(`/dashboard/student/quizzes/${nextId}`, {
+                                state: { completedLessonId: lessonId }
+                            });
+                        } else {
+                            navigate(`/dashboard/student/courses/${courseId}/lessons/${nextId}`, {
+                                state: { completedLessonId: lessonId }
+                            });
+                        }
+                    }, 1500);
+                } else {
+                    message.info("Bạn đã hoàn thành bài học cuối cùng của khóa học! 🎉", 3);
+                }
+            }
+        } catch (error) {
+            console.error("Error updating progress:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTo({
+                top: chatContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [chatMessages, isTyping]);
 
     const toggleSection = (sectionId) => {
         if (expandedSections.includes(sectionId)) {
@@ -79,502 +277,596 @@ export default function LessonDetail() {
         }
     };
 
-    const lessonInfo = {
-        courseId: courseId || 'physics-12',
-        courseName: 'Vật Lý 12 - Luyện Thi THPT',
-        lessonTitle: 'Bài 1: Dao Động Điều Hòa',
-        lessonSubtitle: 'Chương 1: Dao Động Cơ',
-        progress: 40,
-        duration: '45:00',
-        currentTime: '15:20'
-    };
-
-    const courseSections = [
-        {
-            id: 1,
-            title: 'Chương 1: Dao Động Cơ',
-            lessons: [
-                { id: 1, type: 'video', title: '1.1 Dao động điều hòa', duration: '45 p', completed: false, isCurrent: true },
-                { id: 2, type: 'video', title: '1.2 Con lắc lò xo', duration: '45 p', completed: false },
-                { id: 3, type: 'video', title: '1.3 Con lắc đơn', duration: '45 p', completed: false },
-                { id: 4, type: 'video', title: '1.4 Dao động tắt dần', duration: '45 p', completed: false },
-                { id: 5, type: 'quiz', title: 'Kiểm tra 15 phút: Dao động cơ', duration: '15 p', completed: false }
-            ]
-        },
-        {
-            id: 2,
-            title: 'Chương 2: Sóng Cơ',
-            lessons: [
-                { id: 1, type: 'video', title: '2.1 Sự truyền sóng cơ', duration: '45 p', completed: false },
-                { id: 2, type: 'video', title: '2.2 Giao thoa sóng', duration: '45 p', completed: false, isNew: true },
-                { id: 3, type: 'quiz', title: 'Bài tập: Giao thoa sóng', duration: '20 p', completed: false },
-                { id: 4, type: 'video', title: '2.3 Sóng dừng', duration: '45 p', completed: false }
-            ]
-        },
-        {
-            id: 3,
-            title: 'Chương 3: Dòng Điện Xoay Chiều',
-            lessons: [],
-            isLocked: true
-        }
-    ];
-
-    const tabs = [
-        { id: 'content', label: 'Lý Thuyết', icon: FileText },
-        { id: 'exercises', label: 'Bài Tập', icon: CheckCircle },
-        { id: 'examples', label: 'Ví Dụ', icon: Lightbulb },
-        { id: 'qa', label: 'Hỏi Đáp', icon: MessageSquare }
-    ];
-
-    const lessonMaterials = [
-        { id: 1, title: 'Ly_thuyet_dao_dong.pdf', type: 'pdf', icon: FileText },
-        { id: 2, title: 'Bai_tap_tu_luyen_Level_1.pdf', type: 'pdf', icon: FileText }
-    ];
-
-    const contentSections = [
-        {
-            id: 1,
-            icon: '📖',
-            title: 'Định nghĩa Dao động điều hòa',
-            content: 'Dao động điều hòa là dao động trong đó li độ của vật là một hàm côsin (hay sin) của thời gian.',
-            subsections: [
-                {
-                    title: 'Phương trình dao động:',
-                    items: [
-                        { label: 'x = Acos(ωt + φ)', text: '' },
-                        { label: 'x:', text: 'Li độ (khoảng cách từ VTCB)' },
-                        { label: 'A:', text: 'Biên độ (li độ cực đại, A > 0)' },
-                        { label: 'ω (omega):', text: 'Tần số góc (rad/s)' },
-                        { label: 'φ (phi):', text: 'Pha ban đầu (tại t=0)' }
-                    ]
-                }
-            ]
-        },
-        {
-            id: 2,
-            icon: '⚡',
-            title: 'Vận tốc và Gia tốc',
-            examples: [
-                {
-                    title: 'VẬN TỐC (v)',
-                    description: 'v = x\' = -ωAsin(ωt + φ). Vận tốc sớm pha pi/2 so với li độ.',
-                    type: 'info'
-                },
-                {
-                    title: 'GIA TỐC (a)',
-                    description: 'a = v\' = -ω²x. Gia tốc ngược pha với li độ và tỉ lệ với li độ.',
-                    type: 'warning'
-                }
-            ]
-        }
-    ];
-
-    const handleSendMessage = () => {
-        if (inputMessage.trim()) {
-            setChatMessages([...chatMessages, {
-                id: chatMessages.length + 1,
+    const handleSendMessage = async () => {
+        if (inputMessage.trim() && !isTyping) {
+            const userMsg = inputMessage.trim();
+            const newMessage = {
+                id: Date.now(),
                 type: 'user',
-                text: inputMessage
-            }]);
-            setInputMessage('');
+                text: userMsg
+            };
 
-            setTimeout(() => {
+            setChatMessages(prev => [...prev, newMessage]);
+            setInputMessage('');
+            setIsTyping(true);
+
+            try {
+                // Map history for API: type 'user' -> 'user', type 'ai' -> 'assistant'
+                const history = chatMessages.map(msg => ({
+                    role: msg.type === 'user' ? 'user' : 'assistant',
+                    content: msg.text
+                }));
+
+                const response = await chatWithAI(lessonId, {
+                    message: userMsg,
+                    history: history
+                });
+
+                // Correctly extract the reply from the nested structure: response.data.data.reply
+                const aiResponse = response.data?.data?.reply || response.data?.reply || response.data?.message || response.message || "Xin lỗi, mình đang gặp chút sự cố. Bạn thử hỏi lại nhé!";
+
                 setChatMessages(prev => [...prev, {
-                    id: prev.length + 1,
+                    id: Date.now() + 1,
                     type: 'ai',
-                    text: 'Thầy đang suy nghĩ câu trả lời... (Giả lập AI)',
-                    isTyping: false
+                    text: aiResponse
                 }]);
-            }, 1000);
+            } catch (error) {
+                console.error("AI Chat Error:", error);
+                setChatMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    type: 'ai',
+                    text: "Ồ, có vẻ kết nối với máy chủ AI đang bị gián đoạn. Hãy thử lại sau một lúc nhé!"
+                }]);
+            } finally {
+                setIsTyping(false);
+            }
         }
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50/50">
+                <Spin size="large" className="text-[#0487e2]" />
+                <p className="mt-4 text-slate-500 font-medium tracking-wide">Đang tải chi tiết bài học...</p>
+            </div>
+        );
+    }
+
+    if (!lessonData) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50/50 p-6">
+                <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description={<span className="text-slate-500 font-medium">Không tìm thấy bài học này</span>}
+                >
+                    <Button type="primary" onClick={() => navigate(-1)} className="bg-[#0487e2] hover:bg-[#0374c4] h-10 px-6 rounded-lg font-semibold shadow-sm border-none">Quay lại khóa học</Button>
+                </Empty>
+            </div>
+        );
+    }
+
+    const lessonInfo = {
+        courseId: courseId,
+        courseName: courseData?.title || 'Khóa học',
+        lessonTitle: lessonData.title || lessonData.name || 'Bài học',
+        lessonSubtitle: lessonData.sectionName || 'Chuyên đề',
+        progress: lessonData.progress || 0,
+        duration: lessonData.duration || '00:00',
+        videoUrl: lessonData.videoUrl || lessonData.contentUrl || lessonData.content
+    };
+
+    const videoId = getYoutubeId(lessonData.videoUrl) || getYoutubeId(lessonData.contentUrl) || getYoutubeId(lessonData.content);
+
+    const mappedCourseSections = (courseSections || []).map(s => ({
+        id: s.id,
+        title: s.title || s.name || 'Chương học',
+        lessons: (s.lessons || []).map(item => ({
+            id: item.id || item.Id || item.quizId,
+            type: item.type?.toLowerCase() || 'video',
+            title: item.title || item.name || 'Bài học',
+            duration: item.duration || '45 p',
+            completed: !!(item.isCompleted || item.IsCompleted || item.is_completed || item.completed || item.Completed),
+            isCurrent: (item.id || item.Id || item.quizId) === lessonId
+        }))
+    }));
+
+    const lessonMaterials = lessonData.materials?.length > 0
+        ? lessonData.materials.map((m, idx) => ({
+            id: m.id || `material-${idx}`,
+            title: m.title || m.name || `Tài liệu ${idx + 1}`,
+            type: m.type?.toLowerCase() || 'link',
+            url: m.url || m.path,
+            icon: FileText
+        }))
+        : (lessonData.materialUrl ? [{
+            id: 'material-1',
+            title: lessonData.materialName || `Tài liệu: ${lessonData.title || 'Bài học'}`,
+            type: lessonData.materialType?.toLowerCase() || 'link',
+            url: lessonData.materialUrl,
+            icon: FileText
+        }] : []);
 
     return (
-        <div className="h-screen flex flex-col bg-gray-50 overflow-hidden font-sans">
-            <style>
-                {`
-               .hide-scrollbar::-webkit-scrollbar {
-                  display: none;
-               }
-               .hide-scrollbar {
-                  -ms-overflow-style: none;
-                  scrollbar-width: none;
-               }
-            `}
-            </style>
+        <div className="min-h-screen bg-slate-50/70 p-6 md:p-8 font-sans text-slate-800 pb-16">
+            <div className="max-w-7xl mx-auto space-y-6">
 
-            {/* 1. Header Navigation Bar */}
-            <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between flex-shrink-0 z-30 shadow-sm">
-                <div className="flex items-center gap-5">
-                    <Link
-                        to={`/dashboard/student/courses/${lessonInfo.courseId}`}
-                        className="w-10 h-10 flex items-center justify-center hover:bg-gray-100/80 rounded-full text-gray-500 hover:text-gray-900 transition-colors"
-                        title="Quay lại khóa học"
-                    >
-                        <ArrowLeft size={22} />
-                    </Link>
-                    <div className="h-8 w-px bg-gray-200/60"></div>
-                    <div>
-                        <h1 className="text-base font-bold text-gray-900 leading-tight">{lessonInfo.lessonTitle}</h1>
-                        <p className="text-xs text-gray-500 font-medium mt-0.5">{lessonInfo.lessonSubtitle}</p>
-                    </div>
-                </div>
+                {/* Header Section */}
+                <div className="flex flex-col gap-4">
+                    <Breadcrumb
+                        className="text-xs font-semibold text-slate-500 tracking-wide"
+                        separator={<span className="text-slate-300">/</span>}
+                        items={[
+                            { title: <Link to={`/dashboard/student/courses/${lessonInfo.courseId}`} className="hover:text-[#0487e2] transition-colors bg-white px-2 py-1 rounded border border-slate-200 shadow-sm">Khóa học</Link> },
+                            { title: <span className="text-slate-800 font-bold bg-white px-2 py-1 rounded border border-[#0487e2]/20 text-[#0487e2]">{lessonInfo.lessonTitle}</span> },
+                        ]}
+                    />
 
-                <div className="flex items-center gap-4">
-                    <div className="hidden md:flex items-center gap-3 bg-gray-50/50 px-4 py-2 rounded-full border border-gray-200/60">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tiến độ</span>
-                        <div className="w-24 bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                            <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${lessonInfo.progress}%` }}></div>
-                        </div>
-                        <span className="text-xs font-bold text-gray-900">{lessonInfo.progress}%</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* 2. Main Workspace */}
-            <div className="flex-1 flex overflow-hidden relative">
-
-                {/* 2.1 Left Sidebar - Curriculum */}
-                <div
-                    className={`${isLeftSidebarOpen ? 'w-80 translate-x-0 border-r' : 'w-0 -translate-x-full border-none'} transition-all duration-300 ease-in-out bg-white border-gray-200 flex flex-col flex-shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}
-                >
-                    <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-                        <h2 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Nội Dung Bài Học</h2>
-                        <button onClick={() => setIsLeftSidebarOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
-                            <PanelLeftClose size={18} />
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                        {/* Search Input */}
-                        <div className="relative mb-4">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4 border-b border-slate-200">
+                        <div className="flex items-start gap-5">
+                            <Button
                                 type="text"
-                                placeholder="Tìm bài học..."
-                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm font-medium text-gray-900 border-0 focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all placeholder:text-gray-400"
+                                icon={<ArrowLeft size={20} className="text-slate-600 group-hover:text-[#0487e2] transition-colors" />}
+                                onClick={() => navigate(`/dashboard/student/courses/${lessonInfo.courseId}`)}
+                                className="group h-11 w-11 flex items-center justify-center rounded-xl bg-white border border-slate-200 shadow-sm hover:border-[#0487e2]/40 hover:bg-blue-50 transition-all flex-shrink-0"
                             />
+                            <div className="space-y-1.5 pt-0.5">
+                                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 m-0 leading-tight">
+                                    {lessonInfo.lessonTitle}
+                                </h1>
+                                <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-500">
+                                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-200/50">
+                                        <Layers size={14} className="text-[#0487e2]" />
+                                        <span className="text-slate-700">{lessonInfo.lessonSubtitle || 'Topic'}</span>
+                                    </span>
+                                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-50 text-amber-700">
+                                        <Clock size={14} className="text-amber-500" /> {lessonInfo.duration || 0} phút
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
-                        {courseSections.map((section) => (
-                            <div key={section.id} className="border border-gray-100 rounded-xl overflow-hidden bg-white">
-                                <button
-                                    onClick={() => !section.isLocked && toggleSection(section.id)}
-                                    className={`w-full p-4 flex items-center justify-between bg-gray-50/50 hover:bg-gray-50 transition-colors ${section.isLocked ? 'opacity-60 cursor-not-allowed' : ''
-                                        }`}
-                                >
-                                    <span className="font-bold text-xs text-gray-600 uppercase tracking-wide truncate flex-1 text-left">
-                                        {section.title}
-                                    </span>
-                                    {!section.isLocked && (
-                                        expandedSections.includes(section.id) ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />
-                                    )}
-                                </button>
-
-                                {expandedSections.includes(section.id) && !section.isLocked && (
-                                    <div className="bg-white">
-                                        {section.lessons.map((lesson) => {
-                                            const isQuiz = lesson.type === 'quiz';
-                                            return (
-                                                <Link
-                                                    key={lesson.id}
-                                                    to={isQuiz
-                                                        ? `/dashboard/student/quizzes/quiz-ch${section.id}-${lesson.id}`
-                                                        : '#'
-                                                    }
-                                                    className={`flex items-start gap-3.5 p-3.5 hover:bg-blue-50/60 transition-colors border-b border-gray-50 last:border-0 ${lesson.isCurrent ? 'bg-blue-50/80 border-l-[3px] border-l-blue-600 pl-[11px]' : 'border-l-[3px] border-l-transparent pl-[11px]'
-                                                        }`}
-                                                >
-                                                    <div className="mt-0.5">
-                                                        {lesson.completed ? (
-                                                            <CheckCircle size={18} className="text-emerald-500" />
-                                                        ) : lesson.isCurrent ? (
-                                                            <PlayCircle size={18} className="text-blue-600 fill-blue-100" />
-                                                        ) : isQuiz ? (
-                                                            <ListChecks size={18} className="text-amber-500" />
-                                                        ) : (
-                                                            <Circle size={18} className="text-gray-300" />
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                            <p className={`text-sm ${lesson.isCurrent ? 'font-bold text-blue-700' : 'font-medium text-gray-700'}`}>
-                                                                {lesson.title}
-                                                            </p>
-                                                            {isQuiz && <span className="text-[9px] uppercase font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-sm">Quiz</span>}
-                                                        </div>
-                                                        <span className="text-[11px] font-medium text-gray-400 block">{lesson.duration} • {isQuiz ? 'Bài kiểm tra' : 'Video'}</span>
-                                                    </div>
-                                                </Link>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                        <div className="flex items-center gap-4 bg-white p-2 md:p-1 pl-3 md:pl-4 pr-1 rounded-xl whitespace-nowrap border border-slate-200 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.05)]">
+                            <div className="hidden md:flex items-center gap-3 px-2">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tiến độ</span>
+                                <div className="w-28 bg-slate-100 rounded-full h-2.5 overflow-hidden inset-shadow-sm">
+                                    <div className="bg-gradient-to-r from-blue-400 to-[#0487e2] h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${lessonInfo.progress}%` }}></div>
+                                </div>
+                                <span className="text-xs font-extrabold text-[#0487e2] w-8 text-right">{parseInt(lessonInfo.progress || 0)}%</span>
                             </div>
-                        ))}
+                            {!lessonData?.isCompleted ? (
+                                <button
+                                    onClick={() => handleUpdateProgress(true)}
+                                    className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white h-[38px] px-5 rounded-lg font-bold shadow-sm shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all active:scale-95"
+                                >
+                                    <CheckCircle size={16} />
+                                    <span>Đánh dấu hoàn thành</span>
+                                </button>
+                            ) : (
+                                <div className="flex items-center justify-center gap-2 bg-emerald-50/80 text-emerald-600 border border-emerald-100 h-[38px] px-5 rounded-lg font-bold">
+                                    <CheckCircle size={16} className="text-emerald-500" />
+                                    <span>Đã hoàn thành</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* 2.2 Main Content Area (Center) */}
-                <div className="flex-1 flex flex-col min-w-0 bg-white relative">
+                {/* Tabs Navigation */}
+                <div className="bg-white px-2 pt-2 pb-0 rounded-2xl border border-slate-200 shadow-sm mt-4 flex overflow-x-auto hide-scrollbar">
+                    {[{ key: '1', label: 'Nội dung bài học', icon: BookOpen }, { key: '2', label: 'Bài Tập Củng Cố', icon: CheckSquare }, { key: '3', label: 'Hỏi Đáp / Thảo Luận', icon: MessageSquare }].map(tab => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key)}
+                            className={`flex flex-1 md:flex-none justify-center items-center gap-2 px-6 py-3.5 text-sm font-bold transition-all border-b-2 whitespace-nowrap rounded-t-lg mx-1 ${activeTab === tab.key
+                                ? 'border-[#0487e2] text-[#0487e2] bg-blue-50/50'
+                                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                                }`}
+                        >
+                            <tab.icon size={16} className={activeTab === tab.key ? 'text-[#0487e2]' : 'text-slate-400'} />
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
 
-                    {/* Toggle Buttons Overlay */}
-                    <div className="absolute top-5 left-5 z-20 pointer-events-none">
-                        <div className="pointer-events-auto">
-                            {!isLeftSidebarOpen && (
-                                <button
-                                    onClick={() => setIsLeftSidebarOpen(true)}
-                                    className="bg-white/90 backdrop-blur p-2.5 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-100 text-gray-500 hover:text-blue-600 hover:scale-105 transition-all group"
-                                    title="Hiện danh sách bài học"
-                                >
-                                    <PanelLeft size={20} />
-                                    <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Hiện danh sách</span>
-                                </button>
-                            )}
-                        </div>
-                    </div>
+                {/* Main Content Area */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-                    <div className="absolute top-5 right-5 z-20 pointer-events-none">
-                        <div className="pointer-events-auto">
-                            {!isRightSidebarOpen && (
-                                <button
-                                    onClick={() => setIsRightSidebarOpen(true)}
-                                    className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2.5 rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.3)] text-white hover:scale-105 transition-all group"
-                                    title="Hiện trợ lý AI"
-                                >
-                                    <PanelRight size={20} />
-                                    <span className="absolute right-full mr-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Hỏi AI</span>
-                                </button>
-                            )}
-                        </div>
-                    </div>
+                    {/* Left Column: Content (Chiếm 8 cột) */}
+                    <div className="lg:col-span-8 space-y-6">
 
-                    {/* Scrollable Content Container */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/30">
-                        <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
-
-                            {/* Video Player Section */}
-                            <div className="group relative rounded-2xl overflow-hidden bg-black aspect-video shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-gray-900/10 ring-1 ring-gray-900/5">
-                                <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-                                    <button
-                                        onClick={() => setIsPlaying(!isPlaying)}
-                                        className="w-20 h-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 active:scale-95"
-                                    >
-                                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl pl-1">
-                                            {isPlaying ? <Pause className="text-gray-900 fill-gray-900" size={28} /> : <Play className="text-gray-900 fill-gray-900" size={28} />}
-                                        </div>
-                                    </button>
-                                </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-
-                                {/* Controls Bar */}
-                                <div className="absolute bottom-0 left-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-                                    <div className="flex items-center gap-5 text-white">
-                                        <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-blue-400 transition-colors">
-                                            {isPlaying ? <Pause size={24} className="fill-current" /> : <Play size={24} className="fill-current" />}
-                                        </button>
-                                        <div className="flex-1 h-1.5 bg-white/20 rounded-full cursor-pointer overflow-hidden group/slider">
-                                            <div className="h-full bg-blue-500 w-[35%] relative">
-                                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-md scale-0 group-hover/slider:scale-100 transition-transform"></div>
+                        {activeTab === '1' && (
+                            <div className="space-y-6 animate-fade-in">
+                                {/* Video/Media Container */}
+                                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                    <div className="aspect-video bg-slate-900 relative flex items-center justify-center group w-full overflow-hidden">
+                                        {videoId ? (
+                                            <div className="absolute inset-0 w-full h-full">
+                                                <iframe
+                                                    key={`yt-${lessonId}`}
+                                                    className="w-full h-full border-0"
+                                                    src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autohide=1&showinfo=0`}
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                    title="Video bài học"
+                                                    onLoad={() => setIsPlaying(true)}
+                                                ></iframe>
                                             </div>
-                                        </div>
-                                        <span className="text-xs font-mono font-medium tracking-wide">15:20 / 45:00</span>
-                                        <div className="flex gap-4">
-                                            <Settings size={20} className="cursor-pointer hover:text-blue-400 transition-colors" />
-                                            <Maximize size={20} className="cursor-pointer hover:text-blue-400 transition-colors" />
-                                        </div>
+                                        ) : lessonInfo.videoUrl ? (
+                                            <video
+                                                ref={videoRef}
+                                                key={`vid-${lessonId}`}
+                                                src={lessonInfo.videoUrl}
+                                                className="absolute inset-0 w-full h-full object-contain"
+                                                controls
+                                                onPlay={() => setIsPlaying(true)}
+                                                onPause={() => setIsPlaying(false)}
+                                                onEnded={() => {
+                                                    setIsPlaying(false);
+                                                    handleUpdateProgress(true);
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-3 text-slate-400">
+                                                <PlayCircle size={48} />
+                                                <p className="font-bold">Video bài giảng đang được cập nhật</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Tabs & Content */}
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="flex border-b border-gray-100 px-6 pt-2">
-                                    {tabs.map((tab) => {
-                                        const Icon = tab.icon;
-                                        const isActive = activeTab === tab.id;
-                                        return (
-                                            <button
-                                                key={tab.id}
-                                                onClick={() => setActiveTab(tab.id)}
-                                                className={`flex items-center gap-2.5 px-6 py-4 text-sm font-bold border-b-[3px] transition-all ${isActive
-                                                    ? 'border-blue-600 text-blue-600'
-                                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
-                                                    }`}
-                                            >
-                                                <Icon size={18} className={isActive ? 'stroke-[2.5px]' : 'stroke-2'} />
-                                                {tab.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Tab Panels */}
-                                <div className="p-8 min-h-[400px]">
-                                    {activeTab === 'content' && (
-                                        <div className="space-y-10 max-w-3xl mx-auto animate-fade-in">
-                                            {contentSections.map(section => (
-                                                <div key={section.id} className="relative pl-8">
-                                                    <div className="absolute left-0 top-1 w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm shadow-sm">{section.icon}</div>
-                                                    <h3 className="text-xl font-bold text-gray-900 mb-4">
-                                                        {section.title}
-                                                    </h3>
-                                                    <p className="text-gray-600 leading-7 mb-6 text-[15px]">{section.content}</p>
-
-                                                    {section.subsections?.map((sub, idx) => (
-                                                        <div key={idx} className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-2xl p-6 border border-blue-100/50 mb-4">
-                                                            <h4 className="font-bold text-blue-900 mb-4 text-sm uppercase tracking-wide">{sub.title}</h4>
-                                                            <ul className="space-y-3">
-                                                                {sub.items.map((item, i) => (
-                                                                    <li key={i} className="text-gray-700 text-[15px] flex items-start gap-3">
-                                                                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                                                                        <span>
-                                                                            <strong className="text-gray-900 font-bold">{item.label}</strong> {item.text}
-                                                                        </span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
+                                {/* Blocks/Theory Content */}
+                                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 md:p-10">
+                                    {lessonBlocks && lessonBlocks.length > 0 ? (
+                                        <div className="space-y-12">
+                                            {lessonBlocks.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)).map((block, idx) => (
+                                                <div key={block.id || idx} className="space-y-5">
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0487e2] flex items-center justify-center font-black text-lg border border-blue-100 flex-shrink-0">
+                                                            {idx + 1}
                                                         </div>
-                                                    ))}
-
-                                                    {section.examples?.map((ex, idx) => (
-                                                        <div key={idx} className={`mt-6 p-5 rounded-2xl border-l-[6px] shadow-sm ${ex.type === 'info' ? 'bg-blue-50 border-blue-500' : 'bg-amber-50 border-amber-500'
-                                                            }`}>
-                                                            <h4 className={`text-xs font-bold uppercase mb-2 ${ex.type === 'info' ? 'text-blue-800' : 'text-amber-800'
-                                                                }`}>{ex.title}</h4>
-                                                            <p className="text-sm font-medium text-gray-800 leading-relaxed">{ex.description}</p>
+                                                        <div>
+                                                            <h3 className="text-xl font-bold text-slate-900 leading-tight">
+                                                                {block.title}
+                                                            </h3>
+                                                            {block.blockType &&
+                                                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1 block">
+                                                                    {block.blockType}
+                                                                </span>
+                                                            }
                                                         </div>
-                                                    ))}
+                                                    </div>
+                                                    <div
+                                                        className="prose prose-slate prose-img:rounded-xl prose-a:text-[#0487e2] max-w-none text-slate-700 leading-relaxed font-medium pl-14"
+                                                        dangerouslySetInnerHTML={{ __html: block.content ? block.content.replace(/\n/g, '<br/>') : '' }}
+                                                    />
                                                 </div>
                                             ))}
 
-                                            {/* Navigation Footer */}
-                                            <div className="flex items-center justify-between pt-10 mt-10 border-t border-gray-100">
-                                                <button className="flex items-center gap-2 px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all font-bold text-sm">
-                                                    <ArrowLeft size={18} />
-                                                    Bài Trước
-                                                </button>
-                                                <button className="flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all hover:-translate-y-0.5 active:scale-95">
-                                                    Hoàn Thành & Tiếp Tục
-                                                    <ChevronRight size={18} />
+                                            <div className="pl-14 pt-4">
+                                                <button
+                                                    onClick={() => handleUpdateProgress(true)}
+                                                    className="inline-flex items-center gap-2 bg-[#0487e2] hover:bg-[#0374c4] text-white px-6 py-3 rounded-xl font-bold transition-transform hover:-translate-y-0.5 shadow-md shadow-blue-500/20"
+                                                >
+                                                    Đã hiểu bài, tiếp tục <ChevronRight size={18} />
                                                 </button>
                                             </div>
                                         </div>
-                                    )}
-                                    {activeTab !== 'content' && (
-                                        <div className="flex flex-col items-center justify-center py-24 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100">
-                                            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-6">
-                                                <Settings className="text-gray-400" size={28} />
+                                    ) : lessonData?.content ? (
+                                        <div className="space-y-8">
+                                            <div className="flex items-center gap-3 mb-6">
+                                                <BookOpen size={24} className="text-[#0487e2]" />
+                                                <h2 className="text-xl font-bold text-slate-800">Lý thuyết trọng tâm</h2>
                                             </div>
-                                            <h3 className="text-gray-900 font-bold text-lg mb-2">Đang cập nhật</h3>
-                                            <p className="text-gray-500 text-sm">Nội dung {activeTab} sẽ sớm được bổ sung.</p>
+                                            <div
+                                                className="prose prose-slate prose-img:rounded-xl prose-a:text-[#0487e2] max-w-none text-slate-700 leading-relaxed font-medium"
+                                                dangerouslySetInnerHTML={{ __html: lessonData.content }}
+                                            />
+                                            <div className="pt-4 border-t border-slate-100">
+                                                <button
+                                                    onClick={() => handleUpdateProgress(true)}
+                                                    className="inline-flex items-center gap-2 bg-[#0487e2] hover:bg-[#0374c4] text-white px-6 py-3 rounded-xl font-bold transition-transform hover:-translate-y-0.5 shadow-md shadow-blue-500/20"
+                                                >
+                                                    Đã hiểu bài, tiếp tục <ChevronRight size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-16 px-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                            <div className="w-16 h-16 bg-white rounded-full mx-auto flex items-center justify-center shadow-sm mb-4">
+                                                <FileText className="text-slate-400" size={32} />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-800 mb-1">Đang cập nhật nội dung văn bản</h3>
+                                            <p className="text-slate-500 font-medium text-sm">Nội dung chi tiết của chuyên đề này đang được giảng viên bổ sung.</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
+                        )}
 
-                {/* 2.3 Right Sidebar - AI Assistant */}
-                <div
-                    className={`${isRightSidebarOpen ? 'w-[400px] translate-x-0 border-l' : 'w-0 translate-x-full border-none'} transition-all duration-300 ease-in-out bg-white border-gray-200 flex flex-col flex-shrink-0 z-30 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]`}
-                >
-                    <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
-                                <Bot size={18} />
-                            </div>
-                            <div>
-                                <h2 className="font-bold text-gray-900 text-sm">Trợ Lý AI</h2>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Online</span>
-                                </div>
-                            </div>
-                        </div>
-                        <button onClick={() => setIsRightSidebarOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors">
-                            <PanelRightClose size={18} />
-                        </button>
-                    </div>
+                        {activeTab === '2' && (
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 md:p-12 animate-fade-in relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-60"></div>
 
-                    <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-gray-50/30 custom-scrollbar">
-                        {chatMessages.map((msg) => (
-                            <div key={msg.id} className={`flex gap-4 ${msg.type === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-white ${msg.type === 'user' ? 'bg-indigo-100' : 'bg-white'
-                                    }`}>
-                                    {msg.type === 'user' ? <span className="text-xs font-bold text-indigo-600">You</span> : <Bot size={16} className="text-blue-600" />}
-                                </div>
-                                <div className={`max-w-[85%] space-y-3 ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
-                                    <div className={`p-4 rounded-2xl text-[14px] leading-relaxed shadow-sm ${msg.type === 'user'
-                                        ? 'bg-blue-600 text-white rounded-tr-sm'
-                                        : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
-                                        }`}>
-                                        {msg.text}
+                                {quizData ? (
+                                    <div className="relative text-center max-w-lg mx-auto">
+                                        <div className="w-20 h-20 bg-gradient-to-br from-[#0487e2] to-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/20 rotate-3">
+                                            <ListChecks size={36} className="text-white -rotate-3" />
+                                        </div>
+                                        <h3 className="text-2xl font-extrabold text-slate-900 mb-3">{quizData.title || 'Bài Tập Rèn Luyện'}</h3>
+                                        <p className="text-slate-600 mb-10 text-[15px] font-medium leading-relaxed">Đã đến lúc kiểm chứng mức độ hiểu bài của bạn. Hãy click vào nút bên dưới để bắt đầu làm bài Quiz củng cố nhé!</p>
+
+                                        <div className="grid grid-cols-2 gap-5 mb-10 text-sm">
+                                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-center hover:border-blue-200 transition-colors">
+                                                <div className="flex items-center justify-center mb-2">
+                                                    <Target size={20} className="text-[#0487e2]" />
+                                                </div>
+                                                <p className="text-[11px] text-slate-500 uppercase tracking-widest font-black mb-1.5 object-center">Số câu hỏi</p>
+                                                <p className="font-extrabold text-2xl text-slate-800">{quizData.totalQuestions || 0}</p>
+                                            </div>
+                                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-center hover:border-amber-200 transition-colors">
+                                                <div className="flex items-center justify-center mb-2">
+                                                    <Clock size={20} className="text-amber-500" />
+                                                </div>
+                                                <p className="text-[11px] text-slate-500 uppercase tracking-widest font-black mb-1.5 object-center">Giới hạn thời gian</p>
+                                                <p className="font-extrabold text-2xl text-slate-800">{quizData.duration || 15} <span className="text-sm">phút</span></p>
+                                            </div>
+                                        </div>
+
+                                        <Button
+                                            type="primary"
+                                            size="large"
+                                            onClick={() => navigate(`/dashboard/student/quizzes/${quizData.id || quizData.quizId}`)}
+                                            className="bg-slate-900 hover:bg-[#0487e2] text-white px-12 h-14 rounded-2xl font-bold border-none text-base shadow-xl shadow-slate-900/10 hover:shadow-blue-500/30 transition-all hover:scale-105"
+                                        >
+                                            Vào Làm Bài Tập Ngay
+                                        </Button>
                                     </div>
-                                    {msg.suggestions && (
-                                        <div className="flex flex-wrap gap-2">
-                                            {msg.suggestions.map((sug, i) => (
-                                                <button key={i} className="text-[11px] font-medium bg-white border border-blue-100 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm">
-                                                    {sug}
-                                                </button>
-                                            ))}
+                                ) : (
+                                    <div className="text-center py-16 px-4">
+                                        <div className="w-20 h-20 bg-slate-50 rounded-full mx-auto flex items-center justify-center mb-6">
+                                            <CheckSquare className="text-slate-300" size={36} />
                                         </div>
-                                    )}
-                                </div>
+                                        <h3 className="text-xl font-bold text-slate-800 mb-2">Chưa có bài tập nào</h3>
+                                        <p className="text-slate-500 font-medium">Bạn có thể dùng đoạn thời gian này tiếp tục tìm hiểu kiến thức bổ trợ.</p>
+                                    </div>
+                                )}
                             </div>
-                        ))}
-                        <div ref={chatEndRef} />
+                        )}
+
+                        {activeTab === '3' && (
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 animate-fade-in">
+                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3 mb-8">
+                                    <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
+                                        <MessageSquare size={20} />
+                                    </div>
+                                    Các câu hỏi thường gặp
+                                </h3>
+
+                                {lessonFaqs.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {lessonFaqs.map((faq, idx) => (
+                                            <div key={faq.id || idx} className="bg-white border hover:border-[#0487e2] rounded-xl p-6 shadow-sm border-l-4 border-l-[#0487e2] transition-colors group">
+                                                <h4 className="font-bold text-slate-800 text-[15px] mb-3 flex gap-3 leading-snug">
+                                                    <span className="text-[#0487e2] font-black group-hover:scale-110 transition-transform">Q:</span>
+                                                    {faq.question}
+                                                </h4>
+                                                <div className="text-slate-600 text-sm leading-relaxed flex gap-3 pl-0 bg-slate-50 p-4 rounded-lg">
+                                                    <span className="text-emerald-500 font-black shrink-0">A:</span>
+                                                    <div dangerouslySetInnerHTML={{ __html: faq.answer?.replace(/\n/g, '<br/>') }} className="font-medium" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                        <div className="w-16 h-16 bg-white rounded-full mx-auto flex items-center justify-center shadow-sm mb-4">
+                                            <MessageSquare className="text-slate-300" size={28} />
+                                        </div>
+                                        <p className="text-slate-800 font-bold mb-1">Lớp chúng ta chưa có câu hỏi nào</p>
+                                        <p className="text-slate-500 text-sm font-medium">Bí mật: Bạn hoàn toàn có thể hỏi AI Trợ lý ngay ở cạnh phải màn hình nhé!</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                     </div>
 
-                    {/* Chat Input */}
-                    <div className="p-5 border-t border-gray-200 bg-white">
-                        <div className="relative shadow-sm rounded-xl">
-                            <textarea
-                                value={inputMessage}
-                                onChange={(e) => setInputMessage(e.target.value)}
-                                onKeyPress={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleSendMessage();
-                                    }
-                                }}
-                                placeholder="Hỏi gì đó đi..."
-                                className="w-full pl-4 pr-12 py-3.5 bg-gray-50/50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all text-sm resize-none custom-scrollbar"
-                                rows="1"
-                                style={{ minHeight: '52px', maxHeight: '120px' }}
-                            />
-                            <button
-                                onClick={handleSendMessage}
-                                disabled={!inputMessage.trim()}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl hover:bg-blue-700 transition-all active:scale-95"
-                            >
-                                <Send size={16} />
-                            </button>
-                        </div>
+                    {/* Right Column: Curriculum & AI Assistant (Chiếm 4 cột) */}
+                    <div className="lg:col-span-4 space-y-6">
 
-                        {/* Materials Quick Access */}
-                        <div className="mt-5 pt-4 border-t border-gray-100">
-                            <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tài liệu đính kèm</h4>
-                                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">2 file</span>
+                        {/* Curriculum Sidebar */}
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col shadow-[0_4px_20px_-8px_rgba(0,0,0,0.05)]" style={{ maxHeight: '420px' }}>
+                            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-3 bg-white rounded-t-2xl z-10 sticky top-0">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                                    <ListChecks size={16} className="text-indigo-600" />
+                                </div>
+                                <h3 className="font-bold text-slate-800 text-sm tracking-wide">Danh sách bài học</h3>
                             </div>
-                            <div className="space-y-2">
-                                {lessonMaterials.map((mat) => (
-                                    <a key={mat.id} href="#" className="flex items-center gap-3 p-2.5 hover:bg-blue-50/50 border border-transparent hover:border-blue-100 rounded-xl group transition-all">
-                                        <div className="w-8 h-8 bg-white border border-gray-100 text-red-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                                            <FileText size={16} />
-                                        </div>
-                                        <span className="text-xs font-bold text-gray-600 group-hover:text-blue-700 truncate flex-1">{mat.title}</span>
-                                        <Download size={14} className="text-gray-300 group-hover:text-blue-500" />
-                                    </a>
+                            <div className="overflow-y-auto flex-1 p-3 pb-4 custom-scrollbar bg-slate-50/50">
+                                {mappedCourseSections.map((section) => (
+                                    <div key={section.id} className="mb-3 bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                                        <button
+                                            onClick={() => !section.isLocked && toggleSection(section.id)}
+                                            className={`w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors ${section.isLocked ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'bg-white'}`}
+                                        >
+                                            <span className="font-bold text-[13px] text-slate-800 text-left uppercase tracking-wide">
+                                                {section.title}
+                                            </span>
+                                            {!section.isLocked && (
+                                                expandedSections.includes(section.id)
+                                                    ? <ChevronUp size={16} className="text-slate-400" />
+                                                    : <ChevronDown size={16} className="text-slate-400" />
+                                            )}
+                                        </button>
+
+                                        {expandedSections.includes(section.id) && !section.isLocked && (
+                                            <div className="space-y-1 p-2 bg-slate-50/50 border-t border-slate-50">
+                                                {section.lessons.map((lesson) => {
+                                                    const isQuiz = lesson.type === 'quiz';
+                                                    const isCurrent = lesson.isCurrent || lessonId === lesson.id;
+                                                    return (
+                                                        <Link
+                                                            key={lesson.id}
+                                                            to={isQuiz
+                                                                ? `/dashboard/student/quizzes/${lesson.id}`
+                                                                : `/dashboard/student/courses/${courseId}/lessons/${lesson.id}`
+                                                            }
+                                                            className={`flex items-start gap-3 p-3 rounded-xl transition-all border ${isCurrent
+                                                                ? 'bg-blue-50/80 border-[#0487e2]/20 shadow-sm'
+                                                                : 'border-transparent hover:bg-white hover:border-slate-200 hover:shadow-sm'
+                                                                }`}
+                                                        >
+                                                            <div className="mt-0.5 flex-shrink-0">
+                                                                {lesson.completed ? (
+                                                                    <div className="w-[22px] h-[22px] bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600"><CheckCircle size={14} /></div>
+                                                                ) : isCurrent ? (
+                                                                    <div className="w-[22px] h-[22px] bg-[#0487e2] rounded-full flex items-center justify-center text-white shadow-sm shadow-blue-500/40 animate-pulse"><PlayCircle size={12} className="fill-current" /></div>
+                                                                ) : isQuiz ? (
+                                                                    <div className="w-[22px] h-[22px] bg-amber-50 rounded-full flex items-center justify-center text-amber-500 border border-amber-100"><ListChecks size={12} /></div>
+                                                                ) : (
+                                                                    <div className="w-[22px] h-[22px] bg-slate-100 rounded-full flex items-center justify-center border border-slate-200 text-slate-400"><Circle size={10} /></div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className={`text-[13px] leading-snug line-clamp-2 ${isCurrent ? 'font-bold text-[#0487e2]' : 'font-semibold text-slate-700'}`}>
+                                                                    {lesson.title}
+                                                                </p>
+                                                                <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-400 font-bold uppercase tracking-widest">
+                                                                    <Clock size={10} />
+                                                                    <span>{lesson.duration || '0m'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </Link>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
                                 ))}
                             </div>
                         </div>
+
+                        {/* AI Assistant Sidebar */}
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.05)] flex flex-col relative overflow-hidden" style={{ height: '520px' }}>
+                            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500 z-20"></div>
+
+                            <div className="px-5 py-4 border-b border-slate-100 bg-white flex items-center gap-3 z-10 sticky top-0 shadow-sm shadow-slate-100/50">
+                                <div className="relative">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0487e2] to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                                        <Sparkles size={18} />
+                                    </div>
+                                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"></div>
+                                </div>
+                                <div>
+                                    <h3 className="font-extrabold text-slate-900 text-[15px]">Trợ Lý Học Tập AI</h3>
+                                    <p className="text-[11px] text-slate-500 font-semibold tracking-wide mt-0.5">Luôn sẵn sàng hỗ trợ bạn</p>
+                                </div>
+                            </div>
+
+                            <div
+                                ref={chatContainerRef}
+                                className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50/50 custom-scrollbar relative"
+                            >
+                                {chatMessages.map((msg) => (
+                                    <div key={msg.id} className={`flex gap-3 animate-fade-in ${msg.type === 'user' ? 'flex-row-reverse' : ''}`}>
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-sm ${msg.type === 'user' ? 'bg-indigo-100 text-indigo-700 text-xs font-bold ring-2 ring-white' : 'bg-gradient-to-br from-[#0487e2] to-indigo-600 text-white ring-2 ring-white'
+                                            }`}>
+                                            {msg.type === 'user' ? 'M' : <Bot size={16} />}
+                                        </div>
+                                        <div className={`max-w-[82%] px-4 py-3 text-[14px] leading-relaxed shadow-sm flex flex-col items-start font-medium ${msg.type === 'user'
+                                            ? 'bg-slate-900 text-white rounded-[20px] rounded-tr-[4px]'
+                                            : 'bg-white text-slate-800 rounded-[20px] rounded-tl-[4px] border border-slate-100'
+                                            }`}>
+                                            <span style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</span>
+
+                                            {msg.suggestions && (
+                                                <div className="mt-3 flex flex-wrap gap-2 w-full">
+                                                    {msg.suggestions.map((sug, i) => (
+                                                        <button
+                                                            key={i}
+                                                            className="text-xs font-semibold bg-blue-50/80 border border-blue-200/50 text-[#0487e2] px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors text-left leading-tight w-fit shadow-sm hover:shadow"
+                                                            onClick={() => setInputMessage(sug)}
+                                                        >
+                                                            {sug}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                                {isTyping && (
+                                    <div className="flex gap-3 animate-fade-in">
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-sm bg-gradient-to-br from-[#0487e2] to-indigo-600 text-white ring-2 ring-white">
+                                            <Bot size={16} />
+                                        </div>
+                                        <div className="bg-white text-slate-800 rounded-[20px] rounded-tl-[4px] border border-slate-100 px-4 py-3 shadow-sm">
+                                            <div className="flex gap-1">
+                                                <span className="w-1.5 h-1.5 bg-[#0487e2]/60 rounded-full animate-bounce"></span>
+                                                <span className="w-1.5 h-1.5 bg-[#0487e2]/60 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                                                <span className="w-1.5 h-1.5 bg-[#0487e2]/60 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={chatEndRef} />
+                            </div>
+
+                            <div className="p-4 bg-white border-t border-slate-100 z-10 sticky bottom-0">
+                                <div className="relative group">
+                                    <input
+                                        type="text"
+                                        value={inputMessage}
+                                        onChange={(e) => setInputMessage(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleSendMessage();
+                                            }
+                                        }}
+                                        placeholder="Nhập câu hỏi..."
+                                        className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#0487e2] focus:ring-4 focus:ring-blue-500/10 focus:bg-white transition-all placeholder:text-slate-400 group-hover:border-slate-300"
+                                    />
+                                    <button
+                                        onClick={handleSendMessage}
+                                        disabled={!inputMessage.trim() || isTyping}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-[#0487e2] disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-lg hover:bg-[#0374c4] transition-all disabled:opacity-50 active:scale-95 shadow-sm"
+                                    >
+                                        <Send size={14} className="ml-0.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Materials Quick Access */}
+                        {lessonMaterials.length > 0 && (
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+                                <h3 className="font-extrabold text-slate-800 text-sm flex items-center justify-between uppercase tracking-wide">
+                                    Tài liệu kham khảo
+                                    <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">{lessonMaterials.length} FILE</span>
+                                </h3>
+                                <div className="space-y-3">
+                                    {lessonMaterials.map((mat) => (
+                                        <a key={mat.id} href={mat.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-xl group transition-all shadow-sm hover:shadow">
+                                            <div className="w-10 h-10 bg-red-50/80 text-red-500 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-red-100 group-hover:scale-105 transition-all">
+                                                <FileText size={18} />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="text-[13px] font-bold text-slate-700 group-hover:text-[#0487e2] truncate">{mat.title}</h4>
+                                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-0.5">{mat.type}</p>
+                                            </div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                                                <Download size={14} className="text-slate-400 group-hover:text-[#0487e2]" />
+                                            </div>
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                     </div>
                 </div>
             </div>
-
         </div>
     );
 }

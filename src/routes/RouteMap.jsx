@@ -4,14 +4,22 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import Sidebar from "../components/layout/Sidebar";
 import StudentLayout from "../components/layout/StudentLayout";
+import CheckProfileWrapper from "../components/layout/CheckProfileWrapper";
 import Home from "../pages/Home";
 import Login from "../pages/Login";
-import Register from "../pages/Register";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
+import VerifyEmail from "../pages/VerifyEmail";
+
 import ProtectedRoute from "./ProtectedRoute";
 // Teacher & Student routes (using features/)
 import TeacherDashboard from "../features/dashboard/teacher/pages/TeacherDashboard";
 import CourseManagement from "../features/course/teacher/pages/CourseManagement";
 import TeacherCourseDetail from "../features/course/teacher/pages/CourseDetail";
+
+import TeacherQuizEditor from "../features/quiz/teacher/pages/TeacherQuizEditor";
+import TeacherLessonDetail from "../features/lesson/teacher/pages/LessonDetail";
+import TeacherGradeSubmission from "../features/assignment/teacher/pages/GradeSubmission";
 import StudentDashboard from "../features/dashboard/student/pages/StudentDashboard";
 import ClassManagement from "../features/classes/teacher/pages/ClassManagement";
 import ClassStudentList from "../features/classes/teacher/pages/ClassStudentList";
@@ -20,12 +28,21 @@ import QuestionList from "../features/question-bank/teacher/pages/QuestionList";
 import ManagerDashboard from "../features/dashboard/manager/pages/ManagerDashboard";
 import SubjectManagement from "../features/subject/manager/pages/SubjectManagement";
 import SubjectDetail from "../features/subject/manager/pages/SubjectDetail";
+import GradeManagement from "../features/grade/manager/pages/GradeManagement";
+import ManagerClassDetail from "../features/grade/manager/pages/ClassDetail";
+import TermManagement from "../features/term/manager/pages/TermManagement";
+import ManagerCourseManagement from "../features/course/manager/pages/CourseManagement";
+import ManagerCreateTemplate from "../features/course/manager/pages/CreateTemplate";
+
+import ManagerQuestionBank from "../features/question-bank/manager/pages/QuestionBank";
 import CourseDetail from "../features/course/student/pages/CourseDetail";
 import CoursesList from "../features/course/student/pages/CoursesList";
 import LessonDetail from "../features/lesson/student/pages/LessonDetail";
 import QuizList from "../features/quiz/student/pages/QuizList";
 import QuizDetail from "../features/quiz/student/pages/QuizDetail";
 import StudentProgress from "../features/progress/student/pages/StudentProgress";
+import Profile from "../features/user/pages/Profile";
+import MyNotifications from "../features/notification/pages/MyNotifications";
 
 // Admin routes (using features/)
 import AdminDashboard from "../features/dashboard/admin/pages/AdminDashboard";
@@ -34,13 +51,16 @@ import UserManagement from "../features/user/admin/pages/UserManagement";
 import NotificationManagement from "../features/notification/admin/pages/NotificationManagement";
 import AuditLogManagement from "../features/audit-log/admin/pages/AuditLogManagement";
 import SystemSettings from "../features/settings/admin/pages/SystemSettings";
+import GeneralSettings from "../features/settings/pages/GeneralSettings";
 
 const Layout = () => (
   <div className="flex flex-col min-h-screen">
     <ScrollToTop />
     <Header />
     <main className="flex-grow">
-      <Outlet />
+      <CheckProfileWrapper>
+        <Outlet />
+      </CheckProfileWrapper>
     </main>
     <Footer />
   </div>
@@ -61,15 +81,22 @@ export default function RouteMap() {
             <Route index element={<TeacherDashboard />} />
             <Route path="courses" element={<CourseManagement />} />
             <Route path="courses/:courseId" element={<TeacherCourseDetail />} />
+
+            <Route path="courses/:courseId/quizzes/:quizId" element={<TeacherQuizEditor />} />
+            <Route path="courses/:courseId/lessons/:lessonId" element={<TeacherLessonDetail />} />
+            <Route path="courses/:courseId/assignments/:assignmentId/submissions/:submissionId/grade" element={<TeacherGradeSubmission />} />
             <Route path="classes/:classId/students" element={<ClassStudentList />} />
             <Route path="classes" element={<ClassManagement />} />
             <Route path="question-bank" element={<QuestionBank />} />
             <Route path="question-bank/:folderId" element={<QuestionList />} />
+            <Route path="my-notifications" element={<MyNotifications />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<GeneralSettings />} />
           </Route>
         </Route>
 
         {/* Role: Student */}
-        <Route element={<ProtectedRoute allowedRoles={['user']} />}>
+        <Route element={<ProtectedRoute allowedRoles={['user', 'student']} />}>
           <Route path="student" element={<StudentLayout />}>
             <Route index element={<StudentDashboard />} />
             <Route path="courses" element={<CoursesList />} />
@@ -78,6 +105,9 @@ export default function RouteMap() {
             <Route path="quizzes" element={<QuizList />} />
             <Route path="quizzes/:quizId" element={<QuizDetail />} />
             <Route path="progress" element={<StudentProgress />} />
+            <Route path="my-notifications" element={<MyNotifications />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<GeneralSettings />} />
           </Route>
         </Route>
 
@@ -87,6 +117,17 @@ export default function RouteMap() {
             <Route index element={<ManagerDashboard />} />
             <Route path="subjects" element={<SubjectManagement />} />
             <Route path="subjects/:id" element={<SubjectDetail />} />
+
+            <Route path="courses" element={<ManagerCourseManagement />} />
+            <Route path="courses/create" element={<ManagerCreateTemplate />} />
+            <Route path="grades" element={<GradeManagement />} />
+            <Route path="classes/:id" element={<ManagerClassDetail />} />
+            <Route path="terms" element={<TermManagement />} />
+            <Route path="terms" element={<TermManagement />} />
+            <Route path="question-bank" element={<ManagerQuestionBank />} />
+            <Route path="my-notifications" element={<MyNotifications />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<GeneralSettings />} />
           </Route>
         </Route>
 
@@ -98,7 +139,9 @@ export default function RouteMap() {
             <Route path="users" element={<UserManagement />} />
             <Route path="notifications" element={<NotificationManagement />} />
             <Route path="audit-logs" element={<AuditLogManagement />} />
+            <Route path="my-notifications" element={<MyNotifications />} />
             <Route path="settings" element={<SystemSettings />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Route>
 
@@ -107,7 +150,10 @@ export default function RouteMap() {
 
       {/* Các route có layout Header/Footer */}
       <Route path="login" element={<Login />} />
-      <Route path="register" element={<Register />} />
+      <Route path="forgot-password" element={<ForgotPassword />} />
+      <Route path="reset-password" element={<ResetPassword />} />
+      <Route path="verify-email" element={<VerifyEmail />} />
+
 
       {/* Các route có layout Header/Footer */}
       <Route element={<Layout />}>

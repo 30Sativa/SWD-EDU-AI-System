@@ -1,34 +1,54 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Bell,
-  Search,
   Settings,
   User,
   LogOut,
   ChevronDown
 } from 'lucide-react';
 import { message } from 'antd';
+import { getCurrentUser } from '../../user/api/userApi';
+import NotificationDropdown from './NotificationDropdown';
 
-export default function Header({ userRole }) {
+export default function Header({ userRole, basePath }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
 
-  // Get user info from localStorage
-  const userName = localStorage.getItem('userName') || 'User';
+  // Get user info from API
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await getCurrentUser();
+        const userData = response?.data || response;
+        setCurrentUser(userData);
+
+        // Prioritize full name for display
+        const nameToStore = userData?.fullName || userData?.profile?.fullName || userData?.userName;
+        if (nameToStore) localStorage.setItem('userName', nameToStore);
+        if (userData?.id) localStorage.setItem('userId', userData.id);
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  // Determine display name: State > LocalStorage > Default
+  const userName = currentUser?.fullName || currentUser?.profile?.fullName || currentUser?.userName || localStorage.getItem('userName') || 'User';
 
   const getRoleLabel = (role) => {
-    switch (role) {
-      case 'teacher': return 'Giáo viên';
-      case 'student': return 'Học sinh';
-      case 'admin': return 'Quản trị viên';
-      case 'manager': return 'Quản lý chuyên môn';
-      default: return role;
-    }
+    const labels = {
+      'teacher': 'Giáo viên',
+      'student': 'Học sinh',
+      'admin': 'Quản trị viên',
+      'manager': 'Quản lý chuyên môn'
+    };
+    return labels[role] || role;
   };
 
   const handleLogout = () => {
-    localStorage.clear(); // Clear all data to be safe
+    localStorage.clear();
     message.success('Đăng xuất thành công');
     navigate('/');
   };
@@ -38,19 +58,7 @@ export default function Header({ userRole }) {
       <div className="flex-1"></div>
 
       <div className="flex items-center gap-4">
-        <div className="relative hidden md:block md:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Tìm kiếm..."
-            className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-full text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white transition-all"
-          />
-        </div>
-
-        <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100 relative transition-colors">
-          <Bell size={20} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-        </button>
+        <NotificationDropdown basePath={basePath} />
 
         <div className="h-6 w-[1px] bg-gray-200 hidden sm:block"></div>
 
@@ -77,10 +85,18 @@ export default function Header({ userRole }) {
                   <p className="text-sm font-semibold text-gray-900">{userName}</p>
                   <p className="text-xs text-gray-500">{getRoleLabel(userRole)}</p>
                 </div>
-                <Link to="/profile" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
-                  <User size={16} /> Hồ sơ
+                <Link
+                  onClick={() => setUserDropdownOpen(false)}
+                  to={`${basePath}/profile`}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                >
+                  <User size={16} /> Hồ sơ cá nhân
                 </Link>
-                <Link to="/settings" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                <Link
+                  onClick={() => setUserDropdownOpen(false)}
+                  to={`${basePath}/settings`}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                >
                   <Settings size={16} /> Cài đặt
                 </Link>
                 <div className="my-1 border-t border-gray-100"></div>

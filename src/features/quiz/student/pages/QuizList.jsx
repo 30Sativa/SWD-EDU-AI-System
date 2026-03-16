@@ -1,239 +1,370 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    FileText,
-    Clock,
-    CheckCircle,
-    AlertCircle,
-    ChevronRight,
     Search,
-    Filter,
+    Clock,
+    User,
+    BookOpen,
     Calendar,
-    ArrowUpDown,
-    MoreVertical,
-    ListFilter
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    LayoutGrid,
+    CheckCircle2,
+    Clock3,
+    Circle,
+    ClipboardList,
 } from 'lucide-react';
+import { getCourseQuizzes } from '../api/quizApi';
+import { getStudentMyCourses } from '../../../course/api/courseApi';
+import { getCurrentUser } from '../../../user/api/userApi';
+import { Spin, message } from 'antd';
 
 export default function QuizList() {
-    const [filter, setFilter] = useState('all'); // all, upcoming, completed, overdue
+    const [courses, setCourses] = useState([]);
+    const [quizzes, setQuizzes] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedCourse, setSelectedCourse] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortBy, setSortBy] = useState('date');
+    const [quizType, setQuizType] = useState('trac-nghiem');
+    const [studentId, setStudentId] = useState(localStorage.getItem('studentId') || null);
 
-    const quizzes = [
-        {
-            id: 1,
-            title: 'Kiểm tra 15 phút: Hình học không gian',
-            subject: 'Toán Học 11',
-            className: '11A1',
-            duration: '15 phút',
-            questions: 10,
-            dueDate: 'Hôm nay, 23:59',
-            status: 'upcoming',
-            score: null
-        },
-        {
-            id: 2,
-            title: 'Bài tập: Sóng cơ và sự truyền sóng',
-            subject: 'Vật Lý 12',
-            className: 'Ôn Thi THPT',
-            duration: '45 phút',
-            questions: 30,
-            dueDate: 'Ngày mai, 12:00',
-            status: 'upcoming',
-            score: null
-        },
-        {
-            id: 3,
-            title: 'Kiểm tra 1 tiết: Cấu tạo nguyên tử',
-            subject: 'Hóa Học 10',
-            className: 'Cơ bản',
-            duration: '45 phút',
-            questions: 40,
-            dueDate: '20/10/2025',
-            status: 'completed',
-            score: 9.5
-        },
-        {
-            id: 4,
-            title: 'Unit 3: Vocabulary Quiz',
-            subject: 'Tiếng Anh 12',
-            className: 'Hệ 10 năm',
-            duration: '20 phút',
-            questions: 20,
-            dueDate: '15/10/2025',
-            status: 'overdue',
-            score: null
-        }
-    ];
+    // Fetch enrolled courses on mount
+    React.useEffect(() => {
+        const fetchUserDataAndCourses = async () => {
+            setLoading(true);
+            try {
+                let currentStudentId = studentId;
+                if (!currentStudentId) {
+                    const profileRes = await getCurrentUser();
+                    const profileData = profileRes?.data || profileRes;
+                    currentStudentId = profileData?.id || profileData?.studentId;
+                    if (currentStudentId) {
+                        setStudentId(currentStudentId);
+                        localStorage.setItem('studentId', currentStudentId);
+                    }
+                }
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'upcoming': return 'text-blue-600 bg-blue-50 border-blue-100';
-            case 'completed': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
-            case 'overdue': return 'text-red-600 bg-red-50 border-red-100';
-            default: return 'text-gray-600 bg-gray-50 border-gray-100';
+                if (currentStudentId) {
+                    const res = await getStudentMyCourses(currentStudentId);
+                    const data = res.data || res;
+                    const items = data?.data || data?.items || (Array.isArray(data) ? data : []);
+                    setCourses(items);
+
+                    if (items && items.length > 0) {
+                        fetchAllQuizzes(items);
+                    } else {
+                        setLoading(false);
+                    }
+                } else {
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu:", error);
+                message.error("Không thể tải danh sách khóa học");
+                setLoading(false);
+            }
+        };
+        fetchUserDataAndCourses();
+    }, [studentId]);
+
+    const fetchAllQuizzes = async (courseList) => {
+        setLoading(true);
+        try {
+            const quizPromises = courseList.map(course => getCourseQuizzes(course.id).catch(() => ({ data: [] })));
+            const results = await Promise.all(quizPromises);
+
+            const allQuizzes = results.flatMap((res, index) => {
+                const quizData = res.data || res;
+                const qItems = quizData?.data || quizData?.items || (Array.isArray(quizData) ? quizData : []);
+                return qItems.map(q => ({
+                    ...q,
+                    id: q.quizId || q.id, // Ensure consistent id field for keys and navigation
+                    courseName: courseList[index].title || courseList[index].name
+                }));
+            });
+
+            setQuizzes(allQuizzes);
+        } catch (error) {
+            console.error("Lỗi khi tải quiz:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const getStatusText = (status) => {
-        switch (status) {
-            case 'upcoming': return 'Sắp tới';
-            case 'completed': return 'Đã làm';
-            case 'overdue': return 'Quá hạn';
-            default: return '';
+    const fetchQuizzesByCourse = async (courseId) => {
+        if (courseId === 'all') {
+            fetchAllQuizzes(courses);
+            return;
+        }
+        setLoading(true);
+        try {
+            const res = await getCourseQuizzes(courseId);
+            const data = res.data || res;
+            const qItems = data?.data || data?.items || (Array.isArray(data) ? data : []);
+            const course = courses.find(c => String(c.id) === String(courseId));
+            setQuizzes(qItems.map(q => ({
+                ...q,
+                id: q.quizId || q.id,
+                courseName: course?.title || course?.name || 'Khóa học'
+            })));
+        } catch (error) {
+            console.error("Lỗi khi tải quiz:", error);
+            message.error("Không thể tải danh sách bài tập");
+        } finally {
+            setLoading(false);
         }
     };
 
-    const filteredQuizzes = quizzes.filter(q => {
-        const matchFilter = filter === 'all' || q.status === filter;
-        const matchSearch = q.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            q.subject.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchFilter && matchSearch;
-    }).sort((a, b) => {
-        if (sortBy === 'name') return a.title.localeCompare(b.title);
-        // Default sort (Date logic placeholder)
-        return 0;
-    });
+    const handleCourseChange = (e) => {
+        const val = e.target.value;
+        setSelectedCourse(val);
+        fetchQuizzesByCourse(val);
+    };
+
+    const filteredQuizzes = quizzes.filter(quiz =>
+        (quiz.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (quiz.courseName || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
-        <div className="p-6 md:p-8 bg-gray-50 min-h-screen font-sans text-gray-900 animate-fade-in">
-            <div className="max-w-6xl mx-auto space-y-8">
+        <div className="p-8 bg-slate-50 pb-12 font-sans">
+            <div className="max-w-7xl mx-auto">
 
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div>
-                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Bài Kiểm Tra</h1>
-                        <p className="text-gray-500 text-lg font-medium">Quản lý và thực hiện các bài đánh giá năng lực.</p>
+                <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="space-y-2">
+                        <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                            Bài kiểm tra <span className="text-[#0463ca]">& Đánh giá</span>
+                        </h1>
+                        <p className="text-slate-500 text-sm font-medium">
+                            Tổng hợp các bài kiểm tra định kỳ, 1 tiết và học kỳ để đánh giá năng lực của bạn.
+                        </p>
                     </div>
 
-                    <div className="flex bg-white p-1.5 rounded-2xl border border-gray-200 shadow-sm">
-                        {['all', 'upcoming', 'completed', 'overdue'].map((f) => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${filter === f
-                                    ? 'bg-gray-900 text-white shadow-md'
-                                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                                    }`}
-                            >
-                                {f === 'all' ? 'Tất cả' : getStatusText(f)}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Filter Bar */}
-                <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
-                    <div className="relative w-full md:w-96 group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Tìm bài kiểm tra, môn học..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium shadow-sm hover:shadow-md"
-                        />
-                    </div>
-                    <div className="flex items-center gap-3 w-full md:w-auto">
-                        <button className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm active:scale-95">
-                            <ListFilter size={18} />
-                            Bộ lọc
+                    <div className="flex bg-slate-100 p-1 rounded-2xl w-fit">
+                        <button
+                            onClick={() => setQuizType('trac-nghiem')}
+                            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${quizType === 'trac-nghiem'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Trắc nghiệm
+                        </button>
+                        <button
+                            onClick={() => setQuizType('tu-luan')}
+                            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${quizType === 'tu-luan'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Tự luận
                         </button>
                     </div>
                 </div>
 
-                {/* Quiz List */}
-                <div className="grid gap-5">
-                    {filteredQuizzes.map((quiz) => (
-                        <div
-                            key={quiz.id}
-                            className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden"
-                        >
-                            {/* Left Border Status Indicator */}
-                            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${quiz.status === 'completed' ? 'bg-emerald-500' :
-                                quiz.status === 'overdue' ? 'bg-red-500' : 'bg-blue-500'
-                                }`}></div>
+                <div className="flex flex-col lg:flex-row gap-8">
 
-                            <div className="flex flex-col md:flex-row items-center gap-6 pl-2">
+                    {/* Sidebar Filters */}
+                    <aside className="w-full lg:w-72 flex-shrink-0">
+                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm sticky top-24">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                    Bộ lọc
+                                </h2>
+                                <button
+                                    onClick={() => {
+                                        setSelectedCourse('all');
+                                        setSearchTerm('');
+                                        fetchQuizzesByCourse('all');
+                                    }}
+                                    className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                                >
+                                    Xóa hết
+                                </button>
+                            </div>
 
-                                {/* Icon */}
-                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-inner ${quiz.status === 'completed' ? 'bg-emerald-50 text-emerald-600' :
-                                    quiz.status === 'overdue' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
-                                    }`}>
-                                    <FileText size={28} />
-                                </div>
-
-                                {/* Info */}
-                                <div className="flex-1 w-full text-center md:text-left">
-                                    <div className="flex items-center justify-center md:justify-start gap-2.5 mb-2">
-                                        <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider ${quiz.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                                            quiz.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                                            }`}>{quiz.subject}</span>
-                                        <span className="text-xs font-bold text-gray-400 opacity-60">•</span>
-                                        <span className="text-xs font-bold text-gray-500">{quiz.className}</span>
+                            <div className="space-y-6">
+                                {/* Khóa học */}
+                                <div>
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-3">
+                                        <LayoutGrid size={16} className="text-blue-500" />
+                                        KHÓA HỌC
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-4 md:mb-2 leading-tight">
-                                        {quiz.title}
-                                    </h3>
-
-                                    <div className="flex flex-wrap justify-center md:justify-start items-center gap-4 text-sm text-gray-500 font-medium">
-                                        <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                                            <Clock size={16} className="text-gray-400" /> {quiz.duration}
-                                        </span>
-                                        <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                                            <FileText size={16} className="text-gray-400" /> {quiz.questions} câu
-                                        </span>
-                                        <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${quiz.status === 'overdue' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 border-gray-100'
-                                            }`}>
-                                            <Calendar size={16} className={quiz.status === 'overdue' ? 'text-red-500' : 'text-gray-400'} />
-                                            Hạn: {quiz.dueDate}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex items-center gap-4 w-full md:w-auto justify-center md:justify-end mt-2 md:mt-0">
-                                    {quiz.status === 'upcoming' && (
-                                        <Link
-                                            to={`/dashboard/student/quizzes/${quiz.id}`}
-                                            className="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-blue-200 hover:shadow-blue-500/30 hover:-translate-y-1 active:scale-95 text-sm whitespace-nowrap w-full md:w-auto flex justify-center items-center gap-2"
+                                    <div className="relative group">
+                                        <select
+                                            value={selectedCourse}
+                                            onChange={handleCourseChange}
+                                            className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer shadow-sm"
                                         >
-                                            Làm Bài <ChevronRight size={18} />
-                                        </Link>
-                                    )}
-                                    {quiz.status === 'completed' && (
-                                        <div className="text-right flex items-center gap-5">
-                                            <div className="flex flex-col items-center md:items-end">
-                                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Điểm số</span>
-                                                <span className="text-2xl font-extrabold text-emerald-600">{quiz.score}</span>
-                                            </div>
-                                            <Link
-                                                to={`/dashboard/student/quizzes/${quiz.id}`}
-                                                className="px-6 py-3 border-2 border-gray-100 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 hover:border-gray-200 transition-all text-sm active:scale-95"
-                                            >
-                                                Xem Lại
-                                            </Link>
-                                        </div>
-                                    )}
-                                    {quiz.status === 'overdue' && (
-                                        <span className="px-6 py-3 bg-red-50 text-red-600 font-bold rounded-2xl text-sm border border-red-100 shadow-sm">
-                                            Đã quá hạn
-                                        </span>
-                                    )}
+                                            <option value="all">Tất cả khóa học</option>
+                                            {courses.map(course => (
+                                                <option key={course.id} value={course.id}>{course.title || course.name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    </div>
+                                </div>
+
+                                <div className="h-px bg-slate-100" />
+
+                                {/* Trạng thái */}
+                                <div>
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-3">
+                                        <Clock3 size={16} className="text-blue-500" />
+                                        TRẠNG THÁI
+                                    </div>
+                                    <div className="space-y-2">
+                                        {['Tất cả', 'Chưa bắt đầu', 'Đã hoàn thành'].map((status) => (
+                                            <label key={status} className="flex items-center gap-3 cursor-pointer group">
+                                                <div className="relative flex items-center justify-center">
+                                                    <input
+                                                        type="radio"
+                                                        name="status"
+                                                        className="peer appearance-none w-5 h-5 border-2 border-slate-200 rounded-full checked:border-blue-500 transition-all"
+                                                        defaultChecked={status === 'Tất cả'}
+                                                    />
+                                                    <div className="absolute w-2.5 h-2.5 bg-blue-500 rounded-full scale-0 peer-checked:scale-100 transition-transform"></div>
+                                                </div>
+                                                <span className="text-sm text-slate-600 group-hover:text-slate-900 transition-colors">{status}</span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    ))}
+                    </aside>
 
-                    {filteredQuizzes.length === 0 && (
-                        <div className="text-center py-24 bg-white rounded-[2rem] border-2 border-dashed border-gray-100">
-                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <Search className="text-gray-300" size={32} />
+                    <main className="flex-1">
+                        {/* Search & Sort Bar */}
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-5 mb-8">
+                            <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+                                <div className="relative flex-1 max-w-xl group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Search className="h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Tìm kiếm bài kiểm tra, khóa học..."
+                                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500 text-sm shadow-sm"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 shadow-sm hover:shadow-md transition-all">
+                                        <Calendar size={16} className="text-blue-500" />
+                                        Gần đây nhất
+                                    </button>
+                                </div>
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">Không tìm thấy bài kiểm tra nào</h3>
-                            <p className="text-gray-500 font-medium">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
                         </div>
-                    )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {loading ? (
+                                <div className="col-span-full py-20 flex flex-col items-center gap-4">
+                                    <Spin size="large" />
+                                    <p className="text-slate-500 font-medium">Đang tải danh sách bài tập...</p>
+                                </div>
+                            ) : filteredQuizzes.length > 0 ? (
+                                filteredQuizzes.map((quiz) => (
+                                    <div key={quiz.id} className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm group">
+                                        <div className="p-6 flex-1">
+                                            {/* Quiz Tag */}
+                                            <div className="mb-4">
+                                                <span className={`text-[10px] font-semibold px-3 py-1 rounded-full ${quiz.quizType === 'Summative' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'} uppercase tracking-wider`}>
+                                                    {quiz.quizType === 'Summative' ? 'Tổng hợp' : 'Định kỳ'}
+                                                </span>
+                                            </div>
+
+                                            {/* Title */}
+                                            <h3 className="text-lg font-bold text-slate-900 mb-5 group-hover:text-blue-600 transition-colors">
+                                                {quiz.title}
+                                            </h3>
+
+                                            {/* Info Rows */}
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-8">
+                                                    <div className="flex items-center gap-2 text-slate-500">
+                                                        <Clock size={16} className="text-slate-400" />
+                                                        <span className="text-sm font-medium">{quiz.duration || quiz.timeLimit || 0} phút</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-slate-500">
+                                                        <ClipboardList size={16} className="text-slate-400" />
+                                                        <span className="text-sm font-medium">{quiz.totalQuestions || 0} câu</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-8">
+                                                    <div className="flex items-center gap-2 text-slate-500">
+                                                        <BookOpen size={16} className="text-slate-400" />
+                                                        <span className="text-sm font-medium">{quiz.courseName}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Card Footer */}
+                                        <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${quiz.isCompleted ? 'bg-emerald-400' : 'bg-gray-300'} shadow-sm`}></div>
+                                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                                    {quiz.isCompleted ? 'Đã hoàn thành' : 'Chưa bắt đầu'}
+                                                </span>
+                                            </div>
+
+                                            {quiz.isCompleted ? (
+                                                <Link
+                                                    to={`/dashboard/student/quizzes/${quiz.id}`}
+                                                    className="px-5 py-2.5 bg-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-300 transition-all"
+                                                >
+                                                    Kết quả
+                                                </Link>
+                                            ) : (
+                                                <Link
+                                                    to={`/dashboard/student/quizzes/${quiz.id}`}
+                                                    className="px-6 py-2.5 bg-[#0487e2] hover:bg-[#0463ca] text-white font-semibold rounded-lg transition-all"
+                                                >
+                                                    Làm bài
+                                                </Link>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                                    <p className="text-slate-500 font-medium">Không tìm thấy bài kiểm tra nào phù hợp</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Pagination */}
+                        <div className="flex items-center justify-center gap-2 mt-12">
+                            <button
+                                type="button"
+                                className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                disabled={true}
+                            >
+                                Trước
+                            </button>
+                            {[1].map((page) => (
+                                <button
+                                    key={page}
+                                    type="button"
+                                    className="w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center bg-blue-600 text-white shadow-sm"
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                            <button
+                                type="button"
+                                className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                disabled={true}
+                            >
+                                Sau
+                            </button>
+                        </div>
+                    </main>
                 </div>
             </div>
         </div>
