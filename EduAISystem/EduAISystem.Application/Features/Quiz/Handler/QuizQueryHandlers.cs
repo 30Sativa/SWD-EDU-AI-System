@@ -271,6 +271,8 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                 .Select(q => new TeacherQuestionDetailResponseDto(
                     QuestionId: q.Id,
                     QuizId: q.QuizId,
+                    LessonId: q.LessonId,
+                    CourseId: q.CourseId,
                     QuestionText: q.QuestionText,
                     QuestionType: q.QuestionType,
                     Points: q.Points,
@@ -316,6 +318,8 @@ namespace EduAISystem.Application.Features.Quiz.Handler
             return new TeacherQuestionDetailResponseDto(
                 QuestionId: question.Id,
                 QuizId: question.QuizId,
+                LessonId: question.LessonId,
+                CourseId: question.CourseId,
                 QuestionText: question.QuestionText,
                 QuestionType: question.QuestionType,
                 Points: question.Points,
@@ -350,11 +354,13 @@ namespace EduAISystem.Application.Features.Quiz.Handler
         public async Task<List<TeacherQuestionDetailResponseDto>> Handle(
             GetTeacherQuestionBankQuery request, CancellationToken cancellationToken)
         {
-            var questions = await _quizRepository.GetQuestionBankAsync(request.CourseId, request.LessonId, cancellationToken);
+            var questions = await _quizRepository.GetQuestionBankAsync(request.CourseId, request.LessonId, request.TeacherId, cancellationToken);
 
             return questions.Select(q => new TeacherQuestionDetailResponseDto(
                 QuestionId: q.Id,
                 QuizId: q.QuizId,
+                LessonId: q.LessonId,
+                CourseId: q.CourseId,
                 QuestionText: q.QuestionText,
                 QuestionType: q.QuestionType,
                 Points: q.Points,

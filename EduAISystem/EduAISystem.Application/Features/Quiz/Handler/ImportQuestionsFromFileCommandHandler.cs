@@ -104,6 +104,8 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                             {
                                 qId, 
                                 quizId, 
+                                quiz.Quiz.LessonId,
+                                quiz.Quiz.CourseId,
                                 aiQ.QuestionText, 
                                 aiQ.QuestionType, 
                                 correctAnswerStr, 

@@ -1,4 +1,4 @@
-﻿using EduAISystem.Application.Abstractions.Persistence;
+using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Features.Quiz.Commands;
 using EduAISystem.Domain.Entities;
 using MediatR;
@@ -18,7 +18,7 @@ namespace EduAISystem.Application.Features.Quiz.Handler
         {
             var dto = request.Request;
 
-            var quiz = QuizDomain.Create(
+            var quiz = QuizDomain.CreateFormative(
                 lessonId: dto.LessonId,
                 title: dto.Title,
                 description: dto.Description,
@@ -26,7 +26,6 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                 maxAttempts: dto.MaxAttempts,
                 passingScore: dto.PassingScore,
                 isPublished: dto.IsPublished,
-                isActive: dto.IsActive,
                 isRequired: dto.IsRequired,
                 showAnswers: dto.ShowAnswers,
                 shuffleQuestions: dto.ShuffleQuestions

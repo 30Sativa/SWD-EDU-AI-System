@@ -62,6 +62,8 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                     {
                         questionId, 
                         request.TargetQuizId, 
+                        targetQuizWithQuestions.Quiz.LessonId,
+                        targetQuizWithQuestions.Quiz.CourseId,
                         sq.QuestionText, 
                         sq.QuestionType, 
                         sq.CorrectAnswer, 

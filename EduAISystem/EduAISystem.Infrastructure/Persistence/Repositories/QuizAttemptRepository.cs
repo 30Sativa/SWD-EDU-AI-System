@@ -113,7 +113,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                     .Select(o => new QuestionOptionDomain(o.Id, o.QuestionId, o.OptionText, o.IsCorrect, o.SortOrder))
                     .ToList<QuestionOptionDomain>();
 
-                return new QuestionDomain(q.Id, q.QuizId, q.QuestionText, q.QuestionType,
+                return new QuestionDomain(q.Id, q.QuizId, q.Quiz?.LessonId, q.Quiz?.CourseId, q.QuestionText, q.QuestionType,
                     q.CorrectAnswer, q.Points ?? 1m, q.Explanation, q.SortOrder, options);
             }).ToList();
 

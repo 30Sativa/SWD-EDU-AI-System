@@ -315,12 +315,16 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                 correctAnswer = correctOption?.OptionText ?? "Correct Answer";
             }
 
+            // Lấy Quiz để có context LessonId/CourseId
+            var quiz = await _quizRepository.GetByIdAsync(request.QuizId, cancellationToken)
+                ?? throw new NotFoundException($"Quiz {request.QuizId} không tồn tại.");
+
             // Reflection để tạo instance của internal QuestionDomain
             var question = (QuestionDomain)Activator.CreateInstance(
                 typeof(QuestionDomain),
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
                 null,
-                [questionId, request.QuizId, dto.QuestionText, dto.QuestionType, 
+                [questionId, request.QuizId, quiz.LessonId, quiz.CourseId, dto.QuestionText, dto.QuestionType, 
                  correctAnswer, dto.Points, dto.Explanation, dto.SortOrder, options],
                 null)!;
 
@@ -481,6 +485,8 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                 {
                     existingQuestion.Id,
                     request.QuizId,
+                    quizDetail.Quiz.LessonId,
+                    quizDetail.Quiz.CourseId,
                     questionText,
                     questionType,
                     correctAnswer,

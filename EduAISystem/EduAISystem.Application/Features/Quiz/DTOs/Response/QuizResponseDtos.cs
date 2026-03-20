@@ -63,6 +63,8 @@ namespace EduAISystem.Application.Features.Quiz.DTOs.Response
     public record TeacherQuestionDetailResponseDto(
         Guid QuestionId,
         Guid QuizId,
+        Guid? LessonId,
+        Guid? CourseId,
         string QuestionText,
         string QuestionType,
         decimal Points,

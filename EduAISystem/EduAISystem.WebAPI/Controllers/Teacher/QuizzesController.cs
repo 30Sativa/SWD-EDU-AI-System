@@ -496,7 +496,10 @@ Xoá một câu hỏi cụ thể khỏi quiz.
         {
             try
             {
-                var questions = await _mediator.Send(new GetTeacherQuestionBankQuery(courseId, lessonId), cancellationToken);
+                var teacherId = GetCurrentUserId();
+                if (teacherId == null) return Unauthorized();
+
+                var questions = await _mediator.Send(new GetTeacherQuestionBankQuery(courseId, lessonId, teacherId), cancellationToken);
                 return Ok(ApiResponse<List<TeacherQuestionDetailResponseDto>>.Ok(questions, "Lấy ngân hàng câu hỏi thành công!"));
             }
             catch (Exception ex)

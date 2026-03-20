@@ -9,6 +9,9 @@ namespace EduAISystem.Domain.Entities
 
         public Guid QuizId { get; private set; }
 
+        public Guid? LessonId { get; private set; }
+        public Guid? CourseId { get; private set; }
+
         public string QuestionText { get; private set; } = null!;
 
         /// <summary>multiple_choice | true_false | short_answer</summary>
@@ -29,6 +32,8 @@ namespace EduAISystem.Domain.Entities
         internal QuestionDomain(
             Guid id,
             Guid quizId,
+            Guid? lessonId,
+            Guid? courseId,
             string questionText,
             string questionType,
             string? correctAnswer,
@@ -39,6 +44,8 @@ namespace EduAISystem.Domain.Entities
         {
             Id = id;
             QuizId = quizId;
+            LessonId = lessonId;
+            CourseId = courseId;
             QuestionText = questionText;
             QuestionType = questionType;
             CorrectAnswer = correctAnswer;

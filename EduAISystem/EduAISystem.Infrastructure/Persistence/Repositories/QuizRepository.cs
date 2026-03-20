@@ -188,6 +188,8 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                     .ThenInclude(l => l!.Section)
                         .ThenInclude(s => s.Course)
                 .Include(q => q.Questions.OrderBy(x => x.SortOrder))
+                    .ThenInclude(q => q.Quiz) // Để map LessonId/CourseId
+                .Include(q => q.Questions.OrderBy(x => x.SortOrder))
                     .ThenInclude(q => q.QuestionOptions.OrderBy(o => o.SortOrder))
                 .FirstOrDefaultAsync(q => q.Id == quizId && q.IsActive == true, cancellationToken);
 
@@ -214,6 +216,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
         {
             var entities = await _context.Questions
                 .AsNoTracking()
+                .Include(q => q.Quiz)
                 .Include(q => q.QuestionOptions.OrderBy(o => o.SortOrder))
                 .Where(q => questionIds.Contains(q.Id))
                 .ToListAsync(cancellationToken);
@@ -263,13 +266,21 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<QuestionDomain>> GetQuestionBankAsync(Guid? courseId, Guid? lessonId, CancellationToken cancellationToken)
+        public async Task<List<QuestionDomain>> GetQuestionBankAsync(Guid? courseId, Guid? lessonId, Guid? teacherId, CancellationToken cancellationToken)
         {
             var query = _context.Questions
                 .AsNoTracking()
                 .Include(q => q.Quiz)
+                    .ThenInclude(z => z.Lesson)
+                        .ThenInclude(l => l!.Section)
                 .Include(q => q.QuestionOptions.OrderBy(o => o.SortOrder))
                 .Where(q => q.Quiz.IsActive == true);
+
+            if (teacherId.HasValue)
+            {
+                query = query.Where(q => (q.Quiz.Course != null && q.Quiz.Course.TeacherId == teacherId.Value || 
+                                         (q.Quiz.Lesson != null && q.Quiz.Lesson.Section.Course.TeacherId == teacherId.Value)));
+            }
 
             if (lessonId.HasValue)
             {
@@ -301,9 +312,9 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 .CountAsync(a => a.QuizId == quizId && a.StudentId == studentId, cancellationToken);
         }
 
-        public async Task<List<QuestionBankSummaryResponseDto>> GetQuestionBankSummaryAsync(Guid teacherId, CancellationToken cancellationToken)
+        public async Task<List<QuestionBankSummaryResponseDto>> GetQuestionBankSummaryAsync(Guid? teacherId, CancellationToken cancellationToken)
         {
-            // Lấy tất cả câu hỏi của giáo viên này, group theo Lesson
+            // Lấy tất cả câu hỏi, nếu có teacherId thì lọc theo giáo viên đó
             var query = _context.Questions
                 .AsNoTracking()
                 .Include(q => q.Quiz)
@@ -312,9 +323,13 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                             .ThenInclude(s => s.Course)
                 .Include(q => q.Quiz)
                     .ThenInclude(z => z.Course)
-                .Where(q => q.Quiz.IsActive == true && 
-                           (q.Quiz.Course != null && q.Quiz.Course.TeacherId == teacherId || 
-                            (q.Quiz.Lesson != null && q.Quiz.Lesson.Section != null && q.Quiz.Lesson.Section.Course != null && q.Quiz.Lesson.Section.Course.TeacherId == teacherId)));
+                .Where(q => q.Quiz.IsActive == true);
+
+            if (teacherId.HasValue)
+            {
+                query = query.Where(q => (q.Quiz.Course != null && q.Quiz.Course.TeacherId == teacherId.Value || 
+                                         (q.Quiz.Lesson != null && q.Quiz.Lesson.Section != null && q.Quiz.Lesson.Section.Course != null && q.Quiz.Lesson.Section.Course.TeacherId == teacherId.Value)));
+            }
 
             var questions = await query.ToListAsync(cancellationToken);
 
@@ -402,9 +417,15 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                     sortOrder: o.SortOrder))
                 .ToList();
 
+            // Lấy LessonId và CourseId từ Quiz đi kèm (nếu có)
+            Guid? lessonId = q.Quiz?.LessonId;
+            Guid? courseId = q.Quiz?.CourseId;
+
             return new QuestionDomain(
                 id: q.Id,
                 quizId: q.QuizId,
+                lessonId: lessonId,
+                courseId: courseId,
                 questionText: q.QuestionText,
                 questionType: q.QuestionType,
                 correctAnswer: q.CorrectAnswer,
