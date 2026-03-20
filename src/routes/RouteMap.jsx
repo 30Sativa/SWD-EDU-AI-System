@@ -35,6 +35,7 @@ import ManagerCourseManagement from "../features/course/manager/pages/CourseMana
 import ManagerCreateTemplate from "../features/course/manager/pages/CreateTemplate";
 
 import ManagerQuestionBank from "../features/question-bank/manager/pages/QuestionBank";
+import ManagerQuestionList from "../features/question-bank/manager/pages/QuestionList";
 import CourseDetail from "../features/course/student/pages/CourseDetail";
 import CoursesList from "../features/course/student/pages/CoursesList";
 import LessonDetail from "../features/lesson/student/pages/LessonDetail";
@@ -125,6 +126,7 @@ export default function RouteMap() {
             <Route path="terms" element={<TermManagement />} />
             <Route path="terms" element={<TermManagement />} />
             <Route path="question-bank" element={<ManagerQuestionBank />} />
+            <Route path="question-bank/topic/:topicId" element={<ManagerQuestionList />} />
             <Route path="my-notifications" element={<MyNotifications />} />
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<GeneralSettings />} />
