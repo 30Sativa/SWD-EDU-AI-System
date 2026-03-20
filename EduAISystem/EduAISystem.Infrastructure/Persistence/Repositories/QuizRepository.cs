@@ -188,14 +188,12 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                     .ThenInclude(l => l!.Section)
                         .ThenInclude(s => s.Course)
                 .Include(q => q.Questions.OrderBy(x => x.SortOrder))
-                    .ThenInclude(q => q.Quiz) // Để map LessonId/CourseId
-                .Include(q => q.Questions.OrderBy(x => x.SortOrder))
                     .ThenInclude(q => q.QuestionOptions.OrderBy(o => o.SortOrder))
                 .FirstOrDefaultAsync(q => q.Id == quizId && q.IsActive == true, cancellationToken);
 
             if (entity is null) return null;
 
-            var questions = entity.Questions.Select(MapQuestionToDomain).ToList();
+            var questions = entity.Questions.Select(q => MapQuestionToDomain(q, entity)).ToList();
 
             // Lấy TeacherId dựa trên Flow (Course hoặc Lesson -> Section -> Course)
             Guid? teacherId = entity.Course?.TeacherId ?? entity.Lesson?.Section?.Course?.TeacherId;
@@ -221,7 +219,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 .Where(q => questionIds.Contains(q.Id))
                 .ToListAsync(cancellationToken);
 
-            return entities.Select(MapQuestionToDomain).ToList();
+            return entities.Select(q => MapQuestionToDomain(q)).ToList();
         }
 
         public async Task<List<QuestionOptionDomain>> GetQuestionOptionsAsync(Guid questionId, CancellationToken cancellationToken)
@@ -299,7 +297,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 .Take(100)
                 .ToListAsync(cancellationToken);
 
-            return entities.Select(MapQuestionToDomain).ToList();
+            return entities.Select(q => MapQuestionToDomain(q)).ToList();
         }
 
         // =============================================
@@ -406,7 +404,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
             updatedAt: entity.UpdatedAt
         );
 
-        private static QuestionDomain MapQuestionToDomain(Question q)
+        private static QuestionDomain MapQuestionToDomain(Question q, Quiz? parentQuiz = null)
         {
             var options = q.QuestionOptions
                 .Select(o => new QuestionOptionDomain(
@@ -417,9 +415,10 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                     sortOrder: o.SortOrder))
                 .ToList();
 
-            // Lấy LessonId và CourseId từ Quiz đi kèm (nếu có)
-            Guid? lessonId = q.Quiz?.LessonId;
-            Guid? courseId = q.Quiz?.CourseId;
+            // Lấy LessonId và CourseId từ Quiz đi kèm (nếu có) hoặc từ parentQuiz truyền vào
+            var quiz = q.Quiz ?? parentQuiz;
+            Guid? lessonId = quiz?.LessonId;
+            Guid? courseId = quiz?.CourseId;
 
             return new QuestionDomain(
                 id: q.Id,
