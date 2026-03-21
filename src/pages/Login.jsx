@@ -129,7 +129,33 @@ export default function Login() {
             }
         } catch (err) {
             console.error("Login failed:", err);
-            const errorMsg = err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
+            let errorMsg = 'Đăng nhập thất bại. Vui lòng thử lại.';
+            
+            if (err.response?.status === 401) {
+                errorMsg = 'Sai mật khẩu hoặc tài khoản chưa xác thực. Vui lòng kiểm tra lại.';
+            } else if (err.response?.status === 404) {
+                errorMsg = 'Tài khoản không tồn tại trên hệ thống.';
+            } else if (err.response?.data?.message) {
+                const backendMsg = err.response.data.message;
+                const errors = err.response.data.errors;
+
+                if (backendMsg.toLowerCase().includes('validation failed') && errors) {
+                    // Collect all validation error values
+                    const errorDetails = Object.values(errors).flat();
+                    if (errorDetails.length > 0) {
+                        errorMsg = errorDetails[0]; // Show the first specific validation error
+                    } else {
+                        errorMsg = 'Thông tin đăng nhập không hợp lệ.';
+                    }
+                } else if (backendMsg.toLowerCase().includes('invalid credentials')) {
+                    errorMsg = 'Sai tài khoản hoặc mật khẩu.';
+                } else if (backendMsg.toLowerCase().includes('locked')) {
+                    errorMsg = 'Tài khoản của bạn đã bị khóa.';
+                } else {
+                    errorMsg = backendMsg;
+                }
+            }
+            
             setError(errorMsg);
             message.error(errorMsg);
         } finally {

@@ -30,6 +30,7 @@ import { getCourseTemplates } from '../../api/courseApi';
 import { getSubjects } from '../../../subject/api/subjectApi';
 import { getGradeLevels } from '../../../grade/api/gradeApi';
 import { getCourseCategories } from '../../../category/api/categoryApi';
+import EditTemplateModal from '../components/EditTemplateModal';
 
 export default function CourseManagement() {
     const navigate = useNavigate();
@@ -38,10 +39,15 @@ export default function CourseManagement() {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
 
-    // Data maps for ID-to-Name resolution
     const [subjectsMap, setSubjectsMap] = useState({});
     const [gradesMap, setGradesMap] = useState({});
     const [categoriesMap, setCategoriesMap] = useState({});
+    const [subjects, setSubjects] = useState([]);
+    const [grades, setGrades] = useState([]);
+    const [categories, setCategories] = useState([]);
+
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [selectedCourse, setSelectedCourse] = useState(null);
 
     // Fetch dependency data
     const fetchDependencies = useCallback(async () => {
@@ -72,6 +78,10 @@ export default function CourseManagement() {
             setSubjectsMap(sMap);
             setGradesMap(gMap);
             setCategoriesMap(cMap);
+
+            setSubjects(subjectsData);
+            setGrades(gradesData);
+            setCategories(categoriesData);
         } catch (error) {
             console.error('Lỗi khi tải dữ liệu phụ trợ:', error);
         }
@@ -102,7 +112,7 @@ export default function CourseManagement() {
 
         let matchesStatus = true;
         if (statusFilter !== 'all') {
-            const isActive = course.status === 'Active' || course.status === 'Published';
+            const isActive = course.status === 'Active' || course.status === 'Published' || course.status === 1 || course.status === true;
             if (statusFilter === 'active') matchesStatus = isActive;
             if (statusFilter === 'draft') matchesStatus = !isActive;
         }
@@ -224,7 +234,7 @@ export default function CourseManagement() {
             key: 'status',
             align: 'center',
             render: (status) => {
-                const isActive = status === 'Active' || status === 'Published';
+                const isActive = status === 'Active' || status === 'Published' || status === 1 || status === true;
                 return (
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${isActive
                         ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
@@ -256,6 +266,10 @@ export default function CourseManagement() {
                             shape="circle"
                             icon={<Edit size={16} />}
                             className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50"
+                            onClick={() => {
+                                setSelectedCourse(record);
+                                setEditModalVisible(true);
+                            }}
                         />
                     </Tooltip>
                 </div>
@@ -351,6 +365,19 @@ export default function CourseManagement() {
                     )}
                 </div>
             </div>
+
+            <EditTemplateModal
+                visible={editModalVisible}
+                onClose={() => {
+                    setEditModalVisible(false);
+                    setSelectedCourse(null);
+                }}
+                course={selectedCourse}
+                subjects={subjects}
+                grades={grades}
+                categories={categories}
+                onSuccess={fetchCourses}
+            />
         </div>
     );
 }

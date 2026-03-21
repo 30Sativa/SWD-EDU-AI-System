@@ -38,6 +38,10 @@ export const createCourseTemplate = async (data) => {
     return await axiosClient.post("/api/manager/courses/template", data);
 };
 
+export const updateCourseTemplate = async (id, data) => {
+    return await axiosClient.put(`/api/manager/courses/template/${id}`, data);
+};
+
 export const scanCourseTemplate = async (id, formData) => {
     return await axiosClient.post(`/api/manager/courses/${id}/scan`, formData, {
         headers: {
