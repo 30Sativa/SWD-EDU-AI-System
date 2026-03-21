@@ -30,6 +30,13 @@ namespace EduAISystem.Application.Features.Classes.Handler
                 var student = await _userRepo.GetByIdAsync(studentId, cancellationToken);
                 if (student != null && student.Role == UserRoleDomain.Student)
                 {
+                    // Kiểm tra xem học sinh đã có lớp khác chưa
+                    var currentClass = await _classRepo.GetStudentCurrentClassAsync(studentId, cancellationToken);
+                    if (currentClass != null && currentClass.Id != request.ClassId)
+                    {
+                        throw new InvalidOperationException($"Học sinh {student.Email} hiện đã thuộc lớp {currentClass.Name}. Vui lòng xóa học sinh khỏi lớp đó trước khi thêm vào lớp mới.");
+                    }
+
                     await _classRepo.EnrollStudentToClassAsync(studentId, request.ClassId, cancellationToken);
                 }
             }
