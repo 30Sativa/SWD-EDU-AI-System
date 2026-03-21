@@ -13,6 +13,7 @@ import {
 import { Tag, Spin, Empty, Button, message, Input, Select } from 'antd';
 import dayjs from 'dayjs';
 import { getStudentAssignmentsByCourse } from '../../api/assignmentApi';
+import { getMySubmission } from '../../api/submissionApi';
 import SubmitAssignmentModal from './SubmitAssignmentModal';
 
 export default function StudentAssignmentsTab({ courseId }) {
@@ -30,11 +31,21 @@ export default function StudentAssignmentsTab({ courseId }) {
             const res = await getStudentAssignmentsByCourse(courseId);
             const data = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
 
-            // For each assignment, we might want to check if the student has submitted it
-            // However, fetching one-by-one might be slow. 
-            // If the backend doesn't provide it in the list, we show it as "View Details"
+            const assignmentsWithSubmission = await Promise.all(data.map(async (assignment) => {
+                const aId = assignment.id || assignment.Id || assignment.assignmentId || assignment.AssignmentId || assignment.courseAssignmentId;
+                try {
+                    const subRes = await getMySubmission(aId).catch(() => null);
+                    const subData = subRes?.data || subRes;
+                    if (subData && (subData.submissionId || subData.id || subData.Id)) {
+                        return { ...assignment, isSubmitted: true, submissionStatus: subData.status, submissionData: subData };
+                    }
+                } catch (e) {
+                    // Ignore errors for individual fetch
+                }
+                return { ...assignment, isSubmitted: false };
+            }));
 
-            setAssignments(data);
+            setAssignments(assignmentsWithSubmission);
         } catch (error) {
             console.error("Không thể tải danh sách bài tập", error);
             message.error("Lỗi khi tải danh sách bài tập");
@@ -49,8 +60,13 @@ export default function StudentAssignmentsTab({ courseId }) {
 
     const filteredAssignments = assignments.filter(assignment => {
         const matchesSearch = (assignment.title || assignment.Title || "").toLowerCase().includes(searchQuery.toLowerCase());
-        // For status filter, we'd need submission status which might need another API call per item or backend support
-        return matchesSearch;
+        let matchesFilter = true;
+        if (filterStatus === 'pending') {
+            matchesFilter = !assignment.isSubmitted;
+        } else if (filterStatus === 'submitted') {
+            matchesFilter = assignment.isSubmitted;
+        }
+        return matchesSearch && matchesFilter;
     });
 
     if (loading && assignments.length === 0) {
@@ -116,12 +132,25 @@ export default function StudentAssignmentsTab({ courseId }) {
                                         {index + 1}
                                     </div>
                                     <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
+                                        <div className="flex flex-wrap items-center gap-2 mb-2">
                                             <h4 className="font-bold text-slate-800 text-lg m-0 group-hover:text-indigo-600 transition-colors">
                                                 {assignment.title || assignment.Title}
                                             </h4>
                                             {isOverdue && !assignment.isSubmitted && (
-                                                <Tag color="error" className="rounded-full border-none px-3 text-[10px] font-black uppercase">QUÁ HẠN</Tag>
+                                                <div className="bg-rose-50 text-rose-600 rounded-full px-3 text-[10px] font-black uppercase shadow-sm flex items-center justify-center h-6 m-0 relative top-[-1px]">
+                                                    QUÁ HẠN
+                                                </div>
+                                            )}
+                                            {assignment.isSubmitted && (
+                                                <div className="bg-emerald-50 text-emerald-600 rounded-full px-3 text-[10px] font-black uppercase flex items-center justify-center gap-1.5 shadow-sm m-0 h-6 relative top-[-1px]">
+                                                    <CheckCircle2 size={12} strokeWidth={3} />
+                                                    ĐÃ NỘP
+                                                </div>
+                                            )}
+                                            {assignment.isSubmitted && assignment.submissionStatus === 'Graded' && (
+                                                <div className="bg-indigo-50 text-indigo-600 rounded-full px-3 text-[10px] font-black uppercase flex items-center justify-center gap-1.5 shadow-sm m-0 h-6 relative top-[-1px]">
+                                                    ĐÃ CHẤM ĐIỂM
+                                                </div>
                                             )}
                                         </div>
                                         <p className="text-sm text-slate-500 mb-4 line-clamp-2 max-w-xl">
@@ -154,10 +183,14 @@ export default function StudentAssignmentsTab({ courseId }) {
                                             setSelectedAssignment(assignment);
                                             setIsSubmitModalOpen(true);
                                         }}
-                                        className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 border-none font-bold text-sm shadow-lg shadow-indigo-100 flex items-center gap-2 group/btn"
+                                        className={`h-10 px-5 rounded-xl border-none font-bold text-sm shadow-md flex items-center gap-2 group/btn ${
+                                            assignment.isSubmitted 
+                                            ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 shadow-none" 
+                                            : "bg-[#0487e2] hover:bg-[#0374c4] text-white"
+                                        }`}
                                     >
-                                        Nộp bài assignment
-                                        <ArrowRight size={16} className="transition-transform group-hover/btn:translate-x-1" />
+                                        {assignment.isSubmitted ? "Xem chi tiết" : "Nộp bài assignment"}
+                                        <ArrowRight size={16} className={`transition-transform group-hover/btn:translate-x-1 ${assignment.isSubmitted ? 'text-emerald-500' : 'text-white'}`} />
                                     </Button>
                                 </div>
 

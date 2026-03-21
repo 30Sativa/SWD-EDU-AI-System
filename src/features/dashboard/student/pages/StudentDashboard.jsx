@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { getCurrentUser } from '../../../user/api/userApi';
 import { getStudentMyCourses } from '../../../course/api/courseApi';
+import { getStudentAssignmentsByCourse } from '../../../assignment/api/assignmentApi';
+import { getCourseQuizzes } from '../../../quiz/student/api/quizApi';
 import {
   ArrowRight,
   Calendar,
@@ -29,7 +32,6 @@ import {
   Cell
 } from 'recharts';
 
-// --- MOCK DATA (For parts with no APIs yet) ---
 const studyData = [
   { day: 'T2', hours: 1.5 },
   { day: 'T3', hours: 2.2 },
@@ -40,34 +42,12 @@ const studyData = [
   { day: 'CN', hours: 2.5 },
 ];
 
-const upcomingDeadlines = [
-  {
-    title: 'Kiểm tra giữa kỳ AI',
-    course: 'Nhập môn Trí tuệ Nhân tạo',
-    date: 'Hôm nay, 14:00',
-    type: 'Exam',
-    color: '#ef4444'
-  },
-  {
-    title: 'Nộp bài tập Python',
-    course: 'Lập trình Python căn bản',
-    date: 'Ngày mai, 23:59',
-    type: 'Assignment',
-    color: '#f59e0b'
-  },
-];
-
-const achievements = [
-  { title: 'Chăm chỉ', icon: Zap, color: 'text-orange-500', bg: 'bg-orange-50' },
-  { title: 'Thủ khoa', icon: Star, color: 'text-yellow-500', bg: 'bg-yellow-50' },
-  { title: 'Tiến triển', icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-50' },
-];
-
 export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState({ name: localStorage.getItem('userFullName') || 'Bạn', role: 'Học sinh' });
   const [courses, setCourses] = useState([]);
   const [totalCourses, setTotalCourses] = useState(0);
+  const [upcomingDeadlines, setUpcomingDeadlines] = useState([]);
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -93,10 +73,49 @@ export default function StudentDashboard() {
         const courseRes = await getStudentMyCourses(currentStudentId, { page: 1, limit: 10 });
         const coursesInfo = courseRes?.data || courseRes;
 
+        let enrolledList = [];
         if (coursesInfo?.items || Array.isArray(coursesInfo)) {
-          const list = coursesInfo.items || coursesInfo;
-          setCourses(list.slice(0, 3)); // Display top 3
-          setTotalCourses(coursesInfo.totalItems || list.length);
+          enrolledList = coursesInfo.items || coursesInfo;
+          setCourses(enrolledList.slice(0, 3)); // Display top 3
+          setTotalCourses(coursesInfo.totalItems || enrolledList.length);
+        }
+
+        // Fetch Deadlines
+        if (enrolledList.length > 0) {
+          const assignmentPromises = enrolledList.map(c => getStudentAssignmentsByCourse(c.id).then(res => ({ course: c, data: res.data || res.items || res })).catch(() => null));
+          const quizPromises = enrolledList.map(c => getCourseQuizzes(c.id).then(res => ({ course: c, data: res.data || res.items || res })).catch(() => null));
+          
+          const allRes = await Promise.all([...assignmentPromises, ...quizPromises]);
+          let tasks = [];
+          
+          allRes.forEach((result, idx) => {
+              if(!result || !result.data) return;
+              const isQuiz = idx >= assignmentPromises.length;
+              const courseName = result.course.title || result.course.name || 'Khóa học';
+              const items = Array.isArray(result.data) ? result.data : (result.data.items || []);
+              
+              items.forEach(item => {
+                  if (item.isSubmitted || item.isCompleted || item.status === 'submitted') return;
+                  
+                  const deadline = item.dueDate || item.endDate || item.endTime;
+                  if (deadline && dayjs(deadline).isAfter(dayjs())) {
+                      tasks.push({
+                          id: item.id || item.quizId,
+                          title: item.title || item.name || (isQuiz ? 'Bài Quiz' : 'Bài tập'),
+                          course: courseName,
+                          dateObj: dayjs(deadline),
+                          date: dayjs(deadline).format('DD/MM/YYYY, HH:mm'),
+                          type: isQuiz ? 'Quiz' : 'Assignment',
+                          color: isQuiz ? '#ef4444' : '#f59e0b',
+                          url: isQuiz ? `/dashboard/student/quizzes/${item.id || item.quizId}` : `/dashboard/student/courses/${result.course.id}`,
+                          courseId: result.course.id
+                      });
+                  }
+              });
+          });
+          
+          tasks.sort((a, b) => a.dateObj.valueOf() - b.dateObj.valueOf());
+          setUpcomingDeadlines(tasks.slice(0, 5));
         }
       } catch (error) {
         console.error('Lỗi khi tải dữ liệu Dashboard:', error);
@@ -270,21 +289,27 @@ export default function StudentDashboard() {
             </h3>
 
             <div className="space-y-4">
-              {upcomingDeadlines.map((item, idx) => (
-                <div key={idx} className="group p-4 bg-slate-50/50 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-white transition-all cursor-pointer">
-                  <div className="flex items-start gap-3 mb-2">
-                    <div className="w-1.5 h-10 rounded-full" style={{ backgroundColor: item.color }}></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-slate-900 leading-tight mb-1 group-hover:text-blue-600 transition-all">{item.title}</p>
-                      <p className="text-[11px] text-slate-500 font-semibold">{item.course}</p>
+              {upcomingDeadlines.length > 0 ? (
+                upcomingDeadlines.map((item, idx) => (
+                  <Link to={item.url} key={idx} className="block group p-4 bg-slate-50/50 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-white transition-all cursor-pointer shadow-sm hover:shadow-md">
+                    <div className="flex items-start gap-3 mb-2">
+                      <div className="w-1.5 h-10 rounded-full shrink-0" style={{ backgroundColor: item.color }}></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-900 leading-tight mb-1 group-hover:text-[#0487e2] transition-all truncate">{item.title}</p>
+                        <p className="text-[11px] text-slate-500 font-semibold truncate">{item.course}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 pl-4 uppercase tracking-wider">
-                    <Clock size={12} />
-                    {item.date}
-                  </div>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 pl-4 uppercase tracking-wider">
+                      <Clock size={12} className={item.dateObj.diff(dayjs(), 'hours') < 24 ? "text-red-500" : ""} />
+                      <span className={item.dateObj.diff(dayjs(), 'hours') < 24 ? "text-red-500" : ""}>{item.date}</span>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="text-center py-6 text-slate-400 font-medium text-sm">
+                  Không có hạn chót nào sắp tới.
                 </div>
-              ))}
+              )}
             </div>
 
             <button className="w-full mt-8 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-2xl text-xs transition-colors flex items-center justify-center gap-2">
@@ -293,30 +318,7 @@ export default function StudentDashboard() {
             </button>
           </div>
 
-          {/* Achievements */}
-          <div className="bg-white rounded-[2.5rem] p-7 border border-slate-50 shadow-sm transition-all hover:shadow-md">
-            <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.15em] mb-6 flex items-center justify-between">
-              <span>Thành tích</span>
-              <Target size={18} className="text-blue-500" />
-            </h3>
 
-            <div className="flex justify-between items-center mb-2 px-2">
-              {achievements.map((ach, i) => (
-                <div key={i} className="flex flex-col items-center gap-2">
-                  <div className={`w-14 h-14 rounded-2xl ${ach.bg} ${ach.color} flex items-center justify-center shadow-sm transition-transform hover:scale-110`}>
-                    <ach.icon size={24} />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">{ach.title}</span>
-                </div>
-              ))}
-              <div className="flex flex-col items-center gap-2 italic">
-                <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center text-slate-300">
-                  <Star size={20} />
-                </div>
-                <span className="text-[10px] font-bold text-slate-300">Khóa</span>
-              </div>
-            </div>
-          </div>
 
           {/* Goal Banner */}
           <div className="bg-gradient-to-br from-[#0487e2] to-[#1d4ed8] rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-100 relative overflow-hidden group">

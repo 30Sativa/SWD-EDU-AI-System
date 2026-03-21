@@ -27,10 +27,8 @@ import {
     Empty,
     Switch,
     InputNumber,
-    Progress,
-    DatePicker
+    Progress
 } from 'antd';
-import dayjs from 'dayjs';
 import {
     getCourseQuizzes,
     getLessonQuizzes,
@@ -40,126 +38,99 @@ import {
     deleteQuiz
 } from '../api/quizApi';
 
-const QuizCard = ({ quiz, navigate, courseId, handleOpenModal, handleDeleteQuiz }) => {
-    const isDeadlinePassed = quiz.deadline && dayjs().isAfter(dayjs(quiz.deadline));
-    const hasDeadline = !!quiz.deadline;
-
-    return (
-        <div className={`group bg-white border ${quiz.quizType === 'Summative' ? 'border-amber-100 shadow-amber-50/50' : 'border-slate-200'} rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full hover:border-[#0487e2]`}>
-            <div className="p-6 flex-1 flex flex-col">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="flex gap-2">
-                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${quiz.quizType === 'Summative' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-[#0487e2]'}`}>
-                            {quiz.quizType === 'Summative' ? <Trophy size={20} /> : <FileText size={20} />}
-                        </div>
-                        <Tag color={quiz.quizType === 'Summative' ? 'gold' : 'blue'} className="m-0 h-6 flex items-center text-[10px] font-bold uppercase rounded-md border-none px-2">
-                            {quiz.quizType === 'Summative' ? 'Tổng kết' : 'Luyện tập'}
-                        </Tag>
+const QuizCard = ({ quiz, navigate, courseId, handleOpenModal, handleDeleteQuiz }) => (
+    <div className="group bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full hover:border-blue-200">
+        <div className="p-6 flex-1 flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2">
+                    <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                        <FileText size={20} className="text-[#0487e2]" />
                     </div>
-                    <Tag className={`m-0 rounded-full border-none px-3 py-0.5 text-[10px] font-black uppercase flex items-center gap-1.5 ${quiz.isPublished ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
-                        <div className={`h-1.5 w-1.5 rounded-full ${quiz.isPublished ? "bg-emerald-500" : "bg-slate-400"}`}></div>
-                        {quiz.isPublished ? "Hoạt động" : "Bản nháp"}
+                    <Tag color={quiz.quizType === 'Summative' ? 'gold' : 'blue'} className="m-0 h-6 flex items-center text-[10px] font-bold uppercase rounded-md border-none px-2 shadow-sm">
+                        {quiz.quizType === 'Summative' ? 'Tổng kết' : 'Luyện tập'}
                     </Tag>
                 </div>
-
-                <h3 className="text-base font-bold text-slate-800 leading-tight mb-2 group-hover:text-[#0487e2] transition-colors line-clamp-2 min-h-[40px]">
-                    {quiz.title}
-                </h3>
-
-                {quiz.quizType === 'Formative' && quiz.lessonName && (
-                    <div className="flex items-center gap-1.5 mb-3">
-                        <BookOpen size={12} className="text-slate-400" />
-                        <span className="text-[10px] font-bold text-slate-400 truncate max-w-[200px]">
-                            Bài: {quiz.lessonName}
-                        </span>
-                    </div>
-                )}
-
-                {quiz.quizType === 'Summative' && (
-                    <div className={`flex items-center gap-2 mb-4 p-2 rounded-lg border ${isDeadlinePassed ? 'bg-rose-50 border-rose-100 text-rose-600' : hasDeadline ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
-                        <Clock size={14} />
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-black uppercase tracking-wider leading-none mb-0.5">Thời hạn khóa bài</span>
-                            <span className="text-[11px] font-bold">
-                                {hasDeadline ? dayjs(quiz.deadline).format('HH:mm, DD/MM/YYYY') : "Không giới hạn"}
-                                {isDeadlinePassed && " (Đã kết thúc)"}
-                            </span>
-                        </div>
-                    </div>
-                )}
-
-                <div className="flex items-center gap-2 mb-4">
-                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-tight ${quiz.showAnswers ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400 opacity-60'}`}>
-                        {quiz.showAnswers ? 'Đã bật đáp án' : 'Đáp án đang ẩn'}
-                    </div>
-                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-tight ${quiz.shuffleQuestions ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400 opacity-60'}`}>
-                        {quiz.shuffleQuestions ? 'Đã xáo trộn' : 'Giữ nguyên thứ tự'}
-                    </div>
-                </div>
-
-                <p className="text-slate-500 text-xs leading-relaxed line-clamp-2 mb-5 flex-1 opacity-70">
-                    {quiz.description || "Không có nội dung mô tả chi tiết cho bài kiểm tra này."}
-                </p>
-
-                <div className="grid grid-cols-3 gap-2 pt-5 border-t border-slate-100">
-                    <div className="space-y-1">
-                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Thời gian</div>
-                        <div className="flex items-center gap-1 text-slate-700">
-                            <Clock size={12} className="text-blue-500" />
-                            <span className="text-sm font-bold">{quiz.timeLimit || 0}p</span>
-                        </div>
-                    </div>
-                    <div className="space-y-1">
-                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Câu hỏi</div>
-                        <div className="flex items-center gap-1 text-slate-700">
-                            <Target size={12} className="text-emerald-500" />
-                            <span className="text-sm font-bold">{quiz.questionCount || quiz.questions?.length || 0}</span>
-                        </div>
-                    </div>
-                    <div className="space-y-1">
-                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Điểm đạt</div>
-                        <div className="flex items-center gap-1 text-slate-700">
-                            <TrendingUp size={12} className="text-amber-500" />
-                            <span className="text-sm font-bold">{quiz.passingScore}%</span>
-                        </div>
-                    </div>
-                </div>
+                <Tag className={`m-0 h-6 rounded-full border-none px-3 text-[10px] font-black uppercase flex items-center justify-center gap-1.5 shadow-sm ${quiz.isPublished ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
+                    <div className={`h-1.5 w-1.5 rounded-full ${quiz.isPublished ? "bg-emerald-500" : "bg-slate-400"}`}></div>
+                    {quiz.isPublished ? "Hoạt động" : "Bản nháp"}
+                </Tag>
             </div>
 
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                <Button
-                    type="primary"
-                    onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id}`)}
-                    className="rounded-xl h-9 px-4 font-bold bg-[#0487e2] hover:bg-[#0374c4] border-none shadow-sm flex items-center gap-1.5 text-xs"
-                >
-                    Thiết kế <ChevronRight size={14} />
-                </Button>
-                <div className="flex items-center gap-1">
-                    <Tooltip title="Cấu hình">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<Settings size={14} />}
-                            onClick={() => handleOpenModal(quiz)}
-                            className="h-8 w-8 flex items-center justify-center rounded-lg bg-white text-slate-400 border border-slate-200 hover:text-[#0487e2] hover:bg-blue-50"
-                        />
-                    </Tooltip>
-                    <Tooltip title="Xóa bỏ">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<Trash2 size={14} />}
-                            onClick={() => handleDeleteQuiz(quiz.id)}
-                            className="h-8 w-8 flex items-center justify-center rounded-lg bg-white text-slate-400 border border-slate-200 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-200"
-                        />
-                    </Tooltip>
+            <h3 className="text-base font-bold text-slate-800 leading-tight mb-2 group-hover:text-[#0487e2] transition-colors line-clamp-2 min-h-[40px]">
+                {quiz.title}
+            </h3>
+
+            {quiz.quizType === 'Formative' && quiz.lessonName && (
+                <div className="flex items-center gap-1.5 mb-3">
+                    <BookOpen size={12} className="text-slate-400" />
+                    <span className="text-[10px] font-bold text-slate-400 truncate max-w-[200px]">
+                        Bài: {quiz.lessonName}
+                    </span>
+                </div>
+            )}
+
+            <p className="text-slate-500 text-xs leading-relaxed line-clamp-2 mb-5 flex-1 opacity-70">
+                {quiz.description || "Không có nội dung mô tả chi tiết cho bài kiểm tra này."}
+            </p>
+
+            <div className="grid grid-cols-3 gap-2 pt-5 border-t border-slate-100">
+                <div className="space-y-1">
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Thời gian</div>
+                    <div className="flex items-center gap-1 text-slate-700">
+                        <Clock size={12} className="text-blue-500" />
+                        <span className="text-sm font-bold">{quiz.timeLimit || 0}p</span>
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Câu hỏi</div>
+                    <div className="flex items-center gap-1 text-slate-700">
+                        <Target size={12} className="text-emerald-500" />
+                        <span className="text-sm font-bold">{quiz.questionCount || quiz.questions?.length || 0}</span>
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Điểm đạt</div>
+                    <div className="flex items-center gap-1 text-slate-700">
+                        <TrendingUp size={12} className="text-amber-500" />
+                        <span className="text-sm font-bold">{quiz.passingScore}%</span>
+                    </div>
                 </div>
             </div>
         </div>
-    );
-};
 
-export default function QuizManagementTab({ courseId, courseDetail, sections = [], tabType = 'all' }) {
+        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <Button
+                type="primary"
+                onClick={() => navigate(`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id}`)}
+                className="rounded-xl h-9 px-4 font-bold bg-[#0487e2] hover:bg-[#0374c4] border-none shadow-sm flex items-center gap-1.5 text-xs"
+            >
+                Thiết kế <ChevronRight size={14} />
+            </Button>
+            <div className="flex items-center gap-1">
+                <Tooltip title="Cấu hình">
+                    <Button
+                        type="text"
+                        size="small"
+                        icon={<Settings size={14} />}
+                        onClick={() => handleOpenModal(quiz)}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-white text-slate-400 border border-slate-200 hover:text-[#0487e2] hover:bg-blue-50"
+                    />
+                </Tooltip>
+                <Tooltip title="Xóa bỏ">
+                    <Button
+                        type="text"
+                        size="small"
+                        icon={<Trash2 size={14} />}
+                        onClick={() => handleDeleteQuiz(quiz.id)}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-white text-slate-400 border border-slate-200 hover:text-rose-500 hover:bg-rose-50 hover:border-rose-200"
+                    />
+                </Tooltip>
+            </div>
+        </div>
+    </div>
+);
+
+export default function QuizManagementTab({ courseId, courseDetail, sections = [] }) {
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
@@ -221,15 +192,7 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
             }
 
             // Merge and remove duplicates (if any)
-            let allQuizzes = [...summativeList, ...formativeList];
-            
-            // Filter based on tabType
-            if (tabType === 'summative') {
-                allQuizzes = allQuizzes.filter(q => q.quizType === 'Summative');
-            } else if (tabType === 'formative') {
-                allQuizzes = allQuizzes.filter(q => q.quizType === 'Formative');
-            }
-
+            const allQuizzes = [...summativeList, ...formativeList];
             const uniqueQuizzes = Array.from(new Map(allQuizzes.map(q => [q.id, q])).values());
 
             setQuizzes(uniqueQuizzes);
@@ -239,7 +202,7 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
         } finally {
             setLoading(false);
         }
-    }, [courseId, courseDetail, sections, tabType]);
+    }, [courseId, courseDetail, sections]);
 
     useEffect(() => {
         if (courseId) fetchQuizzes();
@@ -254,10 +217,7 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
                 timeLimit: quiz.timeLimit,
                 maxAttempts: quiz.maxAttempts,
                 passingScore: quiz.passingScore,
-                isPublished: quiz.isPublished,
-                showAnswers: quiz.showAnswers ?? false,
-                shuffleQuestions: quiz.shuffleQuestions ?? true,
-                deadline: quiz.deadline ? dayjs(quiz.deadline) : null
+                isPublished: quiz.isPublished
             });
         } else {
             form.resetFields();
@@ -265,10 +225,7 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
                 timeLimit: 45,
                 maxAttempts: 1,
                 passingScore: 50,
-                isPublished: false,
-                showAnswers: false,
-                shuffleQuestions: true,
-                deadline: null
+                isPublished: false
             });
         }
         setIsQuizModalOpen(true);
@@ -288,9 +245,8 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
                 passingScore: values.passingScore || 50,
                 isPublished: values.isPublished ?? false,
                 isRequired: true,
-                showAnswers: values.showAnswers ?? false,
-                shuffleQuestions: values.shuffleQuestions ?? true,
-                deadline: values.deadline ? values.deadline.toISOString() : null
+                showAnswers: false,
+                shuffleQuestions: true
             };
 
             if (editingQuiz) {
@@ -346,13 +302,11 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
     return (
         <div className="space-y-6">
             {/* Stats Dashboard */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-2 text-slate-400">
                         <FileText size={16} />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">
-                            {tabType === 'summative' ? 'Tổng bài Exam' : (tabType === 'formative' ? 'Tổng bài Quiz' : 'Tất cả bài thi')}
-                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Tổng bài thi</span>
                     </div>
                     <div className="text-xl font-bold text-slate-800">{quizzes.length} <span className="text-sm text-slate-400 font-medium normal-case">bài thi</span></div>
                 </div>
@@ -363,13 +317,28 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
                     </div>
                     <div className="text-xl font-bold text-slate-800">{quizzes.filter(q => q.isPublished).length} <span className="text-sm text-slate-400 font-medium normal-case">bài thi</span></div>
                 </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-2 text-blue-500">
+                        <Trophy size={16} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Trung bình điểm</span>
+                    </div>
+                    <div className="text-xl font-bold text-slate-800">76.5%</div>
+                </div>
+                <div className="bg-[#0487e2]/5 p-5 rounded-2xl border border-[#0487e2]/20 flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-2 text-[#0487e2]">
+                        <TrendingUp size={16} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Tỉ lệ tham gia</span>
+                    </div>
+                    <div className="text-xl font-bold text-slate-800">82%</div>
+                    <Progress percent={82} size="small" showInfo={false} strokeColor="#0487e2" railColor="rgba(4, 135, 226, 0.1)" className="mt-1" />
+                </div>
             </div>
 
             {/* Toolbar */}
             <div className="px-5 py-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
                 <div className="flex items-center gap-4">
                     <div className="text-sm font-bold text-slate-800">
-                        {tabType === 'summative' ? 'Quản lý Bài thi Tổng kết' : (tabType === 'formative' ? 'Quản lý Bài tập Luyện tập' : 'Quản lý nội dung Quiz')}
+                        Quản lý Bài kiểm tra
                     </div>
                     <Tag className="m-0 bg-slate-100 border-none text-slate-500 font-bold px-2 rounded-full">
                         {filteredQuizzes.length} bài thi
@@ -386,70 +355,64 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
                         allowClear
                     />
 
-                    {(tabType === 'summative' || tabType === 'all') && (
-                        <Button
-                            type="primary"
-                            icon={<Plus size={18} />}
-                            onClick={() => handleOpenModal()}
-                            className="bg-[#0487e2] hover:bg-[#0374c4] h-10 px-5 rounded-xl font-bold shadow-md border-none flex items-center"
-                        >
-                            Tạo Summative Quiz
-                        </Button>
-                    )}
+                    <Button
+                        type="primary"
+                        icon={<Plus size={18} />}
+                        onClick={() => handleOpenModal()}
+                        className="bg-[#0487e2] hover:bg-[#0374c4] h-10 px-5 rounded-xl font-bold shadow-md border-none flex items-center"
+                    >
+                        Tạo Bài kiểm tra
+                    </Button>
                 </div>
             </div>
 
             {/* Grid List - Separated Sections */}
             <div className="space-y-12">
                 {/* Summative Section */}
-                {(tabType === 'summative' || tabType === 'all') && (
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3 border-l-4 border-amber-400 pl-4">
-                            <Trophy size={20} className="text-amber-500" />
-                            <div>
-                                <h2 className="text-lg font-bold text-slate-800">Bài kiểm tra tổng kết (Summative)</h2>
-                                <p className="text-xs text-slate-400 font-medium">Các bài thi chính được gán cho toàn bộ khóa học</p>
-                            </div>
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3 border-l-4 border-amber-400 pl-4">
+                        <Trophy size={20} className="text-amber-500" />
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800">Bài kiểm tra tổng kết (Summative)</h2>
+                            <p className="text-xs text-slate-400 font-medium">Các bài thi chính được gán cho toàn bộ khóa học</p>
                         </div>
-
-                        {filteredQuizzes.filter(q => q.quizType === 'Summative').length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredQuizzes.filter(q => q.quizType === 'Summative').map((quiz, idx) => (
-                                    <QuizCard key={quiz.id || `summative-${idx}`} quiz={quiz} navigate={navigate} courseId={courseId} handleOpenModal={handleOpenModal} handleDeleteQuiz={handleDeleteQuiz} />
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="py-10 bg-white rounded-2xl border border-dashed border-slate-200 text-center">
-                                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có bài kiểm tra tổng kết nào." />
-                            </div>
-                        )}
                     </div>
-                )}
+
+                    {filteredQuizzes.filter(q => q.quizType === 'Summative').length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredQuizzes.filter(q => q.quizType === 'Summative').map((quiz, idx) => (
+                                <QuizCard key={quiz.id || `summative-${idx}`} quiz={quiz} navigate={navigate} courseId={courseId} handleOpenModal={handleOpenModal} handleDeleteQuiz={handleDeleteQuiz} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="py-10 bg-white rounded-2xl border border-dashed border-slate-200 text-center">
+                            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có bài kiểm tra tổng kết nào." />
+                        </div>
+                    )}
+                </div>
 
                 {/* Formative Section */}
-                {(tabType === 'formative' || tabType === 'all') && (
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3 border-l-4 border-blue-400 pl-4">
-                            <BookOpen size={20} className="text-blue-500" />
-                            <div>
-                                <h2 className="text-lg font-bold text-slate-800">Bài luyện tập (Formative)</h2>
-                                <p className="text-xs text-slate-400 font-medium">Các bài quiz ngắn đi kèm theo từng bài học cụ thể</p>
-                            </div>
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3 border-l-4 border-blue-400 pl-4">
+                        <BookOpen size={20} className="text-blue-500" />
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800">Bài luyện tập (Formative)</h2>
+                            <p className="text-xs text-slate-400 font-medium">Các bài kiểm tra ngắn đi kèm theo từng bài học cụ thể</p>
                         </div>
-
-                        {filteredQuizzes.filter(q => q.quizType === 'Formative').length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredQuizzes.filter(q => q.quizType === 'Formative').map((quiz, idx) => (
-                                    <QuizCard key={quiz.id || `formative-${idx}`} quiz={quiz} navigate={navigate} courseId={courseId} handleOpenModal={handleOpenModal} handleDeleteQuiz={handleDeleteQuiz} />
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="py-10 bg-white rounded-2xl border border-dashed border-slate-200 text-center">
-                                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có bài luyện tập nào được thêm vào các bài học." />
-                            </div>
-                        )}
                     </div>
-                )}
+
+                    {filteredQuizzes.filter(q => q.quizType === 'Formative').length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredQuizzes.filter(q => q.quizType === 'Formative').map((quiz, idx) => (
+                                <QuizCard key={quiz.id || `formative-${idx}`} quiz={quiz} navigate={navigate} courseId={courseId} handleOpenModal={handleOpenModal} handleDeleteQuiz={handleDeleteQuiz} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="py-10 bg-white rounded-2xl border border-dashed border-slate-200 text-center">
+                            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có bài luyện tập nào được thêm vào các bài học." />
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Editor Modal */}
@@ -526,43 +489,7 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
                         </div>
                     </div>
 
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                        <div className="font-black text-slate-400 text-[10px] uppercase tracking-widest mb-4">Hạn chót nộp bài</div>
-                        <Form.Item
-                            name="deadline"
-                            className="mb-0"
-                        >
-                            <DatePicker 
-                                showTime 
-                                format="YYYY-MM-DD HH:mm:ss" 
-                                placeholder="Chọn thời gian khóa bài..."
-                                className="w-full h-11 rounded-xl bg-white border-none shadow-sm font-medium" 
-                            />
-                        </Form.Item>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="flex justify-between items-center bg-blue-50/30 p-4 rounded-2xl border border-blue-50">
-                            <div>
-                                <div className="font-bold text-slate-800 text-sm italic">Đáp án đúng</div>
-                                <div className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Hiện đáp án sau khi nộp</div>
-                            </div>
-                            <Form.Item name="showAnswers" valuePropName="checked" noStyle>
-                                <Switch className="bg-slate-200" />
-                            </Form.Item>
-                        </div>
-                        <div className="flex justify-between items-center bg-blue-50/30 p-4 rounded-2xl border border-blue-50">
-                            <div>
-                                <div className="font-bold text-slate-800 text-sm italic">Xáo trộn câu</div>
-                                <div className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Đảo vị trí câu hỏi</div>
-                            </div>
-                            <Form.Item name="shuffleQuestions" valuePropName="checked" noStyle>
-                                <Switch className="bg-slate-200" />
-                            </Form.Item>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-between items-center bg-emerald-50/30 p-5 rounded-2xl border border-emerald-100/50">
+                    <div className="flex justify-between items-center bg-blue-50/50 p-5 rounded-2xl border border-blue-100">
                         <div>
                             <div className="font-bold text-slate-800 text-sm">Công bố ngay</div>
                             <div className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Học sinh có thể làm bài sau khi tạo</div>
@@ -572,7 +499,7 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
                             valuePropName="checked"
                             noStyle
                         >
-                            <Switch className="bg-emerald-500" />
+                            <Switch className="bg-slate-200" />
                         </Form.Item>
                     </div>
 
@@ -589,7 +516,7 @@ export default function QuizManagementTab({ courseId, courseDetail, sections = [
                             loading={submitting}
                             className="flex-1 h-11 rounded-xl font-bold bg-[#0487e2] border-none shadow-lg shadow-blue-200"
                         >
-                            {editingQuiz ? "Cập nhật" : "Lưu Quiz"}
+                            {editingQuiz ? "Cập nhật" : "Lưu Bài kiểm tra"}
                         </Button>
                     </div>
                 </Form>

@@ -40,7 +40,6 @@ export default function StudentHeader() {
         { label: 'Tổng quan', path: '/dashboard/student' },
         { label: 'Khóa học', path: '/dashboard/student/courses' },
         { label: 'Bài kiểm tra', path: '/dashboard/student/quizzes' },
-        { label: 'Tiến độ', path: '/dashboard/student/progress' },
     ];
 
     const getInitials = (name) => {

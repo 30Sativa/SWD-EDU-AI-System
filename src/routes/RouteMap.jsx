@@ -1,3 +1,4 @@
+import React, { useEffect } from "react";
 import { Routes, Route, Outlet, Navigate } from "react-router-dom";
 import ScrollToTop from "../components/layout/ScrollToTop";
 import Header from "../components/layout/Header";
@@ -41,7 +42,6 @@ import CoursesList from "../features/course/student/pages/CoursesList";
 import LessonDetail from "../features/lesson/student/pages/LessonDetail";
 import QuizList from "../features/quiz/student/pages/QuizList";
 import QuizDetail from "../features/quiz/student/pages/QuizDetail";
-import StudentProgress from "../features/progress/student/pages/StudentProgress";
 import Profile from "../features/user/pages/Profile";
 import MyNotifications from "../features/notification/pages/MyNotifications";
 
@@ -73,6 +73,21 @@ const Fallback = () => (
 
 
 export default function RouteMap() {
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      // if localStorage is cleared (e.key === null) or accessToken is specifically removed
+      if ((e.key === 'accessToken' && !e.newValue) || (e.key === null && !localStorage.getItem('accessToken'))) {
+        // Only redirect if not already on the login page
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   return (
     <Routes>
       <Route path="dashboard">
@@ -105,7 +120,6 @@ export default function RouteMap() {
             <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
             <Route path="quizzes" element={<QuizList />} />
             <Route path="quizzes/:quizId" element={<QuizDetail />} />
-            <Route path="progress" element={<StudentProgress />} />
             <Route path="my-notifications" element={<MyNotifications />} />
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<GeneralSettings />} />

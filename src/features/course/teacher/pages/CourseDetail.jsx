@@ -1064,19 +1064,13 @@ export default function CourseDetail() {
                         className={`pb-3 px-6 font-bold text-sm transition-colors border-b-2 ${activeTab === 'assignments' ? 'border-[#0487e2] text-[#0487e2]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                         onClick={() => setActiveTab('assignments')}
                     >
-                        Bài tập (Assignments)
+                        Quản lý Bài tập
                     </button>
                     <button
                         className={`pb-3 px-6 font-bold text-sm transition-colors border-b-2 ${activeTab === 'quizzes' ? 'border-[#0487e2] text-[#0487e2]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                         onClick={() => setActiveTab('quizzes')}
                     >
-                        Quản lý Quizzes
-                    </button>
-                    <button
-                        className={`pb-3 px-6 font-bold text-sm transition-colors border-b-2 ${activeTab === 'exams' ? 'border-[#0487e2] text-[#0487e2]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                        onClick={() => setActiveTab('exams')}
-                    >
-                        Quản lý Exams
+                        Quản lý Bài kiểm tra
                     </button>
                 </div>
 
@@ -1324,14 +1318,9 @@ export default function CourseDetail() {
                     </div>
                 )}
 
-                {/* --- QUIZZES TAB (Formative) --- */}
+                {/* --- QUIZZES TAB --- */}
                 {activeTab === 'quizzes' && (
-                    <QuizManagementTab courseId={courseId} courseDetail={course} sections={sections} tabType="formative" />
-                )}
-
-                {/* --- EXAMS TAB (Summative) --- */}
-                {activeTab === 'exams' && (
-                    <QuizManagementTab courseId={courseId} courseDetail={course} sections={sections} tabType="summative" />
+                    <QuizManagementTab courseId={courseId} courseDetail={course} sections={sections} />
                 )}
             </div>
 

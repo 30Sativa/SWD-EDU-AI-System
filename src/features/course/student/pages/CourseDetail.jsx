@@ -26,11 +26,10 @@ import StudentAssignmentsTab from '../../../assignment/student/components/Studen
 import { ArrowRight, RefreshCw, Target } from 'lucide-react';
 import { getCourseQuizzes, getLessonQuizzes } from '../../../quiz/student/api/quizApi';
 
-// Persistent completed cache (survives logout/browser close)
+// Session-level completed cache (shared logic with LessonDetail)
 const getCompletedSet = (courseId) => {
     try {
-        const userId = localStorage.getItem('userId') || 'guest';
-        const raw = localStorage.getItem(`completed_${userId}_${courseId}`);
+        const raw = sessionStorage.getItem(`completed_${courseId}`);
         return raw ? new Set(JSON.parse(raw)) : new Set();
     } catch { return new Set(); }
 };
@@ -260,8 +259,6 @@ export default function CourseDetail() {
         { id: 2, title: 'Bảng công thức bổ trợ', icon: FileText }
     ];
 
-    // Sidebar & Tabs
-
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800 animate-in fade-in duration-500">
@@ -295,10 +292,7 @@ export default function CourseDetail() {
 
                             <div className="flex flex-wrap gap-2 gap-y-4 pt-4 mt-2 justify-between items-center border-t border-slate-100">
                                 <div className="flex gap-6">
-                                    <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                        <User size={16} className="text-blue-500" />
-                                        <span className="font-bold text-slate-700">{courseInfo.instructor}</span>
-                                    </div>
+
                                     <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
                                         <Clock size={16} className="text-amber-500" />
                                         <span className="font-bold text-slate-700">
@@ -354,7 +348,7 @@ export default function CourseDetail() {
                         className={`pb-3 px-6 font-bold text-sm transition-colors border-b-2 ${activeTab === 'assignments' ? 'border-[#0487e2] text-[#0487e2]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                         onClick={() => setActiveTab('assignments')}
                     >
-                        Bài tập (Assignments)
+                        Bài tập
                     </button>
                     <button
                         className={`pb-3 px-6 font-bold text-sm transition-colors border-b-2 ${activeTab === 'quizzes' ? 'border-[#0487e2] text-[#0487e2]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
@@ -473,165 +467,141 @@ export default function CourseDetail() {
                         )}
 
                         {activeTab === 'quizzes' && (
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100">
-                                            <ListChecks size={24} />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-slate-900 leading-none mb-1">Hệ thống bài kiểm tra</h2>
-                                            <p className="text-sm text-slate-500 font-medium">Hoàn thành bài tập để củng cố kiến thức</p>
-                                        </div>
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-12">
+                                {/* Header Section */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
+                                    <div className="relative z-10 border-l-4 border-[#0487e2] pl-4">
+                                        <h2 className="text-xl font-black text-slate-800 tracking-tight mb-1">Hệ thống bài kiểm tra</h2>
+                                        <p className="text-sm text-slate-500 font-medium">Hoàn thành bài tập để củng cố kiến thức và đánh giá năng lực</p>
                                     </div>
                                     <button
                                         onClick={fetchQuizzes}
                                         disabled={quizzesLoading}
-                                        className="p-3 md:px-5 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm active:scale-95 flex items-center gap-2"
+                                        className="w-full sm:w-auto px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold hover:text-[#0487e2] hover:border-blue-200 hover:shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 relative z-10"
                                     >
                                         <RefreshCw size={18} className={quizzesLoading ? 'animate-spin' : ''} />
-                                        <span className="text-sm font-bold hidden md:inline">Làm mới</span>
+                                        <span>Làm mới</span>
                                     </button>
                                 </div>
 
                                 {quizzesLoading ? (
-                                    <div className="py-20 flex flex-col items-center justify-center gap-4 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
+                                    <div className="py-24 flex flex-col items-center justify-center gap-5 bg-transparent">
                                         <Spin size="large" />
-                                        <p className="text-slate-400 font-medium tracking-wide">Đang tải danh sách bài tập...</p>
+                                        <p className="text-slate-400 font-semibold tracking-wide animate-pulse">Đang tải cấu trúc bài tập...</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-10">
-                                        {/* Summative Quizzes */}
+                                    <div className="space-y-12">
+                                        {/* Summative Quizzes Section */}
                                         <div className="space-y-6">
-                                            <div className="flex items-center gap-3 border-l-4 border-amber-400 pl-4">
-                                                <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
-                                                    <Trophy size={16} />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold text-slate-900 leading-tight mb-0.5">Bài tập tổng kết (Summative)</h3>
-                                                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Đánh giá chung khóa học</p>
+                                            <div className="border-l-4 border-amber-400 pl-4">
+                                                <h3 className="text-xl font-bold text-slate-800 tracking-tight leading-tight">Bài tập tổng kết</h3>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest rounded border border-amber-200 shadow-sm">Summative</span>
+                                                    <span className="text-xs font-medium text-slate-400">Đánh giá chung khóa học</span>
                                                 </div>
                                             </div>
 
                                             {summativeQuizzes.length > 0 ? (
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     {summativeQuizzes.map((quiz, idx) => (
-                                                        <div key={quiz.id || idx} className="group relative bg-white border border-slate-100 rounded-[2rem] p-6 text-left shadow-sm hover:shadow-2xl hover:border-amber-200 hover:shadow-amber-500/10 transition-all duration-300 overflow-hidden">
-                                                            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50/50 blur-3xl rounded-full translate-x-10 -translate-y-10 group-hover:scale-150 transition-transform duration-1000 pointer-events-none" />
+                                                        <div key={quiz.id || idx} className="group relative bg-white border border-slate-200/80 rounded-[1.5rem] p-6 text-left shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-amber-300 transition-all duration-300 overflow-hidden flex flex-col">
+                                                            <div className="absolute top-0 right-0 w-40 h-40 bg-amber-50/60 blur-3xl rounded-full translate-x-12 -translate-y-12 group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
 
-                                                            <div className="relative z-10">
-                                                                <div className="flex items-start justify-between mb-4">
-                                                                    <div className="flex gap-3">
-                                                                        <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100 shadow-sm group-hover:rotate-12 transition-transform duration-500">
-                                                                            <ListChecks size={22} />
-                                                                        </div>
-                                                                        <div>
-                                                                            <h4 className="text-base font-bold text-slate-900 leading-tight mb-1 truncate">{quiz.title || 'Bài tập tổng kết'}</h4>
-                                                                            <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-amber-200 shadow-sm">Summative</span>
-                                                                        </div>
-                                                                    </div>
+                                                            <div className="relative z-10 flex-1 flex flex-col">
+                                                                <div className="mb-5 border-b border-slate-100 pb-4">
+                                                                    <h4 className="text-lg font-bold text-slate-800 leading-snug line-clamp-2 group-hover:text-amber-600 transition-colors">{quiz.title || 'Bài tập tổng kết'}</h4>
                                                                 </div>
 
                                                                 <div className="grid grid-cols-3 gap-3 mb-6">
-                                                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-center items-center">
-                                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Câu hỏi</span>
-                                                                        <span className="text-sm font-bold text-slate-800">{quiz.totalQuestions || quiz.questions?.length || 0}</span>
+                                                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100/50 flex flex-col items-center justify-center group-hover:bg-amber-50/30 transition-colors">
+                                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Câu hỏi</span>
+                                                                        <span className="text-base font-black text-slate-700">{quiz.totalQuestions || quiz.questions?.length || 0}</span>
                                                                     </div>
-                                                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-center items-center">
-                                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Thời gian</span>
-                                                                        <span className="text-sm font-bold text-slate-800">{quiz.duration || quiz.timeLimit || 0}p</span>
+                                                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100/50 flex flex-col items-center justify-center group-hover:bg-amber-50/30 transition-colors">
+                                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Thời gian</span>
+                                                                        <span className="text-base font-black text-slate-700">{quiz.duration || quiz.timeLimit || 0}p</span>
                                                                     </div>
-                                                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-center items-center">
-                                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Điểm đạt</span>
-                                                                        <span className="text-sm font-bold text-emerald-600">{quiz.passingScore || 50}%</span>
+                                                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100/50 flex flex-col items-center justify-center group-hover:bg-emerald-50/30 transition-colors">
+                                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Cần đạt</span>
+                                                                        <span className="text-base font-black text-emerald-600">{quiz.passingScore || 50}%</span>
                                                                     </div>
                                                                 </div>
 
-                                                                <Link
-                                                                    to={`/dashboard/student/quizzes/${quiz.id || quiz.quizId}`}
-                                                                    className="w-full h-11 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-[#0487e2] transition-colors shadow-md group-hover:shadow-blue-500/20"
-                                                                >
-                                                                    Làm bài ngay
-                                                                    <ArrowRight size={16} />
-                                                                </Link>
+                                                                <div className="mt-auto">
+                                                                    <Link
+                                                                        to={`/dashboard/student/quizzes/${quiz.id || quiz.quizId}`}
+                                                                        className="w-full py-3.5 flex items-center justify-center bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-amber-500 hover:text-white transition-colors shadow-lg shadow-amber-500/0 hover:shadow-amber-500/20"
+                                                                    >
+                                                                        Làm bài ngay
+                                                                    </Link>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="py-10 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200 text-center">
-                                                    <ListChecks size={32} className="mx-auto text-slate-300 mb-3" />
-                                                    <p className="text-sm font-medium text-slate-500">Chưa có bài tập tổng kết nào.</p>
+                                                <div className="py-12 bg-white rounded-[1.5rem] border border-slate-200 text-center shadow-sm">
+                                                    <h4 className="text-slate-700 font-bold mb-1">Chưa có bài tập tổng quan</h4>
+                                                    <p className="text-sm font-medium text-slate-400 max-w-sm mx-auto">Các bài đánh giá cuối khóa hoặc giữa khóa sẽ xuất hiện ở đây.</p>
                                                 </div>
                                             )}
                                         </div>
 
-                                        {/* Formative Quizzes */}
+                                        <div className="h-px bg-slate-200 w-full" />
+
+                                        {/* Formative Quizzes Section */}
                                         <div className="space-y-6">
-                                            <div className="flex items-center gap-3 border-l-4 border-blue-400 pl-4">
-                                                <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500">
-                                                    <BookOpen size={16} />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold text-slate-900 leading-tight mb-0.5">Bài luyện tập (Formative)</h3>
-                                                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Đánh giá theo bài học</p>
+                                            <div className="border-l-4 border-[#0487e2] pl-4">
+                                                <h3 className="text-xl font-bold text-slate-800 tracking-tight leading-tight">Bài luyện tập</h3>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="px-2 py-0.5 bg-blue-50 text-[#0487e2] text-[10px] font-black uppercase tracking-widest rounded border border-blue-200 shadow-sm">Formative</span>
+                                                    <span className="text-xs font-medium text-slate-400">Đánh giá theo từng bài học</span>
                                                 </div>
                                             </div>
 
                                             {formativeQuizzes.length > 0 ? (
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     {formativeQuizzes.map((quiz, idx) => (
-                                                        <div key={quiz.id || idx} className="group relative bg-white border border-slate-100 rounded-[2rem] p-6 text-left shadow-sm hover:shadow-xl hover:border-blue-200 hover:shadow-blue-500/10 transition-all duration-300 overflow-hidden">
-                                                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 blur-3xl rounded-full translate-x-12 -translate-y-12 group-hover:scale-150 transition-transform duration-1000 pointer-events-none" />
+                                                        <div key={quiz.id || idx} className="group relative bg-white border border-slate-200/80 rounded-[1.5rem] p-6 text-left shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-[#0487e2] transition-all duration-300 overflow-hidden flex flex-col">
+                                                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 blur-3xl rounded-full translate-x-12 -translate-y-12 group-hover:scale-125 transition-transform duration-700 pointer-events-none" />
 
-                                                            <div className="relative z-10">
-                                                                <div className="flex items-start justify-between mb-4">
-                                                                    <div className="flex gap-3">
-                                                                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 shadow-sm">
-                                                                            <FileText size={18} />
-                                                                        </div>
-                                                                        <div>
-                                                                            <h4 className="text-sm font-bold text-slate-900 leading-tight mb-1 truncate max-w-[180px]">{quiz.title || 'Bài luyện tập'}</h4>
-                                                                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[8px] font-black uppercase tracking-widest rounded border border-blue-200">Formative</span>
-                                                                        </div>
+                                                            <div className="relative z-10 flex-1 flex flex-col">
+                                                                <div className="mb-4">
+                                                                    <h4 className="text-[15px] font-bold text-slate-800 leading-snug line-clamp-2 group-hover:text-[#0487e2] transition-colors" title={quiz.title}>{quiz.title || 'Bài luyện tập'}</h4>
+                                                                    <div className="mt-1.5 flex flex-wrap gap-2 items-center">
+                                                                        <span className="px-2 py-0.5 bg-blue-50 text-[#0487e2] text-[9px] font-bold uppercase tracking-widest rounded border border-blue-100/50">Luyện tập</span>
+                                                                        {quiz.lessonName && (
+                                                                            <span className="text-[11px] font-bold text-slate-500 border-l border-slate-300 pl-2 line-clamp-1" title={quiz.lessonName}>
+                                                                                {quiz.lessonName}
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                 </div>
 
-                                                                {quiz.lessonName && (
-                                                                    <div className="flex items-center gap-1.5 mb-5 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100 w-fit">
-                                                                        <BookOpen size={12} className="text-slate-400" />
-                                                                        <span className="text-[10px] font-bold text-slate-500 truncate max-w-[200px]">
-                                                                            Bài: {quiz.lessonName}
-                                                                        </span>
-                                                                    </div>
-                                                                )}
-
-                                                                <div className="grid grid-cols-2 gap-3 mb-6">
-                                                                    <div className="flex items-center gap-2 bg-slate-50 py-2 px-3 rounded-lg border border-slate-100">
-                                                                        <Clock size={14} className="text-slate-400" />
-                                                                        <span className="text-xs font-bold text-slate-700">{quiz.timeLimit || 0} phút</span>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2 bg-slate-50 py-2 px-3 rounded-lg border border-slate-100">
-                                                                        <Target size={14} className="text-emerald-500" />
-                                                                        <span className="text-xs font-bold text-slate-700">{quiz.questions?.length || quiz.totalQuestions || 0} câu</span>
+                                                                <div className="mb-6 mt-auto">
+                                                                    <div className="flex items-center gap-2.5 bg-slate-50 p-3 rounded-xl border border-slate-100/50 group-hover:bg-blue-50/30 transition-colors w-fit">
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Thời gian làm bài</span>
+                                                                            <span className="text-xs font-bold text-slate-700">{quiz.timeLimit || 0} phút</span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
 
                                                                 <Link
                                                                     to={`/dashboard/student/quizzes/${quiz.id || quiz.quizId}`}
-                                                                    className="w-full h-10 flex items-center justify-center gap-2 bg-[#0487e2] text-white rounded-xl font-bold text-xs hover:bg-[#0374c4] transition-colors shadow-sm"
+                                                                    className="w-full py-3 flex items-center justify-center bg-slate-100 text-slate-700 group-hover:bg-[#0487e2] group-hover:text-white rounded-xl font-bold text-sm transition-colors shadow-sm"
                                                                 >
                                                                     Bắt đầu luyện tập
-                                                                    <ArrowRight size={14} />
                                                                 </Link>
                                                             </div>
                                                         </div>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="py-10 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200 text-center">
-                                                    <BookOpen size={32} className="mx-auto text-slate-300 mb-3" />
-                                                    <p className="text-sm font-medium text-slate-500">Chưa có bài luyện tập nào.</p>
+                                                <div className="py-12 bg-white rounded-[1.5rem] border border-slate-200 text-center shadow-sm">
+                                                    <h4 className="text-slate-700 font-bold mb-1">Chưa có bài luyện tập nào</h4>
+                                                    <p className="text-sm font-medium text-slate-400 max-w-sm mx-auto">Hoàn thành các bài học để mở khóa hệ thống bài tập tương ứng.</p>
                                                 </div>
                                             )}
                                         </div>

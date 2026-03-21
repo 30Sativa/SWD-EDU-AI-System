@@ -10,20 +10,18 @@ import { getStudentCourseDetail, getCourseSections } from '../../../course/api/c
 import { getLessonQuizzes } from '../../../quiz/student/api/quizApi';
 import { Spin, message, Tooltip, Breadcrumb, Button, Tabs, Empty } from 'antd';
 
-// ----- Persistent completed lessons cache (per course, per user) -----
+// ----- Session-level completed lessons cache (per course) -----
 const getCompletedSet = (courseId) => {
     try {
-        const userId = localStorage.getItem('userId') || 'guest';
-        const raw = localStorage.getItem(`completed_${userId}_${courseId}`);
+        const raw = sessionStorage.getItem(`completed_${courseId}`);
         return raw ? new Set(JSON.parse(raw)) : new Set();
     } catch { return new Set(); }
 };
 const addCompletedLesson = (courseId, lessonId) => {
     try {
-        const userId = localStorage.getItem('userId') || 'guest';
         const set = getCompletedSet(courseId);
         set.add(lessonId);
-        localStorage.setItem(`completed_${userId}_${courseId}`, JSON.stringify([...set]));
+        sessionStorage.setItem(`completed_${courseId}`, JSON.stringify([...set]));
     } catch { /* ignore */ }
 };
 // ---------------------------------------------------------------
@@ -455,7 +453,7 @@ export default function LessonDetail() {
 
                 {/* Tabs Navigation */}
                 <div className="bg-white px-2 pt-2 pb-0 rounded-2xl border border-slate-200 shadow-sm mt-4 flex overflow-x-auto hide-scrollbar">
-                    {[{ key: '1', label: 'Nội dung bài học' }, { key: '2', label: 'Bài Tập Củng Cố' }, { key: '3', label: 'Hỏi Đáp / Thảo Luận' }].map(tab => (
+                    {[{ key: '1', label: 'Nội dung bài học', icon: BookOpen }, { key: '2', label: 'Bài Tập Củng Cố', icon: CheckSquare }].map(tab => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
@@ -464,6 +462,7 @@ export default function LessonDetail() {
                                 : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                                 }`}
                         >
+                            <tab.icon size={16} className={activeTab === tab.key ? 'text-[#0487e2]' : 'text-slate-400'} />
                             {tab.label}
                         </button>
                     ))}
@@ -634,41 +633,7 @@ export default function LessonDetail() {
                             </div>
                         )}
 
-                        {activeTab === '3' && (
-                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 animate-fade-in">
-                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3 mb-8">
-                                    <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
-                                        <MessageSquare size={20} />
-                                    </div>
-                                    Các câu hỏi thường gặp
-                                </h3>
 
-                                {lessonFaqs.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {lessonFaqs.map((faq, idx) => (
-                                            <div key={faq.id || idx} className="bg-white border hover:border-[#0487e2] rounded-xl p-6 shadow-sm border-l-4 border-l-[#0487e2] transition-colors group">
-                                                <h4 className="font-bold text-slate-800 text-[15px] mb-3 flex gap-3 leading-snug">
-                                                    <span className="text-[#0487e2] font-black group-hover:scale-110 transition-transform">Q:</span>
-                                                    {faq.question}
-                                                </h4>
-                                                <div className="text-slate-600 text-sm leading-relaxed flex gap-3 pl-0 bg-slate-50 p-4 rounded-lg">
-                                                    <span className="text-emerald-500 font-black shrink-0">A:</span>
-                                                    <div dangerouslySetInnerHTML={{ __html: faq.answer?.replace(/\n/g, '<br/>') }} className="font-medium" />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                        <div className="w-16 h-16 bg-white rounded-full mx-auto flex items-center justify-center shadow-sm mb-4">
-                                            <MessageSquare className="text-slate-300" size={28} />
-                                        </div>
-                                        <p className="text-slate-800 font-bold mb-1">Lớp chúng ta chưa có câu hỏi nào</p>
-                                        <p className="text-slate-500 text-sm font-medium">Bí mật: Bạn hoàn toàn có thể hỏi AI Trợ lý ngay ở cạnh phải màn hình nhé!</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
 
                     </div>
 
@@ -864,6 +829,40 @@ export default function LessonDetail() {
                                 </div>
                             </div>
                         )}
+
+                        {/* FAQ Section moved to Right Column */}
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.05)] p-6 md:p-8 relative overflow-hidden">
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-3 mb-6">
+                                <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center shadow-sm border border-orange-100/50">
+                                    <MessageSquare size={18} />
+                                </div>
+                                Các câu hỏi thường gặp
+                            </h3>
+
+                            {lessonFaqs.length > 0 ? (
+                                <div className="space-y-4">
+                                    {lessonFaqs.map((faq, idx) => (
+                                        <div key={faq.id || idx} className="bg-white border border-slate-100 hover:border-[#0487e2] rounded-xl p-5 shadow-sm border-l-4 border-l-[#0487e2] transition-colors group">
+                                            <h4 className="font-bold text-slate-800 text-sm mb-2.5 flex gap-2 leading-snug">
+                                                <span className="text-[#0487e2] font-black group-hover:scale-110 transition-transform">Q:</span>
+                                                {faq.question}
+                                            </h4>
+                                            <div className="text-slate-600 text-xs leading-relaxed flex gap-2 pl-0 bg-slate-50 p-3 rounded-lg">
+                                                <span className="text-emerald-500 font-black shrink-0">A:</span>
+                                                <div dangerouslySetInnerHTML={{ __html: faq.answer?.replace(/\n/g, '<br/>') }} className="font-medium" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-10 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 px-4">
+                                    <div className="w-14 h-14 bg-white rounded-full mx-auto flex items-center justify-center shadow-sm mb-3">
+                                        <MessageSquare className="text-slate-300" size={24} />
+                                    </div>
+                                    <p className="text-slate-700 font-bold text-[13px] mb-1">Trống</p>
+                                </div>
+                            )}
+                        </div>
 
                     </div>
                 </div>
