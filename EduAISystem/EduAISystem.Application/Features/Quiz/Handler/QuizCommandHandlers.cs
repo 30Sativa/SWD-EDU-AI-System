@@ -44,7 +44,8 @@ namespace EduAISystem.Application.Features.Quiz.Handler
             var quiz = await _quizRepository.GetByIdAsync(request.QuizId, cancellationToken)
                 ?? throw new NotFoundException("Quiz không tồn tại hoặc đã bị xoá.");
 
-            if (quiz.IsPublished != true)
+            // Chỉ cho phép Student làm bài khi đã publish. Teacher có thể làm thử (un-published) để test.
+            if (quiz.IsPublished != true && _currentUser.Role != "Teacher")
                 throw new BusinessException("Quiz chưa được publish, không thể làm bài.");
 
             // 2. Kiểm tra MaxAttempts

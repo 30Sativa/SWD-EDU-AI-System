@@ -104,6 +104,11 @@ namespace EduAISystem.Application.Features.Quiz.Handler
                 ?? throw new NotFoundException("Quiz không tồn tại.");
 
             var quiz = quizDetail.Quiz;
+
+            // Chặn Student xem chi tiết đề (câu hỏi) nếu chưa được publish. Teacher vẫn được xem để preview.
+            if (quiz.IsPublished != true && _currentUser.Role != "Teacher")
+                throw new BusinessException("Quiz chưa được publish, không thể xem nội dung.");
+                
             var attemptsUsed = await _quizRepository.CountAttemptsAsync(
                 request.QuizId, studentId, cancellationToken);
 
@@ -172,7 +177,13 @@ namespace EduAISystem.Application.Features.Quiz.Handler
             var quiz = data.QuizDetail.Quiz;
             var questions = data.QuizDetail.Questions;
             var answers = data.Answers.ToDictionary(a => a.QuestionId);
-            var showAnswers = quiz.ShowAnswers ?? false;
+            
+            // Logic ShowAnswers: 
+            // 1. Nếu Quiz cài đặt ShowAnswers = true
+            // 2. Nếu người xem là Teacher hoặc Manager (luôn được xem đáp án)
+            var showAnswers = (quiz.ShowAnswers ?? false) || 
+                              _currentUser.Role == "Teacher" || 
+                              _currentUser.Role == "Manager";
 
             var questionResults = questions.Select(q =>
             {
