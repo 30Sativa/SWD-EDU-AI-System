@@ -1,4 +1,4 @@
-﻿using EduAISystem.Application.Common.Models;
+using EduAISystem.Application.Common.Models;
 using EduAISystem.Application.Features.Courses.Commands;
 using EduAISystem.Application.Features.Courses.DTOs.Request;
 using EduAISystem.Application.Features.Courses.DTOs.Response;
@@ -50,6 +50,32 @@ Tạo một template (khung nội dung chuẩn) cho khóa học.
 
             return Ok(ApiResponse<Guid>
                 .Ok(id, "Tạo template thành công"));
+        }
+
+        // ===== UPDATE TEMPLATE =====
+        [HttpPut("template/{id:guid}")]
+        [SwaggerOperation(
+            Summary = "Manager - Cập nhật template khóa học",
+            Description = @"
+Cập nhật thông tin cơ bản cho template khóa học (không bao gồm cấu trúc sections/lessons).
+
+**Lưu ý:**
+- Chỉ có thể cập nhật các khóa học đã được đánh dấu là template (`IsTemplate = true`).
+- Nếu mã khóa học (`Code`) thay đổi, hệ thống sẽ kiểm tra tính duy nhất.
+- SubjectId và CategoryId phải tồn tại."
+        )]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ApiResponse<object>))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ApiResponse<object>))]
+        public async Task<IActionResult> UpdateTemplate(
+            Guid id,
+            [FromBody] UpdateTemplateCourseRequestDto dto,
+            CancellationToken cancellationToken)
+        {
+            await _mediator.Send(new UpdateTemplateCourseCommand(id, dto),
+                cancellationToken);
+
+            return Ok(ApiResponse<object>.Ok(null, "Cập nhật template thành công"));
         }
 
         // ===== AI SCAN =====

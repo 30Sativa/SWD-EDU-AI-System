@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Abstractions.Security;
 using EduAISystem.Application.Common.Exceptions;
@@ -13,11 +14,13 @@ namespace EduAISystem.Application.Features.Users.Handler
     {
         private readonly IUserRepository _userRepository;
         private readonly IPasswordHasher _passwordHasher;
+        private readonly IEmailService _emailService;
 
-        public CreateUserCommandHandler(IUserRepository userRepository, IPasswordHasher passwordHasher)
+        public CreateUserCommandHandler(IUserRepository userRepository, IPasswordHasher passwordHasher, IEmailService emailService)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
+            _emailService = emailService;
         }
 
         public async Task<UserDetailResponseDto> Handle(CreateUserCommand request, CancellationToken cancellationToken)
@@ -33,7 +36,24 @@ namespace EduAISystem.Application.Features.Users.Handler
                 request.Request.FullName,
                 (UserRoleDomain)request.Request.Role);
 
+            // Admin tạo → verify sẵn email và yêu cầu đổi pass lần đầu
+            user.VerifyEmail();
+            user.MarkAsFirstLogin();
+
             await _userRepository.AddAsync(user);
+
+            try
+            {
+                // Gửi email chào mừng kèm mật khẩu (vì password không bị che như lúc register)
+                await _emailService.SendWelcomeEmail(user.Email, request.Request.Password);
+            }
+            catch (Exception ex)
+            {
+                // In ra console để bạn dễ theo dõi lỗi khi gửi mail thất bại
+                Console.WriteLine($"[EMAIL ERROR at CreateUser]: {ex.Message}");
+                if (ex.InnerException != null) 
+                    Console.WriteLine($"[INNER ERROR]: {ex.InnerException.Message}");
+            }
 
             return new UserDetailResponseDto
             {
@@ -46,7 +66,7 @@ namespace EduAISystem.Application.Features.Users.Handler
                 DeletedAt = user.DeletedAt,
                 Profile = new UserProfileDetailDto
                 {
-                    FullName = user.UserProfile.FullName
+                    FullName = user.UserProfile!.FullName
                 }
             };
         }

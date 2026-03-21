@@ -1,3 +1,4 @@
+using EduAISystem.Application.Abstractions.Common;
 using EduAISystem.Application.Abstractions.Persistence;
 using EduAISystem.Application.Features.Classes.Commands;
 using EduAISystem.Domain.Enums;
@@ -13,11 +14,12 @@ namespace EduAISystem.Application.Features.Classes.Handler
     {
         private readonly IClassRepository _classRepo;
         private readonly IUserRepository _userRepo;
-
-        public AddStudentsToClassCommandHandler(IClassRepository classRepo, IUserRepository userRepo)
+        private readonly IEmailService _emailService;
+        public AddStudentsToClassCommandHandler(IClassRepository classRepo, IUserRepository userRepo, IEmailService emailService)
         {
             _classRepo = classRepo;
             _userRepo = userRepo;
+            _emailService = emailService;
         }
 
         public async Task<bool> Handle(AddStudentsToClassCommand request, CancellationToken cancellationToken)
@@ -38,6 +40,15 @@ namespace EduAISystem.Application.Features.Classes.Handler
                     }
 
                     await _classRepo.EnrollStudentToClassAsync(studentId, request.ClassId, cancellationToken);
+                    
+                    try 
+                    {
+                        await _emailService.SendClassEnrollmentEmailAsync(student.Email, student.UserProfile!.FullName, classEntity.Name);
+                    }
+                    catch (Exception ex) 
+                    { 
+                        Console.WriteLine($"[EMAIL ERROR at AddToClass]: {ex.Message}");
+                    }
                 }
             }
 

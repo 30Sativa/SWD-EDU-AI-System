@@ -44,6 +44,7 @@ namespace EduAISystem.Domain.Entities
             string passwordHash,
             bool isActive,
             bool isEmailVerified,
+            bool isFirstLogin,
             string? googleId,
             UserRoleDomain role,
             DateTime createdAt,
@@ -54,6 +55,7 @@ namespace EduAISystem.Domain.Entities
             PasswordHash = passwordHash;
             IsActive = isActive;
             IsEmailVerified = isEmailVerified;
+            IsFirstLogin = isFirstLogin;
             GoogleId = googleId;
             Role = role;
             CreatedAt = createdAt;
@@ -167,6 +169,10 @@ namespace EduAISystem.Domain.Entities
         public void VerifyEmail()
         {
             IsEmailVerified = true;
+        }
+        public void MarkAsFirstLogin()
+        {
+            IsFirstLogin = true;
         }
         public void Deactivate()
         {
