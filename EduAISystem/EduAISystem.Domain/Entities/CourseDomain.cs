@@ -229,6 +229,36 @@ namespace EduAISystem.Domain.Entities
         }
 
         // =========================
+        // UPDATE TEMPLATE INFO (MANAGER)
+        // =========================
+        public void UpdateTemplateInfo(
+            string code,
+            string title,
+            Guid subjectId,
+            Guid? gradeLevelId,
+            Guid? categoryId,
+            string? description,
+            string? thumbnail,
+            CourseLevelDomain level)
+        {
+            ValidateCodeAndTitle(code, title);
+
+            Code = code.Trim();
+            Title = title.Trim();
+            Slug = GenerateSlug(title);
+
+            SubjectId = subjectId;
+            GradeLevelId = gradeLevelId;
+            CategoryId = categoryId;
+
+            Description = description;
+            Thumbnail = thumbnail;
+            Level = level;
+
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        // =========================
         // UPDATE BASIC INFO
         // =========================
         public void UpdateBasicInfo(

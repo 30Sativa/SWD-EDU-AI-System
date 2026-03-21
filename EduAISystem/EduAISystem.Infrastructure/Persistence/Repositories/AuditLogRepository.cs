@@ -58,7 +58,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                     IpAddress = x.IpAddress,
                     UserAgent = x.UserAgent,
                     CreatedAt = x.CreatedAt,
-                    UserEmail = x.User != null ? x.User.Email : null
+                    UserEmail = x.User != null ? x.User.Email : "N/A"
                 })
                 .ToListAsync(cancellationToken);
 
@@ -83,7 +83,7 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                     IpAddress = x.IpAddress,
                     UserAgent = x.UserAgent,
                     CreatedAt = x.CreatedAt,
-                    UserEmail = x.User != null ? x.User.Email : null
+                    UserEmail = x.User != null ? x.User.Email : "N/A"
                 })
                 .ToListAsync(cancellationToken);
         }

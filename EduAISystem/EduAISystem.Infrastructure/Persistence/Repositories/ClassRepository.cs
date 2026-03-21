@@ -246,11 +246,13 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 .Select(sc => new Application.Features.Classes.DTOs.Response.StudentInClassResponseDto
                 {
                     UserId = sc.StudentId,
-                    StudentCode = sc.Student.StudentCode,
-                    FullName = sc.Student.User.UserProfile.FullName ?? "N/A",
-                    Email = sc.Student.User.Email,
+                    StudentCode = sc.Student != null ? sc.Student.StudentCode : string.Empty,
+                    FullName = (sc.Student != null && sc.Student.User != null && sc.Student.User.UserProfile != null) 
+                                ? sc.Student.User.UserProfile.FullName ?? "N/A" 
+                                : "N/A",
+                    Email = (sc.Student != null && sc.Student.User != null) ? sc.Student.User.Email : string.Empty,
                     JoinedAt = sc.JoinedAt,
-                    IsActive = sc.Student.User.IsActive ?? false
+                    IsActive = (sc.Student != null && sc.Student.User != null) ? (sc.Student.User.IsActive ?? false) : false
                 })
                 .ToListAsync(cancellationToken);
         }

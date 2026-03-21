@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Packaging;
 using EduAISystem.Application.Abstractions.Persistence;
 using ClosedXML.Excel;
 using System;
@@ -12,14 +12,14 @@ namespace EduAISystem.Infrastructure.Services.FileStorage
 {
     public class FileTextExtractor : IFileTextExtractor
     {
-        public async Task<string> ExtractAsync(byte[] fileContent, string contentType)
+        public Task<string> ExtractAsync(byte[] fileContent, string contentType)
         {
             // Normalize contentType to lowercase for comparison
             var normalizedContentType = contentType.ToLowerInvariant();
 
             if (normalizedContentType.Contains("pdf"))
             {
-                return ExtractPdf(fileContent);
+                return Task.FromResult(ExtractPdf(fileContent));
             }
 
             // Check for Word documents (docx)
@@ -27,7 +27,7 @@ namespace EduAISystem.Infrastructure.Services.FileStorage
                 normalizedContentType.Contains("application/msword") ||
                 normalizedContentType.Contains("application/vnd.openxmlformats-officedocument.wordprocessingml"))
             {
-                return ExtractWord(fileContent);
+                return Task.FromResult(ExtractWord(fileContent));
             }
 
             // Check for Excel documents (xlsx, xls)
@@ -35,7 +35,7 @@ namespace EduAISystem.Infrastructure.Services.FileStorage
                 normalizedContentType.Contains("application/vnd.ms-excel") ||
                 normalizedContentType.Contains("application/vnd.openxmlformats-officedocument.spreadsheetml"))
             {
-                return ExtractExcel(fileContent);
+                return Task.FromResult(ExtractExcel(fileContent));
             }
 
             throw new NotSupportedException($"Unsupported file type: {contentType}");

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,5 +22,8 @@ namespace EduAISystem.Application.Abstractions.Common
         /// Link dạng: {frontendUrl}/reset-password?token={token}
         /// </summary>
         Task SendForgotPasswordEmailAsync(string toEmail, string fullName, string resetLink);
+        
+        /// <summary>Gửi email thông báo học sinh đã được thêm vào lớp học</summary>
+        Task SendClassEnrollmentEmailAsync(string toEmail, string fullName, string className);
     }
 }

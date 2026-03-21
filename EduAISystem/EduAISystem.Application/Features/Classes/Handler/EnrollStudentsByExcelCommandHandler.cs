@@ -16,15 +16,18 @@ namespace EduAISystem.Application.Features.Classes.Handler
         private readonly IClassRepository _classRepo;
         private readonly IUserRepository _userRepo;
         private readonly IExcelUserParser _excelParser;
+        private readonly IEmailService _emailService;
 
         public EnrollStudentsByExcelCommandHandler(
             IClassRepository classRepo, 
             IUserRepository userRepo, 
-            IExcelUserParser excelParser)
+            IExcelUserParser excelParser,
+            IEmailService emailService)
         {
             _classRepo = classRepo;
             _userRepo = userRepo;
             _excelParser = excelParser;
+            _emailService = emailService;
         }
 
         public async Task<(int count, List<string> errors)> Handle(EnrollStudentsByExcelCommand request, CancellationToken cancellationToken)
@@ -60,6 +63,16 @@ namespace EduAISystem.Application.Features.Classes.Handler
                 }
 
                 await _classRepo.EnrollStudentToClassAsync(userFound.Id, request.ClassId, cancellationToken);
+                
+                try
+                {
+                    await _emailService.SendClassEnrollmentEmailAsync(item.Email, item.FullName, classEntity.Name);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[EMAIL ERROR at EnrollByExcel]: {ex.Message}");
+                }
+                
                 successCount++;
             }
 
