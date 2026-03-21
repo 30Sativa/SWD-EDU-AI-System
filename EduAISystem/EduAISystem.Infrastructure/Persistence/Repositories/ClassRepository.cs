@@ -255,6 +255,21 @@ namespace EduAISystem.Infrastructure.Persistence.Repositories
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<ClassDomain?> GetStudentCurrentClassAsync(Guid studentId, CancellationToken cancellationToken = default)
+        {
+            var studentClass = await _context.StudentClasses
+                .AsNoTracking()
+                .Include(sc => sc.Class)
+                    .ThenInclude(c => c.Teacher)
+                        .ThenInclude(t => t.User)
+                            .ThenInclude(u => u.UserProfile)
+                .Include(sc => sc.Class.Term)
+                .Include(sc => sc.Class.GradeLevel)
+                .FirstOrDefaultAsync(sc => sc.StudentId == studentId && sc.IsActive == true, cancellationToken);
+            
+            return studentClass?.Class == null ? null : MapToDomain(studentClass.Class);
+        }
+
         public async Task<List<ClassDomain>> GetClassesByTeacherAsync(Guid teacherId, CancellationToken cancellationToken = default)
         {
             var entities = await _context.Classes

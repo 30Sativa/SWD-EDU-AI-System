@@ -34,6 +34,7 @@ namespace EduAISystem.Application.Abstractions.Persistence
         Task<bool> RemoveStudentFromClassAsync(Guid studentId, Guid classId, CancellationToken cancellationToken = default);
 
         Task<List<StudentInClassResponseDto>> GetStudentsByClassIdAsync(Guid classId, CancellationToken cancellationToken = default);
+        Task<ClassDomain?> GetStudentCurrentClassAsync(Guid studentId, CancellationToken cancellationToken = default);
         Task<List<ClassDomain>> GetClassesByTeacherAsync(Guid teacherId, CancellationToken cancellationToken = default);
     }
 }

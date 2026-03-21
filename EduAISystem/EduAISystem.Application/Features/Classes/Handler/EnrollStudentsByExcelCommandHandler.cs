@@ -51,6 +51,14 @@ namespace EduAISystem.Application.Features.Classes.Handler
                     continue;
                 }
 
+                // Kiểm tra học sinh đã có lớp khác chưa
+                var currentClass = await _classRepo.GetStudentCurrentClassAsync(userFound.Id, cancellationToken);
+                if (currentClass != null && currentClass.Id != request.ClassId)
+                {
+                    errorList.Add($"Học sinh {item.Email} hiện đang thuộc lớp {currentClass.Name}. Vui lòng gỡ khỏi lớp đó trước.");
+                    continue;
+                }
+
                 await _classRepo.EnrollStudentToClassAsync(userFound.Id, request.ClassId, cancellationToken);
                 successCount++;
             }
