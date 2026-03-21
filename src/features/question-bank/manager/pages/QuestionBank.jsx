@@ -194,14 +194,14 @@ export default function QuestionBank() {
                     <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
                         <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><FileQuestion /></div>
                         <div>
-                            <div className="text-2xl font-black text-slate-800">{summaryData.reduce((acc, curr) => acc + curr.totalQuestions, 0)}</div>
+                            <div className="text-2xl font-black text-slate-800">{(summaryData || []).reduce((acc, curr) => acc + curr.totalQuestions, 0)}</div>
                             <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Tổng câu hỏi</div>
                         </div>
                     </div>
                     <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
                         <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center"><FolderOpen /></div>
                         <div>
-                            <div className="text-2xl font-black text-slate-800">{summaryData.length}</div>
+                            <div className="text-2xl font-black text-slate-800">{(summaryData || []).length}</div>
                             <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Chủ đề / Bài học</div>
                         </div>
                     </div>
@@ -238,6 +238,10 @@ export default function QuestionBank() {
                             columns={columns}
                             dataSource={filteredData}
                             rowKey="topicId"
+                            onRow={(record) => ({
+                                onClick: () => navigate(`/dashboard/manager/question-bank/topic/${record.topicId}`),
+                            })}
+                            rowClassName="cursor-pointer hover:bg-slate-50 transition-colors"
                             pagination={{
                                 pageSize: 8,
                                 showSizeChanger: true,

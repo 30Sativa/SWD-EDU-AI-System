@@ -15,7 +15,7 @@ import {
     ArrowLeft
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getClassDetail, getTeacherClassStudents, addStudentsToClass, removeStudentFromClass } from '../../api/classApi';
+import { getClassDetail, getTeacherClassStudents, addStudentsToClass, removeStudentFromClass, importStudentsToClass } from '../../api/classApi';
 import { Spin, Modal, Select, message, Table, Input, Button, Tooltip, Empty, Popconfirm } from 'antd';
 import { getUsers } from '../../../user/api/userApi';
 
@@ -54,6 +54,12 @@ export default function ClassStudentList() {
     // States cho chức năng tìm kiếm học sinh
     const [fetchingStudents, setFetchingStudents] = useState(false);
     const [searchTimeout, setSearchTimeout] = useState(null);
+
+    // States cho chức năng Import Excel
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [importFile, setImportFile] = useState(null);
+    const [isImporting, setIsImporting] = useState(false);
+    const [importResults, setImportResults] = useState(null);
 
     const navigate = useNavigate();
     const { classId } = useParams();
@@ -108,11 +114,15 @@ export default function ClassStudentList() {
                 // Nếu FE muốn LỌC TOÀN BỘ CÁC LỚP, ta cần fetch getClasses() => load từng lớp => extract id. 
                 // Do tốn resource, ta sẽ thực hiện Lọc học sinh có trạng thái "đã có lớp" nếu API User có trả về "classId", 
                 // hiện tại API User chưa có field "classId", nên FE chỉ lọc chính xác nhất những em đã ở trong lớp hiện tại:
+                // 2. Lọc bỏ học sinh:
+                // - Đã ở trong lớp hiện tại (tránh thêm trùng lặp)
+                // - Đã ở trong MỘT LỚP KHÁC (theo logic mới 1 học sinh - 1 lớp)
                 const currentIds = studentsData.map(s => s.id ?? s.userId ?? s.studentId);
-                list = list.filter(u => !currentIds.includes(u.id));
-
-                // Tính năng mở rộng: Nếu data user có field liên quan đến việc đã có lớp (vd: isAssigned), FE có thể filter
-                list = list.filter(u => !u.className && !u.classId); // Safe guard filter 
+                list = list.filter(u => {
+                    const isInCurrentClass = currentIds.includes(u.id);
+                    const isInAnyClass = u.className || u.classId || u.hasAssigned; // Kiểm tra các field phổ biến
+                    return !isInCurrentClass && !isInAnyClass;
+                });
 
                 setAvailableStudents(list);
             }
@@ -156,17 +166,64 @@ export default function ClassStudentList() {
             setReloadTrigger(prev => prev + 1); // reload data
         } catch (err) {
             console.error('Lỗi khi thêm học sinh:', err);
-
-            // Xử lý thông báo lỗi chi tiết từ backend nếu có
+            
             let errorMsg = 'Thêm học sinh thất bại';
+            let detailMsg = null;
+            
             if (err.response?.data) {
                 const data = err.response.data;
-                if (typeof data === 'string') errorMsg = data;
-                else if (data.message || data.Message) errorMsg = data.message || data.Message;
+                // Nếu backend trả về detail (chứa cụ thể học sinh nào bị trùng lớp)
+                if (data.detail) {
+                    // Cleaner: Loại bỏ "Loại lỗi: InvalidOperationException — Chi tiết: "
+                    detailMsg = data.detail.replace(/^Loại lỗi:.*Chi tiết:\s*/i, '');
+                } else if (data.message || data.Message) {
+                    errorMsg = data.message || data.Message;
+                }
             }
-            message.error(errorMsg);
+
+            if (detailMsg) {
+                Modal.error({
+                    title: 'Xung đột lớp học',
+                    content: detailMsg,
+                    okText: 'Tôi đã hiểu',
+                    centered: true,
+                    className: 'error-modal'
+                });
+            } else {
+                message.error(errorMsg);
+            }
         } finally {
             setIsAdding(false);
+        }
+    };
+
+    const handleImportStudents = async () => {
+        if (!importFile) return;
+        try {
+            setIsImporting(true);
+            const res = await importStudentsToClass(classId, importFile);
+            setImportResults(res.data || res);
+            setIsImportModalOpen(false);
+            setImportFile(null);
+            setReloadTrigger(prev => prev + 1);
+        } catch (err) {
+            console.error('Lỗi import:', err);
+            let detailMsg = null;
+            if (err.response?.data?.detail) {
+                detailMsg = err.response.data.detail.replace(/^Loại lỗi:.*Chi tiết:\s*/i, '');
+            }
+            
+            if (detailMsg) {
+                Modal.error({
+                    title: 'Lỗi Import Dữ Liệu',
+                    content: detailMsg,
+                    centered: true
+                });
+            } else {
+                message.error(err.response?.data?.message || 'Import thất bại');
+            }
+        } finally {
+            setIsImporting(false);
         }
     };
 
@@ -339,9 +396,12 @@ export default function ClassStudentList() {
                         </div>
                     </div>
                     <div className="flex gap-3">
-                        <Button className="h-10 px-4 rounded-lg bg-white border-slate-200 text-slate-600 hover:text-[#0463ca] hover:border-[#0463ca] shadow-sm flex items-center gap-2 font-medium">
-                            <FileText size={18} />
-                            Xuất báo cáo
+                        <Button 
+                            className="h-10 px-4 rounded-lg bg-white border-slate-200 text-slate-600 hover:text-[#0463ca] hover:border-[#0463ca] shadow-sm flex items-center gap-2 font-medium"
+                            onClick={() => setIsImportModalOpen(true)}
+                        >
+                            <ArrowUpRight size={18} />
+                            Import Excel
                         </Button>
                         <Button
                             type="primary"
@@ -435,6 +495,99 @@ export default function ClassStudentList() {
                         />
                     )}
                 </div>
+
+                {/* Import Modal */}
+                <Modal
+                    title={<span className="text-[#0463ca] font-bold">Import Học Sinh Bằng Excel</span>}
+                    open={isImportModalOpen}
+                    onCancel={() => {
+                        setIsImportModalOpen(false);
+                        setImportFile(null);
+                    }}
+                    onOk={handleImportStudents}
+                    confirmLoading={isImporting}
+                    okText="Bắt đầu Import"
+                    cancelText="Hủy"
+                    okButtonProps={{ disabled: !importFile, className: "bg-[#0463ca] border-none font-bold" }}
+                >
+                    <div className="py-4 space-y-4">
+                        <div 
+                            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${importFile ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50'}`}
+                            onClick={() => document.getElementById('excel-upload')?.click()}
+                        >
+                            <input 
+                                type="file" 
+                                id="excel-upload" 
+                                accept=".xlsx, .xls" 
+                                className="hidden" 
+                                onChange={(e) => setImportFile(e.target.files[0])} 
+                            />
+                            {importFile ? (
+                                <div className="space-y-2">
+                                    <div className="text-emerald-500 flex justify-center"><CheckCircle2 size={40} /></div>
+                                    <p className="font-bold text-slate-700">{importFile.name}</p>
+                                    <p className="text-xs text-slate-400">Bấm để chọn file khác</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <div className="text-slate-300 flex justify-center"><ArrowUpRight size={40} /></div>
+                                    <p className="font-bold text-slate-700">Tải lên file Excel danh sách học sinh</p>
+                                    <p className="text-xs text-slate-400">Hỗ trợ định dạng .xlsx, .xls</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                            <h4 className="text-amber-800 text-xs font-bold uppercase mb-2">Lưu ý quan trọng:</h4>
+                            <ul className="text-xs text-amber-700 space-y-1 list-disc pl-4">
+                                <li>File Excel cần có cột <strong>Email</strong> hoặc <strong>StudentCode</strong>.</li>
+                                <li>Học sinh phải đã có tài khoản trên hệ thống.</li>
+                                <li>Học sinh sẽ không được import nếu đang thuộc một lớp khác.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </Modal>
+
+                {/* Import Results Modal */}
+                <Modal
+                    title={<span className="text-slate-700 font-bold">Kết quả Import</span>}
+                    open={!!importResults}
+                    onCancel={() => setImportResults(null)}
+                    footer={[
+                        <Button key="close" type="primary" className="bg-[#0463ca] border-none font-bold" onClick={() => setImportResults(null)}>
+                            Đóng
+                        </Button>
+                    ]}
+                    width={600}
+                >
+                    {importResults && (
+                        <div className="space-y-4">
+                            <div className="flex gap-4">
+                                <div className="flex-1 bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-center">
+                                    <div className="text-2xl font-black text-emerald-600">{importResults.count}</div>
+                                    <div className="text-[10px] font-bold text-emerald-500 uppercase">Thành công</div>
+                                </div>
+                                <div className="flex-1 bg-rose-50 p-4 rounded-xl border border-rose-100 text-center">
+                                    <div className="text-2xl font-black text-rose-600">{importResults.errors?.length || 0}</div>
+                                    <div className="text-[10px] font-bold text-rose-500 uppercase">Thất bại</div>
+                                </div>
+                            </div>
+                            
+                            {importResults.errors && importResults.errors.length > 0 && (
+                                <div className="max-h-60 overflow-y-auto border border-slate-100 rounded-xl">
+                                    <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase">Danh sách chi tiết lỗi</div>
+                                    <div className="divide-y divide-slate-50">
+                                        {importResults.errors.map((err, idx) => (
+                                            <div key={idx} className="px-4 py-3 text-xs text-slate-600 flex gap-2">
+                                                <XCircle size={14} className="text-rose-500 shrink-0 mt-0.5" />
+                                                {err}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </Modal>
 
                 <Modal
                     title={
