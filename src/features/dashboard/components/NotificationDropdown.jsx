@@ -15,6 +15,7 @@ import {
     markNotificationAsRead,
     markAllNotificationsAsRead
 } from '../../notification/api/notificationApi';
+import { HubConnectionBuilder, LogLevel, HubConnectionState } from '@microsoft/signalr';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function NotificationDropdown({ basePath }) {
@@ -24,6 +25,7 @@ export default function NotificationDropdown({ basePath }) {
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [markingAll, setMarkingAll] = useState(false);
+    const [hubConnection, setHubConnection] = useState(null);
     
     // Modal state
     const [selectedNotification, setSelectedNotification] = useState(null);
@@ -54,9 +56,49 @@ export default function NotificationDropdown({ basePath }) {
         }
     }, []);
 
+    // ─── SIGNALR REAL-TIME NOTIFICATIONS ───
+    useEffect(() => {
+        const token = localStorage.getItem('accessToken');
+        if (!token) return;
+
+        const connection = new HubConnectionBuilder()
+            .withUrl(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5129'}/hubs/notification`, {
+                accessTokenFactory: () => token
+            })
+            .withAutomaticReconnect()
+            .configureLogging(LogLevel.Warning)
+            .build();
+
+        connection.on("ReceiveNotification", (notification) => {
+            console.log("New notification received:", notification);
+            
+            // 1. Add to top of list
+            setNotifications(prev => [notification, ...prev].slice(0, 20)); 
+            
+            // 2. Increment unread count
+            setUnreadCount(prev => prev + 1);
+            
+            // 3. Optional: Browser notification or toast
+            // message.info(`Thông báo mới: ${notification.title}`);
+        });
+
+        connection.start()
+            .then(() => {
+                console.log("Notification Hub connected");
+                setHubConnection(connection);
+            })
+            .catch(err => console.error("Notification Hub connection failed:", err));
+
+        return () => {
+            if (connection) {
+                connection.stop();
+            }
+        };
+    }, []);
+
     useEffect(() => {
         fetchUnreadCount();
-        const interval = setInterval(fetchUnreadCount, 60000);
+        const interval = setInterval(fetchUnreadCount, 60000); // Polling as fallback
         return () => clearInterval(interval);
     }, [fetchUnreadCount]);
 

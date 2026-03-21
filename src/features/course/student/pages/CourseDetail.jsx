@@ -26,10 +26,11 @@ import StudentAssignmentsTab from '../../../assignment/student/components/Studen
 import { ArrowRight, RefreshCw, Target } from 'lucide-react';
 import { getCourseQuizzes, getLessonQuizzes } from '../../../quiz/student/api/quizApi';
 
-// Session-level completed cache (shared logic with LessonDetail)
+// Persistent completed cache (survives logout/browser close)
 const getCompletedSet = (courseId) => {
     try {
-        const raw = sessionStorage.getItem(`completed_${courseId}`);
+        const userId = localStorage.getItem('userId') || 'guest';
+        const raw = localStorage.getItem(`completed_${userId}_${courseId}`);
         return raw ? new Set(JSON.parse(raw)) : new Set();
     } catch { return new Set(); }
 };
@@ -261,11 +262,6 @@ export default function CourseDetail() {
 
     // Sidebar & Tabs
 
-    const nextClass = {
-        title: 'Tiết học tiếp theo',
-        description: courseData.nextClassTopic || 'Chuyên đề học tập tiếp theo',
-        time: courseData.nextClassTime || 'Xem lịch để biết thêm chi tiết'
-    };
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800 animate-in fade-in duration-500">
@@ -646,25 +642,6 @@ export default function CourseDetail() {
                     </div>
 
                     <div className="space-y-6 lg:col-span-1">
-                        {/* Live/Next session info */}
-                        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm relative overflow-hidden group">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                <Clock size={14} className="text-[#0487e2]" />
-                                Lịch học tiếp theo
-                            </h4>
-                            <div className="p-4 bg-blue-50 rounded-lg mb-4">
-                                <p className="text-sm font-bold text-slate-800 mb-1">{nextClass.title}</p>
-                                <p className="text-xs text-slate-500 mb-2">{nextClass.description}</p>
-                                <div className="flex items-center gap-2 text-xs font-bold text-[#0487e2]">
-                                    <Clock size={12} />
-                                    {nextClass.time}
-                                </div>
-                            </div>
-                            <button className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition-colors">
-                                Mở Zoom / Google Meet
-                            </button>
-                        </div>
-
                         {/* Resources area */}
                         <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm relative overflow-hidden">
                             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">

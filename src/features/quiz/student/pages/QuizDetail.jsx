@@ -61,6 +61,10 @@ export default function QuizDetail() {
     ]);
     const [inputMessage, setInputMessage] = useState('');
 
+    // Improved detection: Summative quizzes are course-level (no lessonId), Formative are lesson-level
+    const isSummative = quizData?.quizType === 'Summative' || (!quizData?.lessonId && quizData?.courseId);
+    const isFormative = quizData?.quizType === 'Formative' || (!!quizData?.lessonId);
+
     useEffect(() => {
         const fetchQuiz = async () => {
             setLoading(true);
@@ -114,7 +118,6 @@ export default function QuizDetail() {
                         okText: 'Tiếp tục làm bài',
                         cancelText: 'Nộp ngay (bỏ trống)',
                         cancelButtonProps: { danger: true },
-                        zIndex: 10000,
                         onOk: async () => {
                             // Resume the existing attempt - fetch questions first
                             try {
@@ -154,34 +157,67 @@ export default function QuizDetail() {
 
     // Helper: build submit payload safely (selectedOptionId must be UUID or null, never empty string)
     const buildSubmitPayload = (timeSpentSeconds) => ({
-        timeSpentSeconds: timeSpentSeconds > 0 ? timeSpentSeconds : 0,
+        timeSpentSeconds: Math.max(0, timeSpentSeconds || 0),
         answers: Object.entries(answers).map(([qId, oId]) => ({
             questionId: qId,
             selectedOptionId: (oId && oId.trim() !== '') ? oId : null,
-            answerText: null
+            textAnswer: ""
         }))
     });
 
     const handleSubmitQuiz = async () => {
-        if (!window.confirm('Bạn có chắc chắn muốn nộp bài?')) return;
+        Modal.confirm({
+            title: <span className="text-xl font-bold text-slate-900">Nộp bài kiểm tra</span>,
+            icon: <HelpCircle className="text-blue-600" size={24} />,
+            content: (
+                <div className="py-2">
+                    <p className="text-slate-500 font-medium leading-relaxed">
+                        Bạn có chắc chắn muốn hoàn thành và nộp bài làm này? Hệ thống sẽ ghi nhận kết quả và bạn không thể chỉnh sửa sau khi nộp.
+                    </p>
+                </div>
+            ),
+            okText: 'Nộp bài ngay',
+            cancelText: 'Hủy',
+            centered: true,
+            width: 440,
+            okButtonProps: { 
+                className: 'bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl border-none h-11 px-8 shadow-lg shadow-blue-200 transition-all' 
+            },
+            cancelButtonProps: { 
+                className: 'font-semibold rounded-xl h-11 border-slate-200 hover:border-blue-500 hover:text-blue-600' 
+            },
+            onOk: async () => {
+                setSubmitting(true);
+                try {
+                    const timeSpentSeconds = (quizData.duration || quizData.timeLimit || 45) * 60 - timeLeft;
+                    const payload = buildSubmitPayload(timeSpentSeconds);
+                    await submitQuizAttempt(attemptId, payload);
+                    const res = await getQuizAttemptResult(attemptId);
+                    setResultData(res.data || res);
+                    setMode('completed');
+                    message.success("Nộp bài thành công!");
+                } catch (error) {
+                    const errMsg = error.response?.data?.message || error.response?.data?.title || "Gặp lỗi khi nộp bài. Vui lòng thử lại.";
+                    message.error(errMsg);
+                } finally {
+                    setSubmitting(false);
+                }
+            }
+        });
+    };
 
-        setSubmitting(true);
-        try {
-            const timeSpentSeconds = (quizData.duration || quizData.timeLimit || 45) * 60 - timeLeft;
-            const payload = buildSubmitPayload(timeSpentSeconds);
-
-            await submitQuizAttempt(attemptId, payload);
-
-            // Get final results
-            const res = await getQuizAttemptResult(attemptId);
-            setResultData(res.data || res);
-            setMode('completed');
-            message.success("Nộp bài thành công!");
-        } catch (error) {
-            const errMsg = error.response?.data?.message || error.response?.data?.title || "Gặp lỗi khi nộp bài. Vui lòng thử lại.";
-            message.error(errMsg);
-        } finally {
-            setSubmitting(false);
+    const handleAnswerSelect = (qId, optId) => {
+        // Update local answers
+        setAnswers(prev => ({ ...prev, [qId]: optId }));
+        
+        // Auto-advance to next question if it's not the last one
+        // We use a guard to prevent multiple timers from jumping multiple questions if the user clicks quickly
+        if (currentQuestion < (quizData.questions?.length || 1) - 1) {
+            const currentIdx = currentQuestion;
+            setTimeout(() => {
+                // Only move if we are still on the question we answered
+                setCurrentQuestion(prev => (prev === currentIdx ? prev + 1 : prev));
+            }, 650); // Slightly longer for better visual feedback
         }
     };
 
@@ -202,7 +238,7 @@ export default function QuizDetail() {
                                     answers: Object.entries(answers).map(([qId, oId]) => ({
                                         questionId: qId,
                                         selectedOptionId: (oId && oId.trim() !== '') ? oId : null,
-                                        answerText: null
+                                        textAnswer: ""
                                     }))
                                 };
                                 await submitQuizAttempt(attemptId, payload);
@@ -239,11 +275,26 @@ export default function QuizDetail() {
 
     const handleGoBackWhileTaking = () => {
         Modal.confirm({
-            title: 'Chưa nộp bài',
-            content: 'Bạn đang trong quá trình làm bài. Nếu thoát bây giờ, hệ thống sẽ tự động Tự Nộp Bài của bạn với kết quả hiện tại. Bạn có chắc chắn muốn thoát?',
-            okText: 'Thoát và Nộp',
+            title: <span className="text-xl font-bold text-slate-900">Thoát khỏi bài làm?</span>,
+            icon: <AlertCircle className="text-red-500" size={24} />,
+            content: (
+                <div className="py-2">
+                    <p className="text-slate-500 font-medium leading-relaxed">
+                        Bạn đang trong quá trình làm bài. Nếu thoát bây giờ, hệ thống sẽ <span className="text-red-500 font-bold">tự động nộp bài</span> của bạn với các câu đã trả lời. Bạn có chắc chắn muốn thoát?
+                    </p>
+                </div>
+            ),
+            okText: 'Xác nhận thoát & Nộp bài',
             okType: 'danger',
-            cancelText: 'Tiếp tục làm bài',
+            cancelText: 'Hủy, tiếp tục làm bài',
+            centered: true,
+            width: 480,
+            okButtonProps: { 
+                className: 'bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl border-none h-11 px-8 shadow-lg shadow-red-100 transition-all' 
+            },
+            cancelButtonProps: { 
+                className: 'font-semibold rounded-xl h-11 border-slate-200 hover:border-slate-300' 
+            },
             onOk: async () => {
                 setSubmitting(true);
                 try {
@@ -253,13 +304,20 @@ export default function QuizDetail() {
                         answers: Object.entries(answers).map(([qId, oId]) => ({
                             questionId: qId,
                             selectedOptionId: (oId && oId.trim() !== '') ? oId : null,
-                            answerText: null
+                            textAnswer: ""
                         }))
                     };
                     await submitQuizAttempt(attemptId, payload);
-                    navigate('/dashboard/student/quizzes');
+                    if (quizData?.courseId && quizData?.lessonId) {
+                        navigate(`/dashboard/student/courses/${quizData.courseId}/lessons/${quizData.lessonId}`);
+                    } else if (quizData?.courseId) {
+                        navigate(`/dashboard/student/courses/${quizData.courseId}`);
+                    } else {
+                        navigate('/dashboard/student/quizzes');
+                    }
                 } catch (e) {
-                    message.error("Lỗi nộp bài.");
+                    message.error("Lỗi nộp bài khi thoát. Vui lòng thử lại.");
+                } finally {
                     setSubmitting(false);
                 }
             }
@@ -436,307 +494,306 @@ export default function QuizDetail() {
         };
         const correctCount = result.questions?.filter(q => q.isCorrect).length || 0;
         const totalCount = result.questions?.length || quizData.questions?.length || 0;
+
+        // CRITICAL SECURITY RULE:
+        // showCorrectFlag determines if we show scores and reviews.
+        // For Summative, we hide everything unless teacher explicitly enabled it.
+        const showResultsAndReview = isFormative ? true : (quizData?.showAnswers === true);
+
         return (
             <div className="min-h-screen bg-slate-50 overflow-y-auto custom-scrollbar relative">
                 {scrollbarStyle}
-                <div className="max-w-5xl mx-auto px-6 py-12 space-y-12">
-                    {/* Breadcrumbs */}
-                    <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-                        <span>Trang chủ</span> <ChevronRight size={12} />
-                        <span>Luyện đề</span> <ChevronRight size={12} />
-                        <span className="text-slate-900">Kết quả chi tiết</span>
+                <div className="max-w-5xl mx-auto px-6 py-12 space-y-12 pb-32">
+                    {/* Header Action */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-medium text-slate-400 uppercase tracking-widest">
+                            <span>Trang chủ</span> <ChevronRight size={12} />
+                            <span>Luyện đề</span> <ChevronRight size={12} />
+                            <span className="text-slate-900">Kết quả</span>
+                        </div>
+                        <button 
+                            onClick={() => {
+                                if (quizData?.courseId && quizData?.lessonId) {
+                                    navigate(`/dashboard/student/courses/${quizData.courseId}/lessons/${quizData.lessonId}`);
+                                } else if (quizData?.courseId) {
+                                    navigate(`/dashboard/student/courses/${quizData.courseId}`);
+                                } else {
+                                    navigate('/dashboard/student/quizzes');
+                                }
+                            }}
+                            className="group flex items-center gap-2 px-4 py-2 text-slate-500 font-bold hover:text-blue-600 transition-all"
+                        >
+                            <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" /> Quay về bài học
+                        </button>
                     </div>
 
-                    {/* Result Summary Card */}
-                    <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full -translate-y-1/2 translate-x-1/2 -z-0"></div>
+                    {showResultsAndReview ? (
+                        /* PATH 1: DETAILED RESULTS (FOR LEARNING) */
+                        <>
+                            <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full -translate-y-1/2 translate-x-1/2 -z-0"></div>
 
-                        <div className="relative z-10 flex flex-col items-center md:flex-row gap-12">
-                            {/* Score Circle */}
-                            <div className="relative w-48 h-48 flex items-center justify-center">
-                                <svg className="w-full h-full -rotate-90">
-                                    <circle cx="96" cy="96" r="88" className="stroke-slate-100 fill-none" strokeWidth="12" />
-                                    <circle
-                                        cx="96" cy="96" r="88"
-                                        className="stroke-blue-600 fill-none transition-all duration-1000 ease-out"
-                                        strokeWidth="12"
-                                        strokeDasharray={552}
-                                        strokeDashoffset={552 - (552 * (result.score || 0)) / 10}
-                                        strokeLinecap="round"
-                                    />
-                                </svg>
-                                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-5xl font-bold text-slate-900 leading-none">{result.score || 0}</span>
-                                    <span className="text-sm font-semibold text-slate-400 mt-1 uppercase tracking-wider">/ {result.maxScore || 10}</span>
-                                </div>
-                            </div>
-
-                            {/* Info Section */}
-                            <div className="flex-1 text-center md:text-left space-y-6">
-                                <div>
-                                    <h1 className="text-2xl font-bold text-slate-900 mb-2">Chúc mừng! Bạn đã hoàn thành bài thi</h1>
-                                    <p className="text-slate-500 font-medium">{quizData.title}</p>
-                                </div>
-
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                    {[
-                                        { label: 'KẾT QUẢ', value: result.isPassed ? 'Đạt' : 'Chưa đạt', icon: ShieldCheck, color: result.isPassed ? 'text-emerald-600' : 'text-red-500' },
-                                        { label: 'TỈ LỆ', value: `${(result.percentage || 0).toFixed(1)}%`, icon: Trophy },
-                                        { label: 'CÂU ĐÚNG', value: `${correctCount}/${totalCount}`, icon: CheckCircle2 },
-                                        { label: 'ĐIỂM ĐẠT', value: `${quizData.passingScore || 50}/100`, icon: Award },
-                                    ].map((stat, i) => (
-                                        <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
-                                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{stat.label}</p>
-                                            <p className={`text-sm font-semibold ${stat.color || 'text-slate-900'}`}>{stat.value}</p>
+                                <div className="relative z-10 flex flex-col items-center md:flex-row gap-12">
+                                    <div className="relative w-48 h-48 flex items-center justify-center">
+                                        <svg className="w-full h-full -rotate-90">
+                                            <circle cx="96" cy="96" r="88" className="stroke-slate-100 fill-none" strokeWidth="12" />
+                                            <circle
+                                                cx="96" cy="96" r="88"
+                                                className="stroke-blue-600 fill-none transition-all duration-1000 ease-out"
+                                                strokeWidth="12"
+                                                strokeDasharray={552}
+                                                strokeDashoffset={552 - (552 * (result.score || 0)) / 10}
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                            <span className="text-5xl font-bold text-slate-900 leading-none">{result.score || 0}</span>
+                                            <span className="text-sm font-semibold text-slate-400 mt-1 uppercase tracking-wider">/ {result.maxScore || 10}</span>
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
 
-                                <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-2">
-                                    <button
-                                        onClick={() => window.location.reload()}
-                                        className="flex items-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-95"
-                                    >
-                                        <RefreshCw size={20} /> Làm lại bài tập
-                                    </button>
-                                    <button
-                                        onClick={() => setIsAIChatOpen(true)}
-                                        className="flex items-center gap-2 px-8 py-3.5 bg-indigo-50 border border-indigo-100 text-indigo-600 font-bold rounded-2xl transition-all hover:bg-indigo-100 active:scale-95"
-                                    >
-                                        <Bot size={20} /> Hỏi thầy trợ lý AI
-                                    </button>
+                                    <div className="flex-1 text-center md:text-left space-y-6">
+                                        <div>
+                                            <h1 className="text-2xl font-bold text-slate-900 mb-2">Hoàn thành bài tập!</h1>
+                                            <p className="text-slate-500 font-medium">{quizData.title}</p>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                            {[
+                                                { label: 'KẾT QUẢ', value: result.isPassed ? 'Đạt' : 'Chưa đạt', icon: ShieldCheck, color: result.isPassed ? 'text-emerald-600' : 'text-red-500' },
+                                                { label: 'TỈ LỆ', value: `${(result.percentage || 0).toFixed(1)}%`, icon: Trophy },
+                                                { label: 'CÂU ĐÚNG', value: `${correctCount}/${totalCount}`, icon: CheckCircle2 },
+                                                { label: 'ĐIỂM ĐẠT', value: `${quizData.passingScore || 50}/100`, icon: Award },
+                                            ].map((stat, i) => (
+                                                <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{stat.label}</p>
+                                                    <p className={`text-sm font-semibold ${stat.color || 'text-slate-900'}`}>{stat.value}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-2">
+                                            <button
+                                                onClick={() => window.location.reload()}
+                                                className="flex items-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-95"
+                                            >
+                                                <RefreshCw size={20} /> Làm lại bài tập
+                                            </button>
+                                            <button
+                                                onClick={() => setIsAIChatOpen(true)}
+                                                className="flex items-center gap-2 px-8 py-3.5 bg-indigo-50 border border-indigo-100 text-indigo-600 font-bold rounded-2xl transition-all hover:bg-indigo-100 active:scale-95"
+                                            >
+                                                <Bot size={20} /> Hỏi thầy trợ lý AI
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Review Section */}
-                    <div ref={reviewRef} className="space-y-8 pb-12">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3">
-                                <BookOpen size={28} className="text-blue-600" />
-                                Review Câu hỏi
-                            </h2>
-                            <div className="flex items-center gap-3">
-                                <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full border border-emerald-100 flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> {correctCount} Đúng
-                                </span>
-                                <span className="px-3 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-full border border-red-100 flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div> {totalCount - correctCount} Sai
-                                </span>
-                            </div>
-                        </div>
+                            <div className="space-y-8">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3">
+                                        <BookOpen size={28} className="text-blue-600" />
+                                        Chi tiết bài làm
+                                    </h2>
+                                    <div className="flex gap-2">
+                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full border border-emerald-100">{correctCount} Đúng</span>
+                                        <span className="px-3 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-full border border-red-100">{totalCount - correctCount} Sai</span>
+                                    </div>
+                                </div>
 
-                        <div className="space-y-6">
-                            {(result.questions || quizData.questions || []).map((q, idx) => {
-                                const isCorrect = q.isCorrect;
-                                const questionId = q.questionId || q.id;
-                                return (
-                                    <div key={idx} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden p-6 md:p-8 space-y-5 transition-all hover:shadow-md">
-                                        <div className="flex items-center justify-between border-b border-slate-50 pb-6">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-sm font-bold ${isCorrect ? 'text-emerald-600' : 'text-red-500'}`}>
-                                                        Câu {idx + 1}: {isCorrect ? 'Chính xác' : 'Chưa chính xác'}
+                                <div className="space-y-6">
+                                    {(result.questions || quizData.questions || []).map((q, idx) => {
+                                        const questionId = q.questionId || q.id;
+                                        const originalQuestion = quizData.questions?.find(oq => (oq.id || oq.questionId) === questionId);
+                                        const optionsList = q.options || originalQuestion?.options || [];
+                                        
+                                        return (
+                                            <div key={idx} className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 md:p-8 space-y-5 transition-all hover:shadow-md">
+                                                <div className="flex items-center justify-between border-b border-slate-50 pb-4">
+                                                    <span className={`text-sm font-bold ${q.isCorrect ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                        Câu {idx + 1}: {q.isCorrect ? 'Chính xác' : 'Chưa chính xác'}
+                                                    </span>
+                                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                                        Điểm: {q.pointsEarned || 0}/{q.points || originalQuestion?.points || 1}
                                                     </span>
                                                 </div>
-                                            </div>
-                                            <div className="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 uppercase tracking-widest">
-                                                Điểm: {q.pointsEarned || 0}/{q.points || 1}
-                                            </div>
-                                        </div>
-
-                                        <p className="text-lg font-bold text-slate-900 leading-relaxed">
-                                            {q.questionText || q.text}
-                                        </p>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {(q.options || []).map((opt) => {
-                                                const optId = opt.optionId || opt.id;
-                                                const isSelected = q.selectedOptionId === optId || answers[questionId] === optId;
-                                                const isAnswer = opt.isCorrect || optId === q.correctOptionId;
-
-                                                let style = "bg-slate-50 border-slate-100 text-slate-600";
-                                                if (isAnswer) style = "bg-emerald-50 border-emerald-500 text-emerald-900 ring-1 ring-emerald-500";
-                                                else if (isSelected && !isAnswer) style = "bg-red-50 border-red-500 text-red-900 ring-1 ring-red-500";
-
-                                                return (
-                                                    <div key={optId} className={`p-5 rounded-2xl border-2 flex items-center justify-between ${style}`}>
-                                                        <span className="font-bold">{opt.optionText || opt.text}</span>
-                                                        {isAnswer && <CheckCircle2 className="text-emerald-500" size={20} />}
-                                                        {isSelected && !isAnswer && (
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-[10px] font-semibold uppercase tracking-wider">Lựa chọn của bạn</span>
-                                                                <XCircle className="text-red-500" size={20} />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {q.explanation && (
-                                            <div className="mt-4 p-5 bg-slate-50/80 rounded-xl border border-slate-100 relative overflow-hidden">
-                                                <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600/20"></div>
-                                                <p className="text-sm italic text-slate-600 leading-relaxed font-medium">
-                                                    <span className="font-bold text-slate-900 not-italic mr-2">Giải thích:</span>
-                                                    {q.explanation}
+                                                <p className="text-lg font-bold text-slate-900">
+                                                    {q.questionText || q.text || originalQuestion?.questionText}
                                                 </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {optionsList.map((opt, optIdx) => {
+                                                        const optId = opt.optionId || opt.id;
+                                                        const isSelected = q.selectedOptionId === optId || answers[questionId] === optId;
+                                                        const isCorrectOpt = opt.isCorrect || optId === q.correctOptionId;
+                                                        
+                                                        let style = "bg-white border-slate-100 text-slate-500 opacity-60";
+                                                        if (isCorrectOpt) style = "bg-emerald-50 border-emerald-500 text-emerald-900 ring-1 ring-emerald-500 shadow-sm z-10";
+                                                        else if (isSelected) style = "bg-red-50 border-red-500 text-red-900 ring-1 ring-red-500 shadow-sm z-10";
 
-                        <div className="flex justify-center pt-8">
+                                                        return (
+                                                            <div key={optId} className={`p-5 rounded-2xl border-2 flex items-center justify-between transition-all ${style}`}>
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${isCorrectOpt ? "bg-emerald-500 text-white" : isSelected ? "bg-red-500 text-white" : "bg-slate-100 text-slate-400"}`}>
+                                                                        {String.fromCharCode(65 + optIdx)}
+                                                                    </div>
+                                                                    <span className="font-bold">{opt.optionText || opt.text}</span>
+                                                                </div>
+                                                                {isCorrectOpt && <CheckCircle2 className="text-emerald-500" size={20} />}
+                                                                {isSelected && !isCorrectOpt && <XCircle className="text-red-500" size={20} />}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {q.explanation && (
+                                                    <div className="mt-4 p-5 bg-slate-50/80 rounded-xl border-l-4 border-blue-600">
+                                                        <p className="text-sm italic text-slate-600">
+                                                            <span className="font-bold text-slate-900 not-italic mr-2">Giải thích:</span>
+                                                            {q.explanation}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        /* PATH 2: SECURE CONFIRMATION (FOR SUMMATIVE EXAMS) */
+                        <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 p-12 lg:p-24 relative overflow-hidden flex flex-col items-center text-center space-y-10">
+                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600"></div>
+                            
+                            <div className="w-32 h-32 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shadow-inner relative">
+                                <ShieldCheck size={64} />
+                                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center border-4 border-white">
+                                    <CheckCircle size={24} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 max-w-2xl">
+                                <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">Nộp bài thi thành công!</h1>
+                                <p className="text-xl text-slate-400 font-medium leading-relaxed">
+                                    Chúng tôi đã ghi nhận bài thi của bạn cho bài: <span className="text-slate-900 font-black">"{quizData.title}"</span>. 
+                                    Để đảm bảo tính công bằng của kỳ thi, kết quả chi tiết và điểm số sẽ được bảo mật cho đến khi giáo viên công bố.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-xl">
+                                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-blue-600"><Clock size={24} /></div>
+                                    <div className="text-left">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Thời gian nộp</p>
+                                        <p className="text-sm font-bold text-slate-700">{new Date().toLocaleString('vi-VN')}</p>
+                                    </div>
+                                </div>
+                                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-emerald-600"><Award size={24} /></div>
+                                    <div className="text-left">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Trạng thái</p>
+                                        <p className="text-sm font-bold text-emerald-600">Bài thi đã được khóa</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50/50 p-8 rounded-3xl border border-blue-100/50 max-w-xl">
+                                <p className="text-blue-700 font-semibold text-sm leading-relaxed">
+                                    Bạn hiện không thể xem lại nội dung câu hỏi hoặc đáp án. 
+                                    Vui lòng quay lại danh sách bài kiểm tra hoặc tiếp tục học tập các nội dung khác.
+                                </p>
+                            </div>
+
                             <button
                                 onClick={() => navigate('/dashboard/student/quizzes')}
-                                className="px-12 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-200 transition-all active:scale-95 flex items-center gap-3"
+                                className="px-12 py-5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl shadow-xl shadow-blue-200 transition-all active:scale-95 flex items-center gap-4 text-lg"
                             >
-                                <LayoutGrid size={22} /> Quay lại danh sách
+                                <LayoutGrid size={24} /> Quay về danh sách
                             </button>
                         </div>
-                    </div>
-                </div>
+                    )}
 
-                {/* AI Chatbox – panel giống “trợ lý sau khi nộp bài” */}
-                <div className="fixed bottom-6 right-20 z-[10000] flex flex-col items-end gap-4">
-                    {/* Chat panel */}
-                    <div
-                        className={`w-[380px] sm:w-[420px] bg-white/95 backdrop-blur rounded-[1.75rem] border border-slate-100 shadow-[0_20px_60px_rgba(15,23,42,0.28)] flex flex-col overflow-hidden transition-all duration-400 ease-out origin-bottom-right ${isAIChatOpen
-                            ? 'translate-y-0 opacity-100 scale-100 pointer-events-auto max-h-[620px]'
-                            : 'translate-y-4 opacity-0 scale-95 pointer-events-none max-h-0'
-                            }`}
-                    >
-                        {/* Header */}
-                        <div className="relative border-b border-slate-100 bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 px-5 py-4 text-white">
-                            <div className="flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 shadow-inner">
-                                        <Bot size={22} className="text-white" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-100">
-                                            Trợ lý sau khi làm bài
-                                        </p>
-                                        <h3 className="text-sm font-semibold leading-tight">
-                                            Thầy AI giải thích kết quả cho bạn
-                                        </h3>
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsAIChatOpen(false)}
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-indigo-50 hover:bg-white/20 transition-colors"
-                                >
-                                    <Minimize2 size={16} />
-                                </button>
-                            </div>
-                            <div className="mt-3 flex items-center gap-2 text-[11px] font-medium text-indigo-100/90">
-                                <span className="inline-flex items-center gap-1 rounded-full bg-black/15 px-2 py-0.5">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                                    Đang trực tuyến
-                                </span>
-                                <span className="opacity-80">
-                                    Hỏi lại các câu sai, kiến thức trọng tâm, mẹo làm bài nhanh…
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Messages */}
-                        <div className="flex-1 space-y-5 overflow-y-auto bg-slate-50/60 px-4 py-4 custom-scrollbar">
-                            {chatMessages.map((msg) => (
-                                <div
-                                    key={msg.id}
-                                    className={`flex gap-3 ${msg.type === 'user' ? 'flex-row-reverse' : ''}`}
-                                >
-                                    <div
-                                        className={`mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${msg.type === 'user'
-                                            ? 'border-indigo-500 bg-indigo-600 text-white'
-                                            : 'border-slate-200 bg-white text-indigo-600'
-                                            }`}
-                                    >
-                                        {msg.type === 'user' ? <User size={14} /> : <Bot size={16} />}
-                                    </div>
-                                    <div className="flex max-w-[78%] flex-col gap-2">
-                                        <div
-                                            className={`rounded-2xl px-4 py-3 text-[13px] leading-relaxed shadow-sm ${msg.type === 'user'
-                                                ? 'rounded-tr-md bg-indigo-600 text-white'
-                                                : 'rounded-tl-md border border-slate-100 bg-white text-slate-700'
-                                                }`}
-                                        >
-                                            {msg.text}
-                                        </div>
-                                        {msg.suggestions && (
-                                            <div className="flex flex-wrap gap-2">
-                                                {msg.suggestions.map((sug, i) => (
-                                                    <button
-                                                        key={i}
-                                                        type="button"
-                                                        onClick={() => handleSendMessage(sug)}
-                                                        className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-sm transition-colors hover:border-indigo-500 hover:text-indigo-600"
-                                                    >
-                                                        {sug}
-                                                    </button>
-                                                ))}
+                    {/* AI Chatbox (Only for Formative) */}
+                    {showResultsAndReview && (
+                        <div className="fixed bottom-6 right-20 z-[10000] flex flex-col items-end gap-4">
+                            <div
+                                className={`w-[380px] sm:w-[420px] bg-white/95 backdrop-blur rounded-[1.75rem] border border-slate-100 shadow-[0_20px_60px_rgba(15,23,42,0.28)] flex flex-col overflow-hidden transition-all duration-400 ease-out origin-bottom-right ${isAIChatOpen
+                                    ? 'translate-y-0 opacity-100 scale-100 pointer-events-auto max-h-[620px]'
+                                    : 'translate-y-4 opacity-0 scale-95 pointer-events-none max-h-0'
+                                    }`}
+                            >
+                                {/* Header */}
+                                <div className="relative border-b border-slate-100 bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 px-5 py-4 text-white">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 shadow-inner">
+                                                <Bot size={22} className="text-white" />
                                             </div>
-                                        )}
+                                            <div>
+                                                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-100">AI Tutor</p>
+                                                <h3 className="text-sm font-semibold leading-tight">Giải thích đáp án ngay</h3>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setIsAIChatOpen(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-indigo-50 hover:bg-white/20 transition-colors">
+                                            <Minimize2 size={16} />
+                                        </button>
                                     </div>
                                 </div>
-                            ))}
-                            <div ref={chatEndRef} />
-                        </div>
 
-                        {/* Input */}
-                        <div className="border-t border-slate-100 bg-white px-4 pb-4 pt-3">
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 shadow-sm focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
-                                <div className="relative flex items-center gap-2">
-                                    <input
-                                        type="text"
-                                        value={inputMessage}
-                                        onChange={(e) => setInputMessage(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                        placeholder="Ví dụ: Giải thích chi tiết câu 2 cho em với ạ..."
-                                        className="flex-1 bg-transparent text-[13px] font-medium text-slate-800 placeholder:text-slate-400 outline-none"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => handleSendMessage()}
-                                        disabled={!inputMessage.trim()}
-                                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
-                                    >
-                                        <Send size={17} />
-                                    </button>
+                                {/* Messages Area */}
+                                <div className="flex-1 space-y-5 overflow-y-auto bg-slate-50/60 px-4 py-4 custom-scrollbar min-h-[300px]">
+                                    {chatMessages.map((msg) => (
+                                        <div key={msg.id} className={`flex gap-3 ${msg.type === 'user' ? 'flex-row-reverse' : ''}`}>
+                                            <div className={`mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${msg.type === 'user' ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600'}`}>
+                                                {msg.type === 'user' ? <User size={14} /> : <Bot size={16} />}
+                                            </div>
+                                            <div className="flex max-w-[78%] flex-col gap-2">
+                                                <div className={`rounded-2xl px-4 py-3 text-[13px] shadow-sm ${msg.type === 'user' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700'}`}>
+                                                    {msg.text}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div ref={chatEndRef} />
+                                </div>
+
+                                {/* Input Area */}
+                                <div className="border-t border-slate-100 bg-white px-4 pb-4 pt-3">
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={inputMessage}
+                                            onChange={(e) => setInputMessage(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                            placeholder="Hỏi về câu sai..."
+                                            className="flex-1 bg-transparent text-[13px] outline-none"
+                                        />
+                                        <button onClick={() => handleSendMessage()} disabled={!inputMessage.trim()} className="h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 text-white flex shrink-0">
+                                            <Send size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="mt-2 flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                                <Sparkles size={11} className="text-indigo-500" />
-                                <span>AI phân tích dựa trên bài làm của riêng bạn</span>
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Toggle button */}
-                    <button
-                        type="button"
-                        onClick={() => setIsAIChatOpen(!isAIChatOpen)}
-                        className={`flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_18px_40px_rgba(37,99,235,0.55)] transition-all duration-200 hover:scale-110 active:scale-95 ${isAIChatOpen
-                            ? 'bg-slate-900'
-                            : 'bg-indigo-600 hover:bg-indigo-700'
-                            }`}
-                    >
-                        {isAIChatOpen ? <X size={26} /> : <Bot size={26} />}
-                    </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsAIChatOpen(!isAIChatOpen)}
+                                className={`flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-all ${isAIChatOpen ? 'bg-slate-900' : 'bg-indigo-600'}`}
+                            >
+                                {isAIChatOpen ? <X size={26} /> : <Bot size={26} />}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         );
     }
 
+
+
     return (
-        <div className="fixed inset-0 bg-[#f1f5f9] flex flex-col h-screen overflow-hidden z-[9999]">
+        <div className={isSummative ? "fixed inset-0 bg-[#f1f5f9] flex flex-col h-screen overflow-hidden z-[100]" : "min-h-screen bg-[#f1f5f9] flex flex-col pt-4 overflow-y-auto"}>
             {scrollbarStyle}
-            <header className="h-16 bg-white border-b border-slate-200 flex-shrink-0 z-50">
+            <header className={`${isSummative ? 'h-16' : 'h-14 mb-4 rounded-xl shadow-sm border border-slate-200'} bg-white flex-shrink-0 z-50`}>
                 <div className="h-full px-6 flex items-center justify-between max-w-[1600px] mx-auto w-full">
                     <div className="flex items-center gap-4 overflow-hidden">
                         <button onClick={handleGoBackWhileTaking} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors">
@@ -768,8 +825,15 @@ export default function QuizDetail() {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-hidden">
-                <div className="h-full max-w-[1600px] mx-auto px-4 sm:px-6 flex gap-8">
+            <div className="h-1 bg-slate-100 w-full flex-shrink-0 relative overflow-hidden">
+                <div 
+                    className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-sky-500 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                    style={{ width: `${(Object.keys(answers).length / (quizData.questions?.length || 1)) * 100}%` }}
+                ></div>
+            </div>
+
+            <main className={`${isSummative ? 'flex-1 overflow-hidden' : 'flex-1'}`}>
+                <div className={`${isSummative ? 'h-full' : 'min-h-[600px]'} max-w-[1600px] mx-auto px-4 sm:px-6 flex gap-8`}>
                     <div className="flex-1 flex flex-col h-full overflow-hidden">
                         <div className="flex-1 overflow-y-auto custom-scrollbar pt-6 pb-4 sm:pt-8 pr-2">
                             <div className="bg-white rounded-xl p-6 sm:p-8 md:p-10 shadow-sm border border-slate-200 relative mb-6">
@@ -779,16 +843,43 @@ export default function QuizDetail() {
                                 </div>
                                 <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 leading-snug mb-8 sm:mb-10">{quizData.questions?.[currentQuestion]?.questionText || quizData.questions?.[currentQuestion]?.text}</p>
                                 <div className="space-y-4">
-                                    {(quizData.questions?.[currentQuestion]?.options || []).map((option) => {
+                                    {(quizData.questions?.[currentQuestion]?.options || []).map((option, idx) => {
                                         const qId = quizData.questions[currentQuestion].questionId || quizData.questions[currentQuestion].id;
                                         const optId = option.optionId || option.id;
+                                        const isSelected = answers[qId] === optId;
+                                        const labelChar = String.fromCharCode(65 + idx); // A, B, C, D...
+
                                         return (
-                                            <label key={optId} className={`flex items-center p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer group ${answers[qId] === optId ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500 shadow-sm' : 'border-slate-50 hover:border-blue-200 hover:bg-slate-50'}`}>
-                                                <div className="relative flex items-center justify-center mr-4 sm:mr-5 flex-shrink-0">
-                                                    <input type="radio" name="quiz-option" className="peer appearance-none w-5 h-5 sm:w-6 sm:h-6 border-2 border-slate-200 rounded-full checked:border-blue-500 transition-all" checked={answers[qId] === optId} onChange={() => setAnswers({ ...answers, [qId]: optId })} />
-                                                    <div className="absolute w-2.5 h-2.5 sm:w-3 h-3 bg-blue-500 rounded-full scale-0 peer-checked:scale-100 transition-transform"></div>
+                                            <label 
+                                                key={optId} 
+                                                className={`flex items-center p-4 sm:p-6 rounded-[1.25rem] border-2 transition-all cursor-pointer group relative overflow-hidden ${
+                                                    isSelected 
+                                                        ? 'border-blue-500 bg-blue-50/40 ring-1 ring-blue-500 shadow-md shadow-blue-100' 
+                                                        : 'border-slate-100 bg-white hover:border-blue-300 hover:bg-slate-50'
+                                                }`}
+                                            >
+                                                {isSelected && (
+                                                    <div className="absolute top-0 right-0 w-12 h-12 bg-blue-500/10 rounded-bl-full flex items-start justify-end p-2">
+                                                        <CheckCircle size={14} className="text-blue-600" />
+                                                    </div>
+                                                )}
+                                                <div className={`flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border-2 font-bold text-sm sm:text-base mr-4 sm:mr-6 transition-all shrink-0 ${
+                                                    isSelected 
+                                                        ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' 
+                                                        : 'bg-slate-50 border-slate-200 text-slate-400 group-hover:border-blue-300 group-hover:text-blue-600 group-hover:bg-blue-50'
+                                                }`}>
+                                                    {labelChar}
                                                 </div>
-                                                <span className={`text-sm sm:text-base font-medium flex-1 ${answers[qId] === optId ? 'text-blue-900' : 'text-slate-700'}`}>{option.optionText || option.text}</span>
+                                                <input 
+                                                    type="radio" 
+                                                    name="quiz-option" 
+                                                    className="hidden" 
+                                                    checked={isSelected} 
+                                                    onChange={() => handleAnswerSelect(qId, optId)} 
+                                                />
+                                                <span className={`text-sm sm:text-base font-bold flex-1 transition-colors ${isSelected ? 'text-blue-900' : 'text-slate-600 group-hover:text-slate-900'}`}>
+                                                    {option.optionText || option.text}
+                                                </span>
                                             </label>
                                         );
                                     })}

@@ -10,18 +10,20 @@ import { getStudentCourseDetail, getCourseSections } from '../../../course/api/c
 import { getLessonQuizzes } from '../../../quiz/student/api/quizApi';
 import { Spin, message, Tooltip, Breadcrumb, Button, Tabs, Empty } from 'antd';
 
-// ----- Session-level completed lessons cache (per course) -----
+// ----- Persistent completed lessons cache (per course, per user) -----
 const getCompletedSet = (courseId) => {
     try {
-        const raw = sessionStorage.getItem(`completed_${courseId}`);
+        const userId = localStorage.getItem('userId') || 'guest';
+        const raw = localStorage.getItem(`completed_${userId}_${courseId}`);
         return raw ? new Set(JSON.parse(raw)) : new Set();
     } catch { return new Set(); }
 };
 const addCompletedLesson = (courseId, lessonId) => {
     try {
+        const userId = localStorage.getItem('userId') || 'guest';
         const set = getCompletedSet(courseId);
         set.add(lessonId);
-        sessionStorage.setItem(`completed_${courseId}`, JSON.stringify([...set]));
+        localStorage.setItem(`completed_${userId}_${courseId}`, JSON.stringify([...set]));
     } catch { /* ignore */ }
 };
 // ---------------------------------------------------------------
@@ -453,7 +455,7 @@ export default function LessonDetail() {
 
                 {/* Tabs Navigation */}
                 <div className="bg-white px-2 pt-2 pb-0 rounded-2xl border border-slate-200 shadow-sm mt-4 flex overflow-x-auto hide-scrollbar">
-                    {[{ key: '1', label: 'Nội dung bài học', icon: BookOpen }, { key: '2', label: 'Bài Tập Củng Cố', icon: CheckSquare }, { key: '3', label: 'Hỏi Đáp / Thảo Luận', icon: MessageSquare }].map(tab => (
+                    {[{ key: '1', label: 'Nội dung bài học' }, { key: '2', label: 'Bài Tập Củng Cố' }, { key: '3', label: 'Hỏi Đáp / Thảo Luận' }].map(tab => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
@@ -462,7 +464,6 @@ export default function LessonDetail() {
                                 : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                                 }`}
                         >
-                            <tab.icon size={16} className={activeTab === tab.key ? 'text-[#0487e2]' : 'text-slate-400'} />
                             {tab.label}
                         </button>
                     ))}
