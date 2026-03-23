@@ -75,9 +75,7 @@ const Fallback = () => (
 export default function RouteMap() {
   useEffect(() => {
     const handleStorageChange = (e) => {
-      // if localStorage is cleared (e.key === null) or accessToken is specifically removed
       if ((e.key === 'accessToken' && !e.newValue) || (e.key === null && !localStorage.getItem('accessToken'))) {
-        // Only redirect if not already on the login page
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login';
         }

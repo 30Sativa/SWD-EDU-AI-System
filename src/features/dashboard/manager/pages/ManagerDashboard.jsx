@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   MoreVertical,
@@ -109,6 +110,7 @@ const StatCard = ({ label, value, trend, change, data, color, bgBadge, index }) 
 };
 
 export default function ManagerDashboard() {
+  const navigate = useNavigate();
   const [statsData, setStatsData] = useState({
     totalSubjects: 0,
     activeCourses: 0,
@@ -123,11 +125,13 @@ export default function ManagerDashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // fetch consolidated stats rather than multiple endpoints
-        const resp = await getAdminDashboard();
-        const payload = resp.data?.data || resp.data || {};
+        // fetch stats and subjects list in parallel
+        const [dashResp, subjectResp] = await Promise.all([
+          getAdminDashboard(),
+          getSubjects()
+        ]);
 
-        // derive some manager-specific values if needed
+        const payload = dashResp.data?.data || dashResp.data || {};
         const totalSubjects = payload.totalCourses || 0;
         const activeCourses = payload.totalClasses || 0;
         const publishedLessons = payload.totalEnrollments || 0;
@@ -140,8 +144,8 @@ export default function ManagerDashboard() {
           teachers: teacherCount
         });
 
-        // keep subjects list as empty (no longer used) or fetch separately if desired
-        setSubjects([]);
+        const subjectList = subjectResp.data?.items || subjectResp.data?.data || subjectResp.data || [];
+        setSubjects(Array.isArray(subjectList) ? subjectList : []);
 
       } catch (error) {
         console.error("Error loading dashboard data:", error);
@@ -248,8 +252,12 @@ export default function ManagerDashboard() {
                       </td>
                     </tr>
                   ) : subjects.length > 0 ? (
-                    subjects.map((sub, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                    subjects.map((sub) => (
+                      <tr 
+                        key={sub.id || sub.code} 
+                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/dashboard/manager/subjects/${sub.id}`)}
+                      >
                         <td className="px-6 py-4">
                           <div className="font-bold text-slate-900 text-sm">{sub.name}</div>
                           <div className="text-xs text-slate-500 mt-0.5">
@@ -284,7 +292,12 @@ export default function ManagerDashboard() {
             </div>
 
             <div className="p-4 border-t border-slate-100 text-center bg-[#f0f6fa]/50">
-              <button className="text-sm font-semibold text-[#0487e2] hover:text-[#0463ca]">Xem tất cả danh sách</button>
+              <button 
+                className="text-sm font-semibold text-[#0487e2] hover:text-[#0463ca]"
+                onClick={() => navigate('/dashboard/manager/subjects')}
+              >
+                Xem tất cả danh sách
+              </button>
             </div>
           </div>
         </div>
@@ -295,7 +308,10 @@ export default function ManagerDashboard() {
           <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
             <h2 className="text-lg font-bold text-[#0463ca] mb-4">Tác vụ nhanh</h2>
             <div className="space-y-2">
-              <button className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:border-[#09b1ec] hover:bg-[#09b1ec]/5 transition-all text-left group">
+              <button 
+                className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:border-[#09b1ec] hover:bg-[#09b1ec]/5 transition-all text-left group"
+                onClick={() => navigate('/dashboard/manager/courses')}
+              >
                 <div className="p-2 bg-[#e0f2fe] text-[#0487e2] rounded-md">
                   <FileText size={18} />
                 </div>
@@ -304,7 +320,10 @@ export default function ManagerDashboard() {
                   <span className="text-xs text-slate-500">Upload PDF để tạo cấu trúc</span>
                 </div>
               </button>
-              <button className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:border-[#09b1ec] hover:bg-[#09b1ec]/5 transition-all text-left group">
+              <button 
+                className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:border-[#09b1ec] hover:bg-[#09b1ec]/5 transition-all text-left group"
+                onClick={() => navigate('/dashboard/manager/question-bank')}
+              >
                 <div className="p-2 bg-[#e0f2fe] text-[#0487e2] rounded-md">
                   <HelpCircle size={18} />
                 </div>

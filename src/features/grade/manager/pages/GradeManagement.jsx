@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit, Layers, BookOpen, Filter, School, Trash2, X, Users, Calendar, Eye, UserPlus } from 'lucide-react';
-import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, Switch, Select, Tabs, Popconfirm, Descriptions } from 'antd';
+import { Plus, Search, Edit, Layers, BookOpen, Filter, School, Trash2, X, Users, Calendar, Eye, UserPlus, Power } from 'lucide-react';
+import { Table, Button, Input, Modal, Form, Tag, message, Spin, Tooltip, Empty, Select, Tabs, Popconfirm, Descriptions } from 'antd';
 import {
     getGradeLevels,
     createGradeLevel,
@@ -383,32 +383,41 @@ export default function GradeManagement() {
             title: 'TRẠNG THÁI',
             dataIndex: 'isActive',
             align: 'center',
-            render: (isActive, record) => (
-                <div onClick={(e) => e.stopPropagation()}>
-                    <Switch
-                        size="small"
-                        checked={isActive}
-                        loading={statusUpdating === record.id}
-                        onChange={() => handleToggleGradeStatus(record)}
-                        className={isActive ? 'bg-[#0487e2]' : 'bg-slate-300'}
-                    />
-                </div>
+            render: (isActive) => (
+                <Tag color={isActive ? "success" : "default"} className="border-0 m-0">
+                    {isActive ? "Đang hoạt động" : "Ngưng hoạt động"}
+                </Tag>
             )
         },
         {
-            title: 'TÁC VỤ',
+            title: 'THAO TÁC',
             key: 'action',
             align: 'right',
             render: (_, record) => (
-                <Tooltip title="Chỉnh sửa">
-                    <Button
-                        type="text"
-                        shape="circle"
-                        icon={<Edit size={16} />}
-                        className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 transition-colors"
-                        onClick={() => handleOpenGradeModal(record)}
-                    />
-                </Tooltip>
+                <div className="flex justify-end gap-2">
+                    <Tooltip title={record.isActive ? "Tạm ngưng" : "Kích hoạt"}>
+                        <Button
+                            type="text"
+                            shape="circle"
+                            icon={<Power size={16} />}
+                            loading={statusUpdating === record.id}
+                            className={`hover:bg-slate-100 ${record.isActive ? 'text-amber-500 hover:text-amber-600' : 'text-emerald-500 hover:text-emerald-600'}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleGradeStatus(record);
+                            }}
+                        />
+                    </Tooltip>
+                    <Tooltip title="Chỉnh sửa">
+                        <Button
+                            type="text"
+                            shape="circle"
+                            icon={<Edit size={16} />}
+                            className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 transition-colors"
+                            onClick={() => handleOpenGradeModal(record)}
+                        />
+                    </Tooltip>
+                </div>
             )
         }
     ];
@@ -494,24 +503,18 @@ export default function GradeManagement() {
             title: 'TRẠNG THÁI',
             dataIndex: 'isActive',
             align: 'center',
-            render: (isActive, record) => (
-                <div onClick={(e) => e.stopPropagation()}>
-                    <Switch
-                        size="small"
-                        checked={isActive}
-                        loading={statusUpdating === record.id}
-                        onChange={() => handleToggleClassStatus(record)}
-                        className={isActive ? 'bg-emerald-500' : 'bg-slate-300'}
-                    />
-                </div>
+            render: (isActive) => (
+                <Tag color={isActive ? "success" : "default"} className="border-0 m-0">
+                    {isActive ? "Đang hoạt động" : "Ngưng hoạt động"}
+                </Tag>
             )
         },
         {
-            title: 'TÁC VỤ',
+            title: 'THAO TÁC',
             key: 'action',
             align: 'right',
             render: (_, record) => (
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 text-right">
                     <Tooltip title="Phân công GV Bộ môn">
                         <Button
                             type="text"
@@ -538,6 +541,23 @@ export default function GradeManagement() {
                             className="text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 transition-colors"
                             onClick={() => handleOpenClassModal(record)}
                         />
+                    </Tooltip>
+                    <Tooltip title={record.isActive ? "Tạm ngưng" : "Kích hoạt"}>
+                        <Popconfirm
+                            title="Xác nhận"
+                            description={`Bạn có muốn ${record.isActive ? 'ngưng hoạt động' : 'kích hoạt'} lớp ${record.name}?`}
+                            onConfirm={() => handleToggleClassStatus(record)}
+                            okText="Đồng ý"
+                            cancelText="Hủy"
+                        >
+                            <Button
+                                type="text"
+                                shape="circle"
+                                icon={<Power size={16} />}
+                                loading={statusUpdating === record.id}
+                                className={`hover:bg-slate-100 ${record.isActive ? 'text-amber-500 hover:text-amber-600' : 'text-emerald-500 hover:text-emerald-600'}`}
+                            />
+                        </Popconfirm>
                     </Tooltip>
                     <Popconfirm
                         title="Xóa lớp học"

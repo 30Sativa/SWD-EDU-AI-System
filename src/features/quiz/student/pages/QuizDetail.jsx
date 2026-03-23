@@ -47,6 +47,13 @@ export default function QuizDetail() {
     const [submitting, setSubmitting] = useState(false);
     const reviewRef = useRef(null);
     const chatEndRef = useRef(null);
+    
+    // Cleanup modals on unmount (prevent stuck modals on other pages)
+    useEffect(() => {
+        return () => {
+            Modal.destroyAll();
+        };
+    }, []);
 
     // AI Chat State
     const [isAIChatOpen, setIsAIChatOpen] = useState(false);
@@ -114,7 +121,7 @@ export default function QuizDetail() {
                         okText: 'Tiếp tục làm bài',
                         cancelText: 'Nộp ngay (bỏ trống)',
                         cancelButtonProps: { danger: true },
-                        zIndex: 10000,
+                        zIndex: 10005,
                         onOk: async () => {
                             // Resume the existing attempt - fetch questions first
                             try {
@@ -169,6 +176,7 @@ export default function QuizDetail() {
             okText: 'Xác nhận nộp bài',
             cancelText: 'Chưa, tôi muốn xem lại',
             centered: true,
+            zIndex: 10005, // Higher than taking mode container
             okButtonProps: { className: 'bg-[#0487e2] font-bold shadow-md' },
             cancelButtonProps: { className: 'font-bold' },
             onOk: async () => {
@@ -253,6 +261,7 @@ export default function QuizDetail() {
             okText: 'Thoát và Nộp',
             okType: 'danger',
             cancelText: 'Tiếp tục làm bài',
+            zIndex: 10005,
             onOk: async () => {
                 setSubmitting(true);
                 try {

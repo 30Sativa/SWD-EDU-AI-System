@@ -227,21 +227,7 @@ export default function QuestionBank() {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <Button
-                            icon={<Download size={18} />}
-                            className="h-12 px-6 rounded-xl font-bold border-slate-200 text-slate-600 hover:text-[#0463ca] hover:border-[#0463ca] bg-white shadow-sm transition-all flex items-center gap-2"
-                        >
-                            DỮ LIỆU MẪU
-                        </Button>
-                        <Button
-                            type="primary"
-                            icon={<Plus size={18} />}
-                            className="bg-[#0487e2] hover:bg-[#0374c4] h-12 px-8 rounded-xl font-bold shadow-md border-none flex items-center gap-2 active:scale-95 transition-all"
-                        >
-                            TẠO THỦ CÔNG
-                        </Button>
-                    </div>
+
                 </header>
 
                 {/* Dashboard Stats Banner */}

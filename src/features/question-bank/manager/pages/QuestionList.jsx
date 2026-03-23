@@ -42,7 +42,7 @@ export default function QuestionList() {
             setLoading(true);
             // Try as courseId first
             let response = await getManagerQuestionsBank({ courseId: topicId });
-            
+
             // If empty or lesson-based, try as lessonId
             if (!response.success || (response.data && response.data.length === 0)) {
                 const fallback = await getManagerQuestionsBank({ lessonId: topicId });
@@ -84,10 +84,10 @@ export default function QuestionList() {
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-8 font-sans text-slate-800">
             <div className="max-w-6xl mx-auto space-y-6">
-                
+
                 {/* Header & Breadcrumb */}
                 <div className="flex flex-col gap-4 mb-2">
-                    <Breadcrumb 
+                    <Breadcrumb
                         items={[
                             { title: <span onClick={() => navigate('/manager/question-bank')} className="text-slate-400 hover:text-[#0463ca] cursor-pointer font-medium">Ngân hàng câu hỏi</span> },
                             { title: <span className="text-slate-600 font-bold">Chi tiết chủ đề</span> },
@@ -99,7 +99,7 @@ export default function QuestionList() {
                         <div className="flex items-center gap-4">
                             <Button
                                 icon={<ArrowLeft size={18} />}
-                                onClick={() => navigate('/manager/question-bank')}
+                                onClick={() => navigate('/dashboard/manager/question-bank')}
                                 className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border-slate-200 text-slate-400 hover:text-[#0463ca] hover:border-blue-200 shadow-sm transition-all"
                             />
                             <div>
@@ -144,7 +144,7 @@ export default function QuestionList() {
                             />
                         </div>
                     </div>
-                    
+
                     <div className="flex gap-4 w-full md:w-auto items-end">
                         <div className="w-full md:w-56">
                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">LOẠI CÂU HỎI</label>
@@ -154,10 +154,10 @@ export default function QuestionList() {
                                 className="w-full h-12 custom-select [&>.ant-select-selector]:!rounded-xl [&>.ant-select-selector]:!border-none [&>.ant-select-selector]:!bg-slate-50 font-bold text-slate-600"
                                 options={[
                                     { value: 'All', label: 'Tất cả các loại' },
-                                    { value: 'MCQ', label: '⭐ Trắc nghiệm (1)' },
-                                    { value: 'MultipleChoice', label: '✨ Nhiều lựa chọn' },
-                                    { value: 'TrueFalse', label: '✅ Đúng / Sai' },
-                                    { value: 'ShortAnswer', label: '✍️ Tự luận ngắn' }
+                                    { value: 'MCQ', label: ' Trắc nghiệm (1)' },
+                                    { value: 'MultipleChoice', label: ' Nhiều lựa chọn' },
+                                    { value: 'TrueFalse', label: ' Đúng / Sai' },
+                                    { value: 'ShortAnswer', label: ' Tự luận ngắn' }
                                 ]}
                             />
                         </div>
@@ -174,12 +174,12 @@ export default function QuestionList() {
                 <div className="space-y-4 pb-12">
                     {filteredData.length > 0 ? (
                         filteredData.map((question, index) => (
-                            <div 
-                                key={question.questionId} 
+                            <div
+                                key={question.questionId}
                                 className="bg-white border border-slate-100 rounded-2xl p-6 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all group relative overflow-hidden"
                             >
                                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#0487e2] opacity-0 group-hover:opacity-100 transition-all" />
-                                
+
                                 <div className="flex justify-between items-start gap-6">
                                     <div className="flex-1 space-y-4">
                                         <div className="flex items-center gap-3">
@@ -203,11 +203,10 @@ export default function QuestionList() {
                                         {/* Options Grid */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
                                             {(question.options || []).map((opt, oIdx) => (
-                                                <div key={oIdx} className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
-                                                    opt.isCorrect 
-                                                    ? 'bg-emerald-50 border-emerald-100 text-emerald-700 shadow-sm' 
-                                                    : 'bg-slate-50/50 border-slate-100 text-slate-500'
-                                                }`}>
+                                                <div key={oIdx} className={`p-4 rounded-xl border flex items-center justify-between transition-all ${opt.isCorrect
+                                                        ? 'bg-emerald-50 border-emerald-100 text-emerald-700 shadow-sm'
+                                                        : 'bg-slate-50/50 border-slate-100 text-slate-500'
+                                                    }`}>
                                                     <div className="flex items-center gap-3 overflow-hidden">
                                                         <div className={`w-2 h-2 rounded-full ${opt.isCorrect ? 'bg-emerald-500' : 'bg-slate-200'}`} />
                                                         <span className="text-sm font-semibold truncate">{opt.optionText}</span>
@@ -233,10 +232,10 @@ export default function QuestionList() {
 
                                     {/* Action column - Read-only version */}
                                     <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                                         <Tooltip title="Xem thông tin chi tiết (Read-only)">
-                                            <Button 
-                                                type="text" 
-                                                icon={<Info size={18} />} 
+                                        <Tooltip title="Xem thông tin chi tiết (Read-only)">
+                                            <Button
+                                                type="text"
+                                                icon={<Info size={18} />}
                                                 className="h-10 w-10 flex items-center justify-center bg-white shadow-md border border-slate-100 text-slate-400 hover:text-[#0487e2] hover:bg-blue-50 rounded-xl"
                                             />
                                         </Tooltip>
